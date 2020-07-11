@@ -5,7 +5,7 @@ mod data;
 mod dialog;
 mod loader;
 
-use loader::{LoaderState, LoaderError};
+use loader::{LoaderState, LoaderError, Loader};
 
 pub fn main() {
     let kaylin = data::read_entity_from_path("samples/party.json").unwrap();
@@ -26,18 +26,18 @@ enum Main {
         open_failed: Option<dialog::OpenError>
     },
     Loading {
-        loader_state: LoaderState,
+        loader_state: Box<dyn Loader>, // Rename to loader
         loader_failed: Option<LoaderError>,
         // TODO Add progress bar
     },
     Loaded(),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum MainMessage {
     OpenFileDialog,
     FileChosen(Result<PathBuf, dialog::OpenError>),
-    LoaderStepAdvanced(Result<LoaderState, LoaderError>)
+    LoaderStepAdvanced(Result<Box<dyn Loader + Send>, LoaderError>)
 }
 
 impl Application for Main {
@@ -61,7 +61,7 @@ impl Application for Main {
     fn title(&self) -> String {
         match self {
             Main::Loader{..} => format!("Pathfinder WotR Editor"),
-            Main::Loading{ loader_state, .. } => format!("Loading file {:?}", loader_state.file_path()),
+            Main::Loading{ loader_state, .. } => format!("Loading file {:?}", loader_state.current_step().file_path()),
             Main::Loaded(..) => format!("Pathfinder WotR Editor"),
         }
     }
@@ -75,7 +75,7 @@ impl Application for Main {
             MainMessage::FileChosen(Ok(path)) => {
                 println!("Let's open {:?}", path);
                 *self = Main::Loading {
-                    loader_state: loader::init(path),
+                    loader_state: Loader::new(path),
                     loader_failed: None
                 };
                 Command::none()
@@ -87,13 +87,13 @@ impl Application for Main {
                 };
                 Command::none()
             },
-            MainMessage::LoaderStepAdvanced(Ok(next_state)) => {
+            MainMessage::LoaderStepAdvanced(Ok(next_loader)) => {
                 *self = Main::Loading {
-                    loader_state: next_state,
+                    loader_state: next_loader,
                     loader_failed: None,
                 };
 
-                Command::perform(next_state.next_step(), MainMessage::LoaderStepAdvanced)
+                Command::perform(next_loader.next_step(), MainMessage::LoaderStepAdvanced)
             },
             MainMessage::LoaderStepAdvanced(Err(step_failed)) => {
                 // TODO
@@ -105,16 +105,16 @@ impl Application for Main {
     fn view(&mut self) -> Element<MainMessage> {
         match self {
             Main::Loader { open_button_state, open_failed } => {
+                let button = Button::new(open_button_state, Text::new("Load a save file"))
+                    .on_press(MainMessage::OpenFileDialog)
+                    .padding(10);
+
                 let mut layout = Column::new()
                     .align_items(Align::Center)
                     .push(
                         Text::new("Pathfinder Editor - Wrath of the Righteous Edition").width(Length::Fill)
                     )
-                    .push(
-                        Button::new(open_button_state, Text::new("Load a save file"))
-                            .on_press(MainMessage::OpenFileDialog)
-                            .padding(10)
-                    );
+                    .push(button);
                 
                     if let Some(error) = open_failed {
                         layout = layout.push(
@@ -125,6 +125,7 @@ impl Application for Main {
                 layout.into()
             },
             Main::Loading { loader_state, loader_failed } => {
+                let loader_state = loader_state.current_step();
                 let layout = match loader_failed {
                     Some(error) => {
                         Column::new()
