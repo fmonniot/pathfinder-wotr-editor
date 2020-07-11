@@ -59,7 +59,7 @@ impl LoadingStep {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Loader {
     file_path: PathBuf
 }

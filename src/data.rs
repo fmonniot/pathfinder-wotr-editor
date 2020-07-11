@@ -9,14 +9,15 @@ use std::path::Path;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Party {
-    json: IndexedJson,
-    characters: Vec<Character>
+    index: IndexedJson,
+    pub characters: Vec<Character>
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Character {
     id: String,
-    name: String,
+    pub name: String,
+    pub blueprint: String,
     statistics: Vec<Stat>
 }
 
@@ -34,6 +35,7 @@ pub struct Stat {
 pub enum JsonReaderError {
     ArrayExpected(String, String), // path and actual type
     ObjectExpected(String, String), // path and actual type
+    StringExpected(String, String), // path and actual type
     InvalidReference(String, String), // path and $ref value
     InvalidPointer(String),
     Deserialization(serde_json::Error),
@@ -45,30 +47,55 @@ impl std::convert::From<serde_json::Error> for JsonReaderError {
     }
 }
 
-pub fn read_party(json: IndexedJson) -> Result<Party, JsonReaderError> {
+pub fn read_party(index: IndexedJson) -> Result<Party, JsonReaderError> {
+    let pointer = "/m_EntityData";
+    
+    let characters_json = index.pointer(&pointer).ok_or(JsonReaderError::InvalidPointer(pointer.to_string()))?;
+    let characters_json = characters_json.as_array().ok_or(JsonReaderError::ArrayExpected(pointer.to_string(), json_type(characters_json).to_string()))?;
 
-    unimplemented!()
+    let characters = characters_json.iter()
+        .filter(|json| {
+            // Only keep the entry of type unit
+            json.get("$type")
+                .and_then(|j| j.as_str())
+                .filter(|s| s == &"Kingmaker.EntitySystem.Entities.UnitEntityData, Assembly-CSharp")
+                .is_some()
+        })
+        .map(|json| read_character(&index, json))
+        .collect::<Result<Vec<_>, JsonReaderError>>()?;
+
+    Ok(Party { index, characters })
 }
 
-pub fn read_all_stats(json: &IndexedJson, character_index: u8) -> Result<Vec<Stat>, JsonReaderError> {
-    let pointer = format!("/m_EntityData/{}/Descriptor/Stats", character_index);
-    let stats = json.pointer(&pointer).ok_or(JsonReaderError::InvalidPointer(pointer.to_string()))?;
+fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonReaderError> {
+    // Statistics
+    let pointer = "/Descriptor/Stats";
     
-    // TODO This is actually an object with the key being the attribute
-    let stats = stats.as_object().ok_or(JsonReaderError::ObjectExpected(pointer.to_string(), json_type(stats).to_string()))?;
+    let stats_json = json.pointer(&pointer).ok_or(JsonReaderError::InvalidPointer(pointer.to_string()))?;
+    let stats_json = stats_json.as_object().ok_or(JsonReaderError::ObjectExpected(pointer.to_string(), json_type(stats_json).to_string()))?;
 
-    let stats = stats.iter()
+    let statistics = stats_json.iter()
         .filter(|(key, _)| key != &"$id")
         .map(|(key, value)| {
             let ptr = format!("{}/{}", pointer, key);
-            let value = dereference(value, json, &ptr)?;
+            let value = dereference(value, &index, &ptr)?;
             let stat = serde_json::from_value(value.clone())?;
 
             Ok(stat)
         })
         .collect::<Result<Vec<_>, JsonReaderError>>()?;
 
-    Ok(stats)   
+    // Better error type ?
+    let id = json.get("$id").and_then(Value::as_str).map(str::to_string).ok_or(JsonReaderError::InvalidPointer("/$id".to_string()))?;
+    let name = json.pointer("/Descriptor/CustomName").ok_or(JsonReaderError::InvalidPointer("/Descriptor/CustomName".to_string()))?
+        .as_str().ok_or(JsonReaderError::StringExpected(pointer.to_string(), "todo".to_string()))?
+        .to_string();
+
+    let blueprint = json.pointer("/Descriptor/Blueprint").ok_or(JsonReaderError::InvalidPointer("/Descriptor/Blueprint".to_string()))?
+        .as_str().ok_or(JsonReaderError::StringExpected(pointer.to_string(), "todo".to_string()))?
+        .to_string();
+
+    Ok(Character { id, name, blueprint, statistics})
 }
 
 fn dereference<'a>(value: &'a Value, index: &'a IndexedJson, path: &str) -> Result<&'a Value, JsonReaderError> {

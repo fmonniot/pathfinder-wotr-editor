@@ -8,16 +8,7 @@ mod loader;
 use loader::{Loader, LoadingStep, LoaderError};
 
 pub fn main() {
-    let kaylin = data::read_entity_from_path("samples/party.json").unwrap();
-    let kaylin = data::IndexedJson::new(kaylin);
-    //println!("$id list: {:?}", kaylin.index);
-
-    //println!("test path: {:?}", kaylin.pointer("/m_EntityData/0/Descriptor/Stats"));
-
-    let statistics = data::read_all_stats(&kaylin, 0);
-    println!("Statistics for Kaylin: {:#?}", statistics);
-
-    //Main::run(Settings::default())
+    Main::run(Settings::default())
 }
 
 struct LoadingState {
@@ -33,7 +24,7 @@ enum Main {
         open_failed: Option<dialog::OpenError>
     },
     Loading(LoadingState),
-    Loaded(),
+    Loaded { party: data::Party }, // Remember which character is currently active
 }
 
 #[derive(Debug, Clone)]
@@ -49,14 +40,19 @@ impl Application for Main {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Self::Message>) {
+        // Normal running condition
         /*
         let component = Main::Loader {
             open_button_state: button::State::new(),
             open_failed: None
-        }
+        };
         */
 
-        let component = Main::Loaded();
+        // Hack to speed up development, should probably be behind a flag
+        let party = data::read_entity_from_path("samples/party.json").unwrap();
+        let party = data::IndexedJson::new(party);
+        let party = data::read_party(party).unwrap();
+        let component = Main::Loaded { party };
 
         (component, Command::none())
     }
@@ -65,7 +61,7 @@ impl Application for Main {
         match self {
             Main::Loader{..} => format!("Pathfinder WotR Editor"),
             Main::Loading(LoadingState{ loader, .. }) => format!("Loading file {:?}", loader.file_path()),
-            Main::Loaded(..) => format!("Pathfinder WotR Editor"),
+            Main::Loaded { .. } => format!("Pathfinder WotR Editor"),
         }
     }
 
@@ -96,7 +92,7 @@ impl Application for Main {
                     Main::Loading(ref mut state) => {
                         match step {
                             LoadingStep::Done { party } => {
-                                *self = Main::Loaded();
+                                *self = Main::Loaded { party };
                                 Command::none()
                             },
                             _ =>  {
@@ -151,7 +147,7 @@ impl Application for Main {
 
                 Container::new(layout).into()
             },
-            Main::Loaded(..) => {
+            Main::Loaded { party } => {
                 
                 let menu = Column::new()
                     .align_items(Align::Start)
@@ -160,13 +156,19 @@ impl Application for Main {
                     .style(style::MenuSurface)
                     .height(Length::Fill);
 
-                let characters = Column::new()
+                let mut characters = Column::new()
                     .width(Length::from(150))
-                    .height(Length::Fill)
-                    .push(character_item("Kaylin", true))
-                    .push(character_item("Solace", false))
-                    .push(character_item("Amiri", false))
-                    .push(character_item("Ember", false));
+                    .height(Length::Fill);
+
+                for c in &party.characters {
+                    let mut name = &c.name;
+                    if name.is_empty() {
+                        name = &c.blueprint;
+                    }
+
+                    characters = characters.push(character_item(name, false));
+                }
+
                 let characters = Container::new(characters)
                     .style(style::SecondaryMenuSurface)
                     .height(Length::Fill);
@@ -215,7 +217,9 @@ impl Application for Main {
     fn subscription(&self) -> Subscription<Self::Message> {
         match self {
             Main::Loading(LoadingState{ loader, .. }) => {
-                Subscription::none()
+                let l = loader.clone();
+                iced::Subscription::from_recipe(l)
+                    .map(Self::Message::LoadProgressed)
             },
             _ => Subscription::none()
         }
