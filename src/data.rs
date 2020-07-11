@@ -1,26 +1,26 @@
 // Data model for the save game
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::{HashMap, BTreeMap};
+use std::collections::BTreeMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Party {
     json: IndexedJson,
     characters: Vec<Character>
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Character {
     id: String,
     name: String,
     statistics: Vec<Stat>
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Stat {
     #[serde(alias = "$id")]
     id: String,
@@ -43,6 +43,11 @@ impl std::convert::From<serde_json::Error> for JsonReaderError {
     fn from(err: serde_json::Error) -> Self {
         JsonReaderError::Deserialization(err)
     }
+}
+
+pub fn read_party(json: IndexedJson) -> Result<Party, JsonReaderError> {
+
+    unimplemented!()
 }
 
 pub fn read_all_stats(json: &IndexedJson, character_index: u8) -> Result<Vec<Stat>, JsonReaderError> {
@@ -96,7 +101,7 @@ pub fn read_entity_from_path<P: AsRef<Path>>(path: P) -> Result<Value, Box<dyn E
     Ok(serde_json::from_reader(reader)?)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IndexedJson {
     json: Value,
     pub index: BTreeMap<String, String>

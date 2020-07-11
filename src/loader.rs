@@ -1,18 +1,22 @@
 use std::path::PathBuf;
-use async_trait::async_trait;
 use crate::data;
 
 // Start by declaring the public interface
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum LoaderError {
     IoError(String),
+    SerdeError(String, String),
     JsonError(String, String)
 }
 
 impl LoaderError {
-    fn json_error(file_name: &str, err: serde_json::Error) -> LoaderError {
-        LoaderError::JsonError(file_name.to_string(), format!("{}", err))
+    fn serde_error(file_name: &str, err: serde_json::Error) -> LoaderError {
+        LoaderError::SerdeError(file_name.to_string(), format!("{}", err))
+    }
+
+    fn json_error(file_name: &str, err: data::JsonReaderError) -> LoaderError {
+        LoaderError::JsonError(file_name.to_string(), format!("{:?}", err))
     }
 }
 
@@ -22,148 +26,125 @@ impl From<std::io::Error> for LoaderError {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum LoaderState {
-    Initialized {
-        file_path: PathBuf
+#[derive(Debug, Clone, PartialEq)]
+pub enum LoadingStep {
+    Initialized,
+    ReadingFile,
+    ReadingParty,
+    Done {
+        party: data::Party
     },
-    FileRead {
-        file_path: PathBuf
-    },
-    /// Terminal state, user of the Loader API should stop calling `next_step` when the `current_step`
-    /// is returning `PartyRead` (it will continously return the same state and won't do more computation).
-    PartyRead {
-        file_path: PathBuf,
-        party: data::Party,
+    Error(LoaderError)
+}
+
+impl LoadingStep {
+    pub fn completion_percentage(&self) -> u8 {
+        match self {
+            LoadingStep::Initialized => 0,
+            LoadingStep::ReadingFile => 33,
+            LoadingStep::ReadingParty => 33,
+            LoadingStep::Done{..} => 100,
+            LoadingStep::Error(..) => 0
+        }
+    }
+
+    pub fn next_description(&self) -> String {
+        match self {
+            LoadingStep::Initialized => "Initialized".to_string(),
+            LoadingStep::ReadingFile => "Reading file from disk".to_string(),
+            LoadingStep::ReadingParty => "Parsing the party information".to_string(),
+            LoadingStep::Done{..} => "All done !".to_string(),
+            LoadingStep::Error(error) => format!("Error: {:?}", error),
+        }
     }
 }
 
-impl LoaderState {
-    pub fn completion_percentage(&self) -> u8 {
-        match self {
-            LoaderState::Initialized{..} => 0,
-            LoaderState::FileRead{..} => 50,
-            LoaderState::PartyRead{..} => 100,
-        }
-    }
+#[derive(Debug)]
+pub struct Loader {
+    file_path: PathBuf
+}
 
-    pub fn next_step_description(&self) -> &'static str {
-        match self {
-            LoaderState::Initialized{..} => "Reading file from disk",
-            LoaderState::FileRead{..} => "Parsing the party information",
-            LoaderState::PartyRead{..} => "All done !",
-        }
+impl Loader {
+    pub fn new(file_path: PathBuf) -> Loader {
+        Loader { file_path }
     }
 
     pub fn file_path(&self) -> &PathBuf {
-        match self {
-            LoaderState::Initialized{file_path, ..} => &file_path,
-            LoaderState::FileRead{file_path, ..} => &file_path,
-            LoaderState::PartyRead{file_path, ..} => &file_path,
-        }
+        &self.file_path
     }
 }
 
-#[async_trait]
-pub trait Loader {
-    async fn next_step(&self) -> Result<Box<dyn Loader + Send>, LoaderError>;
+// Make sure iced can use our download stream
+impl<H, I> iced_native::subscription::Recipe<H, I> for Loader
+where
+    H: std::hash::Hasher,
+{
+    type Output = LoadingStep;
 
-    fn current_step(&self) -> LoaderState;
-}
+    fn hash(&self, state: &mut H) {
+        use std::hash::Hash;
 
-impl dyn Loader {
-
-    pub fn new(file_path: PathBuf) -> Box<dyn Loader> {
-        Box::new(Initialized { file_path })
+        std::any::TypeId::of::<Self>().hash(state);
+        self.file_path.hash(state);
     }
-}
 
-use core::fmt::Debug;
-
-impl Debug for (dyn Loader + std::marker::Send + 'static) {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "Loader{{{:?}}}", self)
-    }
-}
-
-// And then the private implementation of the state machine
-
-#[derive(Debug)]
-struct Initialized {
-    file_path: PathBuf,
-}
-
-#[async_trait]
-impl Loader for Initialized {
-
-    async fn next_step(&self) -> Result<Box<dyn Loader + Send>, LoaderError> {
-        // Create archive struct with file_path
-        // Verify all required files are present (header.json, party.json, etc...)
-        Ok(Box::new(FileRead {
-            file_path: self.file_path.clone(),
-            archive: ()
+    fn stream(
+        self: Box<Self>,
+        _input: futures::stream::BoxStream<'static, I>,
+    ) -> futures::stream::BoxStream<'static, Self::Output> {
+        Box::pin(futures::stream::unfold(Initializing { file_path: self.file_path }, |state| async move {
+            state.exec().await
         }))
     }
-
-    fn current_step(&self) -> LoaderState {
-        LoaderState::Initialized { file_path: self.file_path }
-    }
 }
 
-#[derive(Debug)]
-struct FileRead {
-    file_path: PathBuf,
-    archive: (),
+enum LSM {
+    Initializing { file_path: PathBuf },
+    ReadingFile { file_path: PathBuf },
+    ReadingParty { file_path: PathBuf, archive: () },
+    // This state is reached after completion, whether it's because of an error or a normal end.
+    Terminated
 }
 
-#[async_trait]
-impl Loader for FileRead {
-    
-    async fn next_step(&self) -> Result<Box<dyn Loader + Send>, LoaderError> {
-        // TODO Should be done from the archive 
-        let file_content = tokio::fs::read("samples/party.json").await?;
+use LSM::*;
 
-        let json = serde_json::from_slice(&file_content)
-            .map_err(|err| LoaderError::json_error("party.json", err))?;
+impl LSM {
 
-        let party = data::IndexedJson::new(json);
+    async fn exec(self) -> Option<(LoadingStep, LSM)> {
+        match self {
+            Initializing { file_path } => Some((LoadingStep::ReadingFile, ReadingFile { file_path } )),
+            ReadingFile { file_path } => {
+                // Create archive struct with file_path
+                // Verify all required files are present (header.json, party.json, etc...)
 
-        // Get party.json and parse as JSON
-        unimplemented!()
-    }
+                Some((LoadingStep::ReadingParty, ReadingParty { file_path, archive: ()}))
+            },
+            ReadingParty { archive, .. } => {
 
-    fn current_step(&self) -> LoaderState {
-        LoaderState::FileRead { file_path: self.file_path }
-    }
-}
-
-#[derive(Debug)]
-struct PartyRead {
-    file_path: PathBuf,
-    archive: (),
-    party: data::Party,
-}
-
-#[async_trait]
-impl Loader for PartyRead {
-    
-    async fn next_step(&self) -> Result<Box<dyn Loader + Send>, LoaderError> {
-        // TODO Should be done from the archive 
-        let file_content = tokio::fs::read("samples/party.json").await?;
-
-        let json = serde_json::from_slice(&file_content)
-            .map_err(|err| LoaderError::json_error("party.json", err))?;
-
-        let party = data::IndexedJson::new(json);
-
-        // Get party.json and parse as JSON
-        unimplemented!()
-    }
-
-    fn current_step(&self) -> LoaderState {
-        LoaderState::PartyRead {
-            file_path: self.file_path,
-            party: self.party
+                // TODO Use the archive instead of reading from disk
+                // self.current_step = LoadingStep::ReadingParty;
+                match extract_party(&archive).await {
+                    Ok(party) => Some((LoadingStep::Done { party }, Terminated)),
+                    Err(error) => Some((LoadingStep::Error(error), Terminated))
+                }
+            },
+            Terminated => None,
         }
     }
+
+}
+
+async fn extract_party(_archive: &()) -> Result<data::Party, LoaderError> {
+    // TODO Should be done from the archive 
+    let file_content = tokio::fs::read("samples/party.json").await?;
+
+    let json = serde_json::from_slice(&file_content)
+        .map_err(|err| LoaderError::serde_error("party.json", err))?;
+
+    let indexed_json = data::IndexedJson::new(json);
+
+    let party = data::read_party(indexed_json)
+        .map_err(|err| LoaderError::json_error("party.json", err))?;
+
+    Ok(party)
 }

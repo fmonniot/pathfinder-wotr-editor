@@ -1,11 +1,11 @@
-use iced::{button, Align, Button, Column, Element, Settings, Text, Row, Length, Container, Application, Command, Font, HorizontalAlignment, VerticalAlignment, text_input};
+use iced::{button, Align, Button, Column, Element, Settings, Text, Row, Length, Container, Application, Command, Font, HorizontalAlignment, VerticalAlignment, text_input, Subscription};
 use std::path::{PathBuf};
 
 mod data;
 mod dialog;
 mod loader;
 
-use loader::{LoaderState, LoaderError, Loader};
+use loader::{Loader, LoadingStep, LoaderError};
 
 pub fn main() {
     let kaylin = data::read_entity_from_path("samples/party.json").unwrap();
@@ -20,24 +20,27 @@ pub fn main() {
     //Main::run(Settings::default())
 }
 
+struct LoadingState {
+    loader: Loader,
+    current_step: LoadingStep,
+    failed: Option<LoaderError>,
+    // TODO Add progress bar
+}
+
 enum Main {
     Loader {
         open_button_state: button::State,
         open_failed: Option<dialog::OpenError>
     },
-    Loading {
-        loader_state: Box<dyn Loader>, // Rename to loader
-        loader_failed: Option<LoaderError>,
-        // TODO Add progress bar
-    },
+    Loading(LoadingState),
     Loaded(),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum MainMessage {
     OpenFileDialog,
     FileChosen(Result<PathBuf, dialog::OpenError>),
-    LoaderStepAdvanced(Result<Box<dyn Loader + Send>, LoaderError>)
+    LoadProgressed(LoadingStep)
 }
 
 impl Application for Main {
@@ -61,7 +64,7 @@ impl Application for Main {
     fn title(&self) -> String {
         match self {
             Main::Loader{..} => format!("Pathfinder WotR Editor"),
-            Main::Loading{ loader_state, .. } => format!("Loading file {:?}", loader_state.current_step().file_path()),
+            Main::Loading(LoadingState{ loader, .. }) => format!("Loading file {:?}", loader.file_path()),
             Main::Loaded(..) => format!("Pathfinder WotR Editor"),
         }
     }
@@ -74,10 +77,11 @@ impl Application for Main {
             },
             MainMessage::FileChosen(Ok(path)) => {
                 println!("Let's open {:?}", path);
-                *self = Main::Loading {
-                    loader_state: Loader::new(path),
-                    loader_failed: None
-                };
+                *self = Main::Loading(LoadingState{
+                    loader: Loader::new(path),
+                    current_step: LoadingStep::Initialized,
+                    failed: None,
+                });
                 Command::none()
             },
             MainMessage::FileChosen(Err(error)) => {
@@ -87,17 +91,22 @@ impl Application for Main {
                 };
                 Command::none()
             },
-            MainMessage::LoaderStepAdvanced(Ok(next_loader)) => {
-                *self = Main::Loading {
-                    loader_state: next_loader,
-                    loader_failed: None,
-                };
-
-                Command::perform(next_loader.next_step(), MainMessage::LoaderStepAdvanced)
-            },
-            MainMessage::LoaderStepAdvanced(Err(step_failed)) => {
-                // TODO
-                Command::none()
+            MainMessage::LoadProgressed(step) => {
+                match self {
+                    Main::Loading(ref mut state) => {
+                        match step {
+                            LoadingStep::Done { party } => {
+                                *self = Main::Loaded();
+                                Command::none()
+                            },
+                            _ =>  {
+                                state.current_step = step;
+                                Command::none()
+                            }
+                        }
+                    },
+                    _ => Command::none(),
+                }
             }
         }
     }
@@ -105,16 +114,17 @@ impl Application for Main {
     fn view(&mut self) -> Element<MainMessage> {
         match self {
             Main::Loader { open_button_state, open_failed } => {
-                let button = Button::new(open_button_state, Text::new("Load a save file"))
-                    .on_press(MainMessage::OpenFileDialog)
-                    .padding(10);
 
                 let mut layout = Column::new()
                     .align_items(Align::Center)
                     .push(
                         Text::new("Pathfinder Editor - Wrath of the Righteous Edition").width(Length::Fill)
                     )
-                    .push(button);
+                    .push(
+                        Button::new(open_button_state, Text::new("Load a save file"))
+                            .on_press(MainMessage::OpenFileDialog)
+                            .padding(10)
+                    );
                 
                     if let Some(error) = open_failed {
                         layout = layout.push(
@@ -124,9 +134,8 @@ impl Application for Main {
 
                 layout.into()
             },
-            Main::Loading { loader_state, loader_failed } => {
-                let loader_state = loader_state.current_step();
-                let layout = match loader_failed {
+            Main::Loading(LoadingState{ loader, failed, current_step }) => {
+                let layout = match failed {
                     Some(error) => {
                         Column::new()
                             .push(Text::new("Loading failed"))
@@ -134,9 +143,9 @@ impl Application for Main {
                     },
                     None => {
                         Column::new()
-                            .push(Text::new(format!("Loading {:?}", loader_state.file_path())))
-                            .push(Text::new(format!("Completion: {}/100", loader_state.completion_percentage())))
-                            .push(Text::new(format!("{}", loader_state.next_step_description())))
+                            .push(Text::new(format!("Loading {:?}", loader.file_path())))
+                            .push(Text::new(format!("Completion: {}/100", current_step.completion_percentage())))
+                            .push(Text::new(format!("{}", current_step.next_description())))
                     }
                 };
 
@@ -200,6 +209,15 @@ impl Application for Main {
                     .push(character)
                     .into()
             },
+        }
+    }
+
+    fn subscription(&self) -> Subscription<Self::Message> {
+        match self {
+            Main::Loading(LoadingState{ loader, .. }) => {
+                Subscription::none()
+            },
+            _ => Subscription::none()
         }
     }
 }

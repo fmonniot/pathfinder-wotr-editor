@@ -8,9 +8,11 @@ edition = "2018"
 
 [dependencies]
 iced = { version = "0.1", features = ["tokio"] }
+iced_native = { version = "0.2", features = [] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tinyfiledialogs = "3.0"
 tokio = { version = "0.2", features = ["blocking", "fs"] }
 dirs = "3.0"
 async-trait = "0.1"
+futures = "0.3"
