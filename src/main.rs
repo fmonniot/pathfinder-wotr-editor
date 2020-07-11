@@ -1,26 +1,43 @@
-use iced::{button, Align, Button, Column, Element, Settings, Text, Row, Length, Container, Application, Command, Font, HorizontalAlignment, container, Background, Color, VerticalAlignment};
+use iced::{button, Align, Button, Column, Element, Settings, Text, Row, Length, Container, Application, Command, Font, HorizontalAlignment, VerticalAlignment, text_input};
 use std::path::{PathBuf};
 
 mod data;
 mod dialog;
+mod loader;
+
+use loader::{LoaderState, LoaderError};
 
 pub fn main() {
-    Main::run(Settings::default())
+    let kaylin = data::read_entity_from_path("samples/party.json").unwrap();
+    let kaylin = data::IndexedJson::new(kaylin);
+    //println!("$id list: {:?}", kaylin.index);
+
+    //println!("test path: {:?}", kaylin.pointer("/m_EntityData/0/Descriptor/Stats"));
+
+    let statistics = data::read_all_stats(&kaylin, 0);
+    println!("Statistics for Kaylin: {:#?}", statistics);
+
+    //Main::run(Settings::default())
 }
 
 enum Main {
     Loader {
         open_button_state: button::State,
-        loading_failed: Option<dialog::OpenError>
+        open_failed: Option<dialog::OpenError>
     },
-    Loading(PathBuf),
-    Loaded(data::Entity),
+    Loading {
+        loader_state: LoaderState,
+        loader_failed: Option<LoaderError>,
+        // TODO Add progress bar
+    },
+    Loaded(),
 }
 
 #[derive(Debug, Clone)]
 enum MainMessage {
     OpenFileDialog,
-    FileChosen(Result<PathBuf, dialog::OpenError>)
+    FileChosen(Result<PathBuf, dialog::OpenError>),
+    LoaderStepAdvanced(Result<LoaderState, LoaderError>)
 }
 
 impl Application for Main {
@@ -32,13 +49,11 @@ impl Application for Main {
         /*
         let component = Main::Loader {
             open_button_state: button::State::new(),
-            loading_failed: None
+            open_failed: None
         }
         */
 
-        let kaylin = data::read_entity_from_path("samples/kaylin.json").unwrap();
-        //println!("Reading Kaylin data:\n{:#?}", kaylin);
-        let component = Main::Loaded(kaylin);
+        let component = Main::Loaded();
 
         (component, Command::none())
     }
@@ -46,7 +61,7 @@ impl Application for Main {
     fn title(&self) -> String {
         match self {
             Main::Loader{..} => format!("Pathfinder WotR Editor"),
-            Main::Loading(path) => format!("Loading file {:?}", path),
+            Main::Loading{ loader_state, .. } => format!("Loading file {:?}", loader_state.file_path()),
             Main::Loaded(..) => format!("Pathfinder WotR Editor"),
         }
     }
@@ -59,14 +74,29 @@ impl Application for Main {
             },
             MainMessage::FileChosen(Ok(path)) => {
                 println!("Let's open {:?}", path);
-                *self = Main::Loading(path);
+                *self = Main::Loading {
+                    loader_state: loader::init(path),
+                    loader_failed: None
+                };
                 Command::none()
             },
             MainMessage::FileChosen(Err(error)) => {
                 *self = Main::Loader {
                     open_button_state: button::State::new(),
-                    loading_failed: Some(error)
+                    open_failed: Some(error)
                 };
+                Command::none()
+            },
+            MainMessage::LoaderStepAdvanced(Ok(next_state)) => {
+                *self = Main::Loading {
+                    loader_state: next_state,
+                    loader_failed: None,
+                };
+
+                Command::perform(next_state.next_step(), MainMessage::LoaderStepAdvanced)
+            },
+            MainMessage::LoaderStepAdvanced(Err(step_failed)) => {
+                // TODO
                 Command::none()
             }
         }
@@ -74,7 +104,7 @@ impl Application for Main {
 
     fn view(&mut self) -> Element<MainMessage> {
         match self {
-            Main::Loader { open_button_state, loading_failed } => {
+            Main::Loader { open_button_state, open_failed } => {
                 let mut layout = Column::new()
                     .align_items(Align::Center)
                     .push(
@@ -86,7 +116,7 @@ impl Application for Main {
                             .padding(10)
                     );
                 
-                    if let Some(error) = loading_failed {
+                    if let Some(error) = open_failed {
                         layout = layout.push(
                             Text::new(format!("Loading file failed: {:?}", error))
                         );
@@ -94,7 +124,23 @@ impl Application for Main {
 
                 layout.into()
             },
-            Main::Loading(path) => Container::new(Text::new(format!("Loading {:?}", path))).into(),
+            Main::Loading { loader_state, loader_failed } => {
+                let layout = match loader_failed {
+                    Some(error) => {
+                        Column::new()
+                            .push(Text::new("Loading failed"))
+                            .push(Text::new(format!("{:?}", error)))
+                    },
+                    None => {
+                        Column::new()
+                            .push(Text::new(format!("Loading {:?}", loader_state.file_path())))
+                            .push(Text::new(format!("Completion: {}/100", loader_state.completion_percentage())))
+                            .push(Text::new(format!("{}", loader_state.next_step_description())))
+                    }
+                };
+
+                Container::new(layout).into()
+            },
             Main::Loaded(..) => {
                 
                 let menu = Column::new()
@@ -185,6 +231,13 @@ fn character_item(text: &str, active: bool) -> Element<MainMessage> {
         .style(if active { style::SecondaryMenuItem::Active } else { style::SecondaryMenuItem::Inactive })
         .width(Length::Fill)
         .into()
+}
+
+fn labelled_item(label: &str,
+                 value: String,
+                 state: text_input::State) -> Element<MainMessage> {
+
+    unimplemented!()
 }
 
 // Fonts
