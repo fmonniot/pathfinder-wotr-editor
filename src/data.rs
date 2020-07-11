@@ -55,7 +55,7 @@ pub enum StatOrRef {
     Id(String)
 }
 
-pub fn read_entity_from_path<P: AsRef<Path>>(path: P) -> Result<Entity, Box<Error>> {
+pub fn read_entity_from_path<P: AsRef<Path>>(path: P) -> Result<Entity, Box<dyn Error>> {
     // Open the file in read-only mode with buffer.
     let file = File::open(path)?;
     let reader = BufReader::new(file);
