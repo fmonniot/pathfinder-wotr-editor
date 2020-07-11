@@ -1,0 +1,55 @@
+{
+    "$id": "1",
+    "Name": "Crusader's Camp - 21 Gozran (IV) 4710 - 12:09:04",
+    "Description": null,
+    "QuestWithSaveDescription": "cf9aed4093db6cc46ad3c7806d08b849",
+    "PlayerCharacterName": "Kaylin",
+    "GameId": "56b386e1-ccc1-499d-9cdf-04ac161b18ea",
+    "CampaignDLC": "None",
+    "Type": "Manual",
+    "IsAutoLevelupSave": false,
+    "QuickSaveNumber": 0,
+    "LoadedTimes": 0,
+    "Area": "7a25c101fe6f7aa46b192db13373d03b",
+    "AreaPart": "7a25c101fe6f7aa46b192db13373d03b",
+    "AreaNameOverride": null,
+    "PartyPortraits": [
+        {
+            "$id": "2",
+            "m_Blueprint": "4bb9e147a44d9be43ab4b16fa7d48383",
+            "m_Data": null
+        },
+        {
+            "$id": "3",
+            "m_Blueprint": "b0e618847177061438388224ee11f0f9",
+            "m_Data": null
+        },
+        {
+            "$id": "4",
+            "m_Blueprint": "44954f73b0897d94b947142bb1244c87",
+            "m_Data": null
+        },
+        {
+            "$id": "5",
+            "m_Blueprint": "b9fea9f24838d43469948aa54088d600",
+            "m_Data": null
+        },
+        {
+            "$id": "6",
+            "m_Blueprint": "d9c58056a33b71a4e97fce958926b1c4",
+            "m_Data": null
+        },
+        {
+            "$id": "7",
+            "m_Blueprint": "0b3d046086ea25b4bad5d5306e6a7612",
+            "m_Data": null
+        }
+    ],
+    "SystemSaveTime": "2020-07-09T22:54:03.122367-07:00",
+    "GameSaveTime": "7.12:09:04.7470000",
+    "GameTotalTime": "08:23:44.3380000",
+    "Versions": [],
+    "CompatibilityVersion": 1,
+    "DLC": [],
+    "EndlessDelveSeed": 1106909114
+}

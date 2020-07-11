@@ -7,7 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# When updating this git ref, please rebuild azul-dll from source and generally speaking
-# follow instructions on the azul github repo.
-# Be prepared for a long-ish battle (1~2 hours) of following non-existing instructions.
-azul = { git = "https://github.com/maps4print/azul", rev = "548a7990b587e3fa98d126ec7bd46ca4a2fcf168" }
+iced = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
