@@ -1,0 +1,56 @@
+// Using a .scss file to have VS Code color visualisation next to the RGB code
+
+// Color names
+$blue: #3d90ce;
+$magenta: #c93dce;
+$golden: #ffc63d;
+$halfGray: #87909c80;
+
+// Generic Texts
+$textColorPrimary: #87909c;
+$textColorSecondary: #a0a0a0;
+$textColorAccent: #ffffff;
+
+// Delimiters
+$borderColor: #4c5053;
+$borderFaintColor: #373a3e;
+
+// Main panel
+$mainBackground: #1e2124;
+$mainContentColor: #262b2f;             
+
+// Menu selection
+$layoutBackground: #2e3136;
+$layoutTabsBackground: #252729;
+$layoutTabsActiveColor: #ffffff;
+
+// Secondary menu (eg. characters in a party)
+$sidebarBackground: #36393e;
+$sidebarHeaderBackground: #414448;
+$sidebarActiveColor: #ffffff;
+$sidebarSubmenuActiveColor: #ffffff;
+$sidebarSubmenuActiveBackground: #00796b;
+
+// Buttons
+$buttonPrimaryBackground: #3d90ce;
+$buttonDefaultBackground: #414448;
+$buttonAccentBackground: #e85555;
+$buttonDisabledBackground: #808080;
+
+// Tables
+$tableBgcStripe: #2a2d33;
+$tableBgcSelected: #383c42;
+$tableHeaderBackground: #262b2f;
+$tableHeaderBorderWidth: 1px;
+$tableHeaderBorderColor: #36393e;
+$tableHeaderColor: #ffffff;
+$tableSelectedRowColor: #ffffff;
+
+// Action colors
+$colorSuccess: #43a047;
+$colorOk: #4caf50;
+$colorInfo: #3d90ce;
+$colorError: #ce3933;
+$colorSoftError: #e85555;
+$colorWarning: #ff9800;
+$colorVague: #36393e;
