@@ -1,4 +1,4 @@
-use iced::{button, Align, Button, Column, Element, Settings, Text, Row, Length, Container, Application, Command};
+use iced::{button, Align, Button, Column, Element, Settings, Text, Row, Length, Container, Application, Command, Font, HorizontalAlignment, container, Background, Color, VerticalAlignment};
 use std::path::{PathBuf};
 
 mod data;
@@ -99,15 +99,21 @@ impl Application for Main {
                 
                 let menu = Column::new()
                     .align_items(Align::Start)
-                    .width(Length::from(50))
-                    .push(Text::new("Party"));
+                    .push(menu_item("Party"));
+                let menu = Container::new(menu)
+                    .style(style::MenuSurface)
+                    .height(Length::Fill);
 
                 let characters = Column::new()
                     .width(Length::from(150))
-                    .push(Text::new("Kaylin"))
-                    .push(Text::new("Solace"))
-                    .push(Text::new("Amiri"))
-                    .push(Text::new("Ember"));
+                    .height(Length::Fill)
+                    .push(character_item("Kaylin", true))
+                    .push(character_item("Solace", false))
+                    .push(character_item("Amiri", false))
+                    .push(character_item("Ember", false));
+                let characters = Container::new(characters)
+                    .style(style::SecondaryMenuSurface)
+                    .height(Length::Fill);
 
                 // Statistics
 
@@ -147,6 +153,135 @@ impl Application for Main {
                     .push(character)
                     .into()
             },
+        }
+    }
+}
+
+fn menu_item(text: &str) -> Element<MainMessage> {
+    let length = Length::from(75);
+    
+    let text = Text::new(text)
+        .font(CALIGHRAPHIC_FONT)
+        .horizontal_alignment(HorizontalAlignment::Center)
+        .vertical_alignment(VerticalAlignment::Center)
+        .width(length)
+        .height(length)
+        .size(30);
+
+    Container::new(text)
+        .style(style::MenuItem)
+        .into()
+}
+
+fn character_item(text: &str, active: bool) -> Element<MainMessage> {
+    let text = Text::new(text)
+        .font(BOOKLETTER_1911)
+        .size(30)
+        .vertical_alignment(VerticalAlignment::Center)
+        .horizontal_alignment(HorizontalAlignment::Left);
+
+    Container::new(text)
+        .padding(10)
+        .style(if active { style::SecondaryMenuItem::Active } else { style::SecondaryMenuItem::Inactive })
+        .width(Length::Fill)
+        .into()
+}
+
+// Fonts
+const CALIGHRAPHIC_FONT: Font = Font::External {
+    name: "Caligraphic",
+    bytes: include_bytes!("../fonts/beckett/BECKETT.ttf"),
+};
+
+const BOOKLETTER_1911: Font = Font::External {
+    name: "Goudy_Bookletter_1911",
+    bytes: include_bytes!("../fonts/Goudy_Bookletter_1911/GoudyBookletter1911-Regular.ttf"),
+};
+
+mod style {
+    use iced::{
+        button, checkbox, container, progress_bar, radio, scrollable, slider,
+        text_input, Background, Color
+    };
+
+    pub struct MenuSurface;
+
+    impl container::StyleSheet for MenuSurface {
+        fn style(&self) -> container::Style {
+            container::Style {
+                background: Some(Background::Color(Color::from_rgb8(
+                    0x2e, 0x31, 0x36,
+                ))),
+                ..container::Style::default()
+            }
+        }
+    }
+
+
+    /*
+    $layoutBackground: #2e3136;
+    $layoutTabsBackground: #252729;
+    $layoutTabsActiveColor: #ffffff;
+    */
+    pub struct MenuItem;
+
+    impl container::StyleSheet for MenuItem {
+        fn style(&self) -> container::Style {
+            container::Style {
+                background: Some(Background::Color(Color::from_rgb8(
+                    0x2e, 0x31, 0x36,
+                ))),
+                border_width: 1,
+                border_color: Color::from_rgb8(0x4c, 0x50, 0x53),
+                text_color: Some(Color::WHITE),
+                ..container::Style::default()
+            }
+        }
+    }
+
+    /*
+    // Secondary menu (eg. characters in a party)
+    $sidebarBackground: #36393e;
+    $sidebarActiveBackground: #414448;
+    $sidebarSubmenuActiveColor: #ffffff;
+    $sidebarSubmenuActiveBackground: #00796b;
+    */
+
+    pub struct SecondaryMenuSurface;
+    
+    impl container::StyleSheet for SecondaryMenuSurface {
+        fn style(&self) -> container::Style {
+            container::Style {
+                background: Some(Background::Color(Color::from_rgb8(0x36, 0x39, 0x3e))),
+                ..container::Style::default()
+            }
+        }
+    }
+
+    pub enum SecondaryMenuItem {
+        Active,
+        Inactive
+    }
+
+    impl container::StyleSheet for SecondaryMenuItem {
+        fn style(&self) -> container::Style {
+
+            let (bg, text) = match self {
+                SecondaryMenuItem::Inactive => (
+                    Color::from_rgb8(0x36, 0x39, 0x3e),
+                    Color::from_rgb8(0x87, 0x90, 0x9c)
+                ),
+                SecondaryMenuItem::Active => (
+                    Color::from_rgb8(0x41, 0x44, 0x48,),
+                    Color::WHITE
+                )
+            };
+
+            container::Style {
+                background: Some(Background::Color(bg)),
+                text_color: Some(text),
+                ..container::Style::default()
+            }
         }
     }
 }
