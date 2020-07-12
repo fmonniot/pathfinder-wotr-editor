@@ -175,6 +175,8 @@ impl Application for Main {
 
                 // Statistics
 
+                let character = &party.characters.first().unwrap();
+
                 let main_stats = Row::new()
                     .width(Length::Fill)
                     .height(Length::from(50))
@@ -182,18 +184,54 @@ impl Application for Main {
                     .push(Text::new("Experience: 38747"))
                     .push(Text::new("Alignment: Neutral Good"));
 
+                /*
+                We have a few more skills we don't display on the UI at the moment
+                "AdditionalDamage", "AttackOfOpportunityCount", 
+                "CheckBluff", "CheckDiplomacy", "CheckIntimidate",
+                "DamageNonLethal", "Reach",
+                "SneakAttack", "Speed",  "TemporaryHitPoints", ""
+                */
+
+                let stat_text_view = |label: &str, key: &str| {
+                    let number = character.stat_for(key).map(|i| i.to_string()).unwrap_or("NAN".to_string());
+
+                    Text::new(format!("{}: {}", label, number))
+                };
+
                 let abilities_stats = Column::new()
                     .height(Length::Fill)
-                    .push(Text::new("STR 10"))
-                    .push(Text::new("DEX 15"));
+                    .push(stat_text_view("STR", "Strength"))
+                    .push(stat_text_view("DEX", "Dexterity"))
+                    .push(stat_text_view("CON", "Constitution"))
+                    .push(stat_text_view("INT", "Intelligence"))
+                    .push(stat_text_view("WIS", "Wisdom"))
+                    .push(stat_text_view("CHA", "Charisma"));
 
                 let combat_stats = Column::new()
-                    .push(Text::new("CMB 5"))
+                    .push(stat_text_view("Additional Attack Bonus", "AdditionalAttackBonus"))
+                    .push(stat_text_view("CMB", "AdditionalCMB"))
+                    .push(stat_text_view("CMD", "AdditionalCMD"))
+                    .push(stat_text_view("AC", "AC"))
+                    .push(stat_text_view("BAB", "BaseAttackBonus"))
+                    .push(stat_text_view("HP", "HitPoints"))
+                    .push(stat_text_view("Initiative", "Initiative"))
+                    .push(stat_text_view("Save: Fortitude", "SaveFortitude"))
+                    .push(stat_text_view("Save: Reflex", "SaveReflex"))
+                    .push(stat_text_view("Save: Will", "SaveWill"))
                     .push(Text::new("CMD 7"));
 
                 let skills_stats = Column::new()
-                    .push(Text::new("Athletics 7"))
-                    .push(Text::new("Mobility 13"));
+                    .push(stat_text_view("Athletics", "SkillAthletics"))
+                    .push(stat_text_view("Mobility", "SkillMobility"))
+                    .push(stat_text_view("Thievery", "SkillThievery"))
+                    .push(stat_text_view("Stealth", "SkillStealth"))
+                    .push(stat_text_view("Knowledge: Arcana", "SkillKnowledgeArcana"))
+                    .push(stat_text_view("Knowledge: World", "SkillKnowledgeWorld"))
+                    .push(stat_text_view("Lore: Nature", "SkillLoreNature"))
+                    .push(stat_text_view("Lore: Religion", "SkillLoreReligion"))
+                    .push(stat_text_view("Perception", "SkillPerception"))
+                    .push(stat_text_view("Persuasion", "SkillPersuasion"))
+                    .push(stat_text_view("UseMagicDevice", "SkillUseMagicDevice"));
 
                 let statistics = Row::new()
                     .push(abilities_stats)

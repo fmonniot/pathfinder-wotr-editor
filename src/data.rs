@@ -18,7 +18,13 @@ pub struct Character {
     id: String,
     pub name: String,
     pub blueprint: String,
-    statistics: Vec<Stat>
+    pub statistics: Vec<Stat>
+}
+
+impl Character {
+    pub fn stat_for(&self, name: &str) -> Option<i16> {
+        self.statistics.iter().find(|s| s.tpe == name).map(|s| s.base_value)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -26,9 +32,9 @@ pub struct Stat {
     #[serde(alias = "$id")]
     id: String,
     #[serde(alias = "Type")]
-    tpe: String,
+    pub tpe: String,
     #[serde(alias = "m_BaseValue")]
-    base_value: i16
+    pub base_value: i16
 }
 
 #[derive(Debug)]
