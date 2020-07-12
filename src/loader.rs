@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use crate::data;
+use std::path::PathBuf;
 
 // Start by declaring the public interface
 
@@ -7,7 +7,7 @@ use crate::data;
 pub enum LoaderError {
     IoError(String),
     SerdeError(String, String),
-    JsonError(String, String)
+    JsonError(String, String),
 }
 
 impl LoaderError {
@@ -31,10 +31,8 @@ pub enum LoadingStep {
     Initialized,
     ReadingFile,
     ReadingParty,
-    Done {
-        party: data::Party
-    },
-    Error(LoaderError)
+    Done { party: data::Party },
+    Error(LoaderError),
 }
 
 impl LoadingStep {
@@ -43,8 +41,8 @@ impl LoadingStep {
             LoadingStep::Initialized => 0,
             LoadingStep::ReadingFile => 33,
             LoadingStep::ReadingParty => 33,
-            LoadingStep::Done{..} => 100,
-            LoadingStep::Error(..) => 0
+            LoadingStep::Done { .. } => 100,
+            LoadingStep::Error(..) => 0,
         }
     }
 
@@ -53,7 +51,7 @@ impl LoadingStep {
             LoadingStep::Initialized => "Initialized".to_string(),
             LoadingStep::ReadingFile => "Reading file from disk".to_string(),
             LoadingStep::ReadingParty => "Parsing the party information".to_string(),
-            LoadingStep::Done{..} => "All done !".to_string(),
+            LoadingStep::Done { .. } => "All done !".to_string(),
             LoadingStep::Error(error) => format!("Error: {:?}", error),
         }
     }
@@ -61,7 +59,7 @@ impl LoadingStep {
 
 #[derive(Debug, Clone)]
 pub struct Loader {
-    file_path: PathBuf
+    file_path: PathBuf,
 }
 
 impl Loader {
@@ -92,9 +90,12 @@ where
         self: Box<Self>,
         _input: futures::stream::BoxStream<'static, I>,
     ) -> futures::stream::BoxStream<'static, Self::Output> {
-        Box::pin(futures::stream::unfold(Initializing { file_path: self.file_path }, |state| async move {
-            state.exec().await
-        }))
+        Box::pin(futures::stream::unfold(
+            Initializing {
+                file_path: self.file_path,
+            },
+            |state| async move { state.exec().await },
+        ))
     }
 }
 
@@ -103,39 +104,44 @@ enum LSM {
     ReadingFile { file_path: PathBuf },
     ReadingParty { file_path: PathBuf, archive: () },
     // This state is reached after completion, whether it's because of an error or a normal end.
-    Terminated
+    Terminated,
 }
 
 use LSM::*;
 
 impl LSM {
-
     async fn exec(self) -> Option<(LoadingStep, LSM)> {
         match self {
-            Initializing { file_path } => Some((LoadingStep::ReadingFile, ReadingFile { file_path } )),
+            Initializing { file_path } => {
+                Some((LoadingStep::ReadingFile, ReadingFile { file_path }))
+            }
             ReadingFile { file_path } => {
                 // Create archive struct with file_path
                 // Verify all required files are present (header.json, party.json, etc...)
 
-                Some((LoadingStep::ReadingParty, ReadingParty { file_path, archive: ()}))
-            },
+                Some((
+                    LoadingStep::ReadingParty,
+                    ReadingParty {
+                        file_path,
+                        archive: (),
+                    },
+                ))
+            }
             ReadingParty { archive, .. } => {
-
                 // TODO Use the archive instead of reading from disk
                 // self.current_step = LoadingStep::ReadingParty;
                 match extract_party(&archive).await {
                     Ok(party) => Some((LoadingStep::Done { party }, Terminated)),
-                    Err(error) => Some((LoadingStep::Error(error), Terminated))
+                    Err(error) => Some((LoadingStep::Error(error), Terminated)),
                 }
-            },
+            }
             Terminated => None,
         }
     }
-
 }
 
 async fn extract_party(_archive: &()) -> Result<data::Party, LoaderError> {
-    // TODO Should be done from the archive 
+    // TODO Should be done from the archive
     let file_content = tokio::fs::read("samples/party.json").await?;
 
     let json = serde_json::from_slice(&file_content)
@@ -143,8 +149,8 @@ async fn extract_party(_archive: &()) -> Result<data::Party, LoaderError> {
 
     let indexed_json = data::IndexedJson::new(json);
 
-    let party = data::read_party(indexed_json)
-        .map_err(|err| LoaderError::json_error("party.json", err))?;
+    let party =
+        data::read_party(indexed_json).map_err(|err| LoaderError::json_error("party.json", err))?;
 
     Ok(party)
 }

@@ -10,7 +10,7 @@ use std::path::Path;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Party {
     index: IndexedJson,
-    pub characters: Vec<Character>
+    pub characters: Vec<Character>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -18,12 +18,15 @@ pub struct Character {
     id: String,
     pub name: String,
     pub blueprint: String,
-    pub statistics: Vec<Stat>
+    pub statistics: Vec<Stat>,
 }
 
 impl Character {
     pub fn stat_for(&self, name: &str) -> Option<i16> {
-        self.statistics.iter().find(|s| s.tpe == name).map(|s| s.base_value)
+        self.statistics
+            .iter()
+            .find(|s| s.tpe == name)
+            .map(|s| s.base_value)
     }
 }
 
@@ -34,14 +37,14 @@ pub struct Stat {
     #[serde(alias = "Type")]
     pub tpe: String,
     #[serde(alias = "m_BaseValue")]
-    pub base_value: i16
+    pub base_value: i16,
 }
 
 #[derive(Debug)]
 pub enum JsonReaderError {
-    ArrayExpected(String, String), // path and actual type
-    ObjectExpected(String, String), // path and actual type
-    StringExpected(String, String), // path and actual type
+    ArrayExpected(String, String),    // path and actual type
+    ObjectExpected(String, String),   // path and actual type
+    StringExpected(String, String),   // path and actual type
     InvalidReference(String, String), // path and $ref value
     InvalidPointer(String),
     Deserialization(serde_json::Error),
@@ -55,11 +58,19 @@ impl std::convert::From<serde_json::Error> for JsonReaderError {
 
 pub fn read_party(index: IndexedJson) -> Result<Party, JsonReaderError> {
     let pointer = "/m_EntityData";
-    
-    let characters_json = index.pointer(&pointer).ok_or(JsonReaderError::InvalidPointer(pointer.to_string()))?;
-    let characters_json = characters_json.as_array().ok_or(JsonReaderError::ArrayExpected(pointer.to_string(), json_type(characters_json).to_string()))?;
 
-    let characters = characters_json.iter()
+    let characters_json = index
+        .pointer(&pointer)
+        .ok_or(JsonReaderError::InvalidPointer(pointer.to_string()))?;
+    let characters_json = characters_json
+        .as_array()
+        .ok_or(JsonReaderError::ArrayExpected(
+            pointer.to_string(),
+            json_type(characters_json).to_string(),
+        ))?;
+
+    let characters = characters_json
+        .iter()
         .filter(|json| {
             // Only keep the entry of type unit
             json.get("$type")
@@ -76,11 +87,19 @@ pub fn read_party(index: IndexedJson) -> Result<Party, JsonReaderError> {
 fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonReaderError> {
     // Statistics
     let pointer = "/Descriptor/Stats";
-    
-    let stats_json = json.pointer(&pointer).ok_or(JsonReaderError::InvalidPointer(pointer.to_string()))?;
-    let stats_json = stats_json.as_object().ok_or(JsonReaderError::ObjectExpected(pointer.to_string(), json_type(stats_json).to_string()))?;
 
-    let statistics = stats_json.iter()
+    let stats_json = json
+        .pointer(&pointer)
+        .ok_or(JsonReaderError::InvalidPointer(pointer.to_string()))?;
+    let stats_json = stats_json
+        .as_object()
+        .ok_or(JsonReaderError::ObjectExpected(
+            pointer.to_string(),
+            json_type(stats_json).to_string(),
+        ))?;
+
+    let statistics = stats_json
+        .iter()
         .filter(|(key, _)| key != &"$id")
         .map(|(key, value)| {
             let ptr = format!("{}/{}", pointer, key);
@@ -92,25 +111,61 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonRe
         .collect::<Result<Vec<_>, JsonReaderError>>()?;
 
     // Better error type ?
-    let id = json.get("$id").and_then(Value::as_str).map(str::to_string).ok_or(JsonReaderError::InvalidPointer("/$id".to_string()))?;
-    let name = json.pointer("/Descriptor/CustomName").ok_or(JsonReaderError::InvalidPointer("/Descriptor/CustomName".to_string()))?
-        .as_str().ok_or(JsonReaderError::StringExpected(pointer.to_string(), "todo".to_string()))?
+    let id = json
+        .get("$id")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .ok_or(JsonReaderError::InvalidPointer("/$id".to_string()))?;
+    let name = json
+        .pointer("/Descriptor/CustomName")
+        .ok_or(JsonReaderError::InvalidPointer(
+            "/Descriptor/CustomName".to_string(),
+        ))?
+        .as_str()
+        .ok_or(JsonReaderError::StringExpected(
+            pointer.to_string(),
+            "todo".to_string(),
+        ))?
         .to_string();
 
-    let blueprint = json.pointer("/Descriptor/Blueprint").ok_or(JsonReaderError::InvalidPointer("/Descriptor/Blueprint".to_string()))?
-        .as_str().ok_or(JsonReaderError::StringExpected(pointer.to_string(), "todo".to_string()))?
+    let blueprint = json
+        .pointer("/Descriptor/Blueprint")
+        .ok_or(JsonReaderError::InvalidPointer(
+            "/Descriptor/Blueprint".to_string(),
+        ))?
+        .as_str()
+        .ok_or(JsonReaderError::StringExpected(
+            pointer.to_string(),
+            "todo".to_string(),
+        ))?
         .to_string();
 
-    Ok(Character { id, name, blueprint, statistics})
+    Ok(Character {
+        id,
+        name,
+        blueprint,
+        statistics,
+    })
 }
 
-fn dereference<'a>(value: &'a Value, index: &'a IndexedJson, path: &str) -> Result<&'a Value, JsonReaderError> {
-
-    let sta = value.as_object().ok_or(JsonReaderError::ObjectExpected(path.to_string(), json_type(value).to_string()))?;
+fn dereference<'a>(
+    value: &'a Value,
+    index: &'a IndexedJson,
+    path: &str,
+) -> Result<&'a Value, JsonReaderError> {
+    let sta = value.as_object().ok_or(JsonReaderError::ObjectExpected(
+        path.to_string(),
+        json_type(value).to_string(),
+    ))?;
 
     match sta.get("$ref").and_then(|j| j.as_str()) {
-        Some(reference) => index.reference(reference).ok_or(JsonReaderError::InvalidReference(path.to_string(), reference.to_string())),
-        None => Ok(value)
+        Some(reference) => index
+            .reference(reference)
+            .ok_or(JsonReaderError::InvalidReference(
+                path.to_string(),
+                reference.to_string(),
+            )),
+        None => Ok(value),
     }
 }
 
@@ -137,7 +192,7 @@ pub fn read_entity_from_path<P: AsRef<Path>>(path: P) -> Result<Value, Box<dyn E
 #[derive(Debug, Clone, PartialEq)]
 pub struct IndexedJson {
     json: Value,
-    pub index: BTreeMap<String, String>
+    pub index: BTreeMap<String, String>,
 }
 
 impl IndexedJson {
@@ -150,7 +205,8 @@ impl IndexedJson {
 
     // TODO Maybe opaque type for references ?
     pub fn reference(&self, reference: &str) -> Option<&Value> {
-        self.index.get(reference)
+        self.index
+            .get(reference)
             .and_then(|pointer| self.json.pointer(pointer))
     }
 
@@ -163,14 +219,13 @@ impl IndexedJson {
     }
 }
 
-fn build_index(json: &Value, path: &str,
-               index: &mut BTreeMap<String, String>) {
+fn build_index(json: &Value, path: &str, index: &mut BTreeMap<String, String>) {
     match json {
         Value::Array(values) => {
             for (idx, value) in values.iter().enumerate() {
                 build_index(value, &format!("{}/{}", path, idx), index);
             }
-        },
+        }
         Value::Object(map) => {
             // Check if there is an $id. If so, add the id with the json pointer to the index
             map.get("$id")
@@ -178,11 +233,13 @@ fn build_index(json: &Value, path: &str,
                 .and_then(|id| index.insert(id.to_string(), path.to_string()));
 
             for (key, value) in map {
-                if key == "$id" { continue };
+                if key == "$id" {
+                    continue;
+                };
 
                 build_index(value, &format!("{}/{}", path, key), index);
             }
-        },
-        _ => ()
+        }
+        _ => (),
     }
 }

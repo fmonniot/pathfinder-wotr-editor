@@ -32,7 +32,6 @@ jobs:
         with:
           command: fmt
           args: --all -- --check
-        continue-on-error: true # for the time being
 
   clippy:
     name: Clippy
