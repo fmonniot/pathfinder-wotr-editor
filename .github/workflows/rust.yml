@@ -4,25 +4,6 @@ name: Continuous integration
 
 jobs:
 
-  fs:
-    name: Understand FS
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          lfs: true
-      - name: Let's see that layout
-        env:
-          MY_VAR: Hi there! My name is
-          FIRST_NAME: Mona
-          MIDDLE_NAME: The
-          LAST_NAME: Octocat
-        run: |
-          sudo apt-get install tree
-          echo `pwd`
-          tree .
-          tree src/../
-
   test:
     name: Test Suite
     runs-on: ubuntu-latest
@@ -75,22 +56,3 @@ jobs:
           command: clippy
           args: -- -D warnings
         continue-on-error: true # for the time being
-
-  doc:
-    name: Build documentation
-    runs-on: ubuntu-latest
-    env:
-      RUSTDOCFLAGS: --cfg docsrs
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          lfs: true
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --workspace --no-deps --all-features
