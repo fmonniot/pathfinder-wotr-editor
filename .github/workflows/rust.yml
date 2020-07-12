@@ -20,9 +20,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: target
-          key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.OS }}-test-suite-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-test-suite-
       - uses: actions-rs/cargo@v1
         with:
           command: test
@@ -62,9 +62,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: target
-          key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.OS }}-clippy-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-clippy-
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
