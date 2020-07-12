@@ -1,13 +1,15 @@
 use iced::{
-    button, text_input, Align, Application, Button, Column, Command, Container, Element, Font,
-    HorizontalAlignment, Length, Row, Settings, Subscription, Text, TextInput, VerticalAlignment,
+    button, Align, Application, Button, Column, Command, Container, Element, Font,
+    HorizontalAlignment, Length, Row, Settings, Subscription, Text, VerticalAlignment,
 };
 use std::path::PathBuf;
 
+mod character_view;
 mod data;
 mod dialog;
 mod loader;
 
+use character_view::CharacterView;
 use loader::{Loader, LoaderError, LoadingStep};
 
 pub fn main() {
@@ -25,233 +27,7 @@ struct LoadedState {
     party: data::Party,
     secondary_menu_buttons: Vec<button::State>,
     active_character: CharacterView,
-}
-
-/*
-  We have a few more fields we don't display on the UI at the moment
-  - "AdditionalDamage",
-  - "AttackOfOpportunityCount",
-  - "CheckBluff",
-  - "CheckDiplomacy",
-  - "CheckIntimidate",
-  - "DamageNonLethal",
-  - "Reach",
-  - "SneakAttack",
-  - "Speed",
-  - "TemporaryHitPoints",
-*/
-struct CharacterView {
-    index: usize,
-    // Abilities
-    strength: StatView,
-    dexterity: StatView,
-    constitution: StatView,
-    intelligence: StatView,
-    wisdom: StatView,
-    charisma: StatView,
-    // Combat stats
-    attack_bonus: StatView,
-    cmb: StatView,
-    cmd: StatView,
-    ac: StatView,
-    bab: StatView,
-    hp: StatView,
-    initiative: StatView,
-    // Saves
-    save_fortitude: StatView,
-    save_reflex: StatView,
-    save_will: StatView,
-    // Skills
-    athletics: StatView,
-    mobility: StatView,
-    thievery: StatView,
-    stealth: StatView,
-    arcana: StatView,
-    world: StatView,
-    nature: StatView,
-    religion: StatView,
-    perception: StatView,
-    persuasion: StatView,
-    magic_device: StatView,
-    // Money & Experience should also goes here
-    experience: StatView,
-    mythic_experience: StatView,
-}
-
-impl CharacterView {
-    fn new(character: &data::Character, index: usize) -> CharacterView {
-        let experience = StatView {
-            label: "Experience",
-            id: character.id.clone(),
-            text_input: text_input::State::new(),
-            value: character.experience,
-        };
-
-        let mythic_experience = StatView {
-            label: "Mythic Experience",
-            id: character.id.clone(),
-            text_input: text_input::State::new(),
-            value: character.mythic_experience,
-        };
-
-        CharacterView {
-            index,
-            experience,
-            mythic_experience,
-            strength: StatView::new("STR", character.find_stat("Strength").unwrap()),
-            dexterity: StatView::new("DEX", character.find_stat("Dexterity").unwrap()),
-            constitution: StatView::new("CON", character.find_stat("Constitution").unwrap()),
-            intelligence: StatView::new("INT", character.find_stat("Intelligence").unwrap()),
-            wisdom: StatView::new("WIS", character.find_stat("Wisdom").unwrap()),
-            charisma: StatView::new("CHA", character.find_stat("Charisma").unwrap()),
-            attack_bonus: StatView::new(
-                "Additional Attack Bonus",
-                character.find_stat("AdditionalAttackBonus").unwrap(),
-            ),
-            cmb: StatView::new("CMB", character.find_stat("AdditionalCMB").unwrap()),
-            cmd: StatView::new("CMD", character.find_stat("AdditionalCMD").unwrap()),
-            ac: StatView::new("AC", character.find_stat("AC").unwrap()),
-            bab: StatView::new("BAB", character.find_stat("BaseAttackBonus").unwrap()),
-            hp: StatView::new("HP", character.find_stat("HitPoints").unwrap()),
-            initiative: StatView::new("Initiative", character.find_stat("Initiative").unwrap()),
-            save_fortitude: StatView::new(
-                "Save: Fortitude",
-                character.find_stat("SaveFortitude").unwrap(),
-            ),
-            save_reflex: StatView::new("Save: Reflex", character.find_stat("SaveReflex").unwrap()),
-            save_will: StatView::new("Save: Will", character.find_stat("SaveWill").unwrap()),
-            athletics: StatView::new("Athletics", character.find_stat("SkillAthletics").unwrap()),
-            mobility: StatView::new("Mobility", character.find_stat("SkillMobility").unwrap()),
-            thievery: StatView::new("Thievery", character.find_stat("SkillThievery").unwrap()),
-            stealth: StatView::new("Stealth", character.find_stat("SkillStealth").unwrap()),
-            arcana: StatView::new(
-                "Knowledge: Arcana",
-                character.find_stat("SkillKnowledgeArcana").unwrap(),
-            ),
-            world: StatView::new(
-                "Knowledge: World",
-                character.find_stat("SkillKnowledgeWorld").unwrap(),
-            ),
-            nature: StatView::new(
-                "Lore: Nature",
-                character.find_stat("SkillLoreNature").unwrap(),
-            ),
-            religion: StatView::new(
-                "Lore: Religion",
-                character.find_stat("SkillLoreReligion").unwrap(),
-            ),
-            perception: StatView::new(
-                "Perception",
-                character.find_stat("SkillPerception").unwrap(),
-            ),
-            persuasion: StatView::new(
-                "Persuasion",
-                character.find_stat("SkillPersuasion").unwrap(),
-            ),
-            magic_device: StatView::new(
-                "Use Magic Device",
-                character.find_stat("SkillUseMagicDevice").unwrap(),
-            ),
-        }
-    }
-
-    fn view(&mut self) -> Element<MainMessage> {
-        let main_stats = Row::new()
-            .width(Length::Fill)
-            .height(Length::from(50))
-            .align_items(Align::Center)
-            // Money is actually part of the player.json and not party.json.
-            .push(Text::new("Money: 38747G").width(Length::FillPortion(1)))
-            .push(self.experience.view())
-            .push(self.mythic_experience.view());
-
-        let abilities_stats = Column::new()
-            .height(Length::Fill)
-            .width(Length::FillPortion(1))
-            .push(self.strength.view())
-            .push(self.dexterity.view())
-            .push(self.constitution.view())
-            .push(self.intelligence.view())
-            .push(self.wisdom.view())
-            .push(self.charisma.view());
-
-        let combat_stats = Column::new()
-            .width(Length::FillPortion(1))
-            .push(self.attack_bonus.view())
-            .push(self.cmb.view())
-            .push(self.cmd.view())
-            .push(self.ac.view())
-            .push(self.bab.view())
-            .push(self.hp.view())
-            .push(self.initiative.view())
-            .push(self.save_fortitude.view())
-            .push(self.save_reflex.view())
-            .push(self.save_will.view());
-
-        let skills_stats = Column::new()
-            .width(Length::FillPortion(1))
-            .push(self.athletics.view())
-            .push(self.mobility.view())
-            .push(self.thievery.view())
-            .push(self.stealth.view())
-            .push(self.arcana.view())
-            .push(self.world.view())
-            .push(self.nature.view())
-            .push(self.religion.view())
-            .push(self.perception.view())
-            .push(self.persuasion.view())
-            .push(self.magic_device.view());
-
-        let statistics = Row::new()
-            .spacing(25)
-            .push(abilities_stats)
-            .push(combat_stats)
-            .push(skills_stats);
-
-        Column::new()
-            .width(Length::Fill)
-            .padding(10)
-            .push(main_stats)
-            .push(statistics)
-            .into()
-    }
-}
-
-struct StatView {
-    label: &'static str,
-    id: String,
-    text_input: text_input::State,
-    value: u64,
-}
-
-impl StatView {
-    fn new(label: &'static str, stat: &data::Stat) -> StatView {
-        StatView {
-            label,
-            id: stat.id.clone(),
-            text_input: text_input::State::new(),
-            value: stat.base_value,
-        }
-    }
-
-    fn view(&mut self) -> Element<MainMessage> {
-        let entity_id = self.id.clone();
-        let input = TextInput::new(
-            &mut self.text_input,
-            self.label,
-            &self.value.to_string(),
-            move |value| {
-                let entity_id = entity_id.clone();
-                MainMessage::StatisticModified { entity_id, value }
-            },
-        );
-
-        Row::new()
-            .width(Length::FillPortion(1))
-            .push(Text::new(format!("{}: ", self.label)))
-            .push(input)
-            .into()
-    }
+    active_character_index: usize,
 }
 
 enum Main {
@@ -272,12 +48,13 @@ impl Main {
             secondary_menu_buttons.push(button::State::new());
         }
 
-        let active_character = CharacterView::new(&party.characters.first().unwrap(), 0);
+        let active_character = CharacterView::new(&party.characters.first().unwrap());
 
         Main::Loaded(LoadedState {
             party,
             secondary_menu_buttons,
             active_character,
+            active_character_index: 0,
         })
     }
 }
@@ -288,10 +65,7 @@ enum MainMessage {
     FileChosen(Result<PathBuf, dialog::OpenError>),
     LoadProgressed(LoadingStep),
     SwitchCharacter(usize),
-    StatisticModified {
-        entity_id: String,
-        value: String, // TODO Add a way to find out which stat has been modified
-    },
+    CharacterMessage(character_view::Msg),
 }
 
 impl Application for Main {
@@ -367,13 +141,22 @@ impl Application for Main {
                 match self {
                     Main::Loaded(ref mut state) => {
                         let character = state.party.characters.get(active_character).unwrap();
-                        state.active_character = CharacterView::new(character, active_character);
+                        state.active_character = CharacterView::new(character);
+                        state.active_character_index = active_character;
                     }
                     _ => (),
                 };
                 Command::none()
             }
-            MainMessage::StatisticModified { .. } => Command::none(),
+            MainMessage::CharacterMessage(msg) => {
+                match self {
+                    Main::Loaded(ref mut state) => {
+                        state.active_character.update(msg);
+                    }
+                    _ => (),
+                };
+                Command::none()
+            }
         }
     }
 
@@ -425,6 +208,7 @@ impl Application for Main {
                 party,
                 secondary_menu_buttons,
                 active_character,
+                active_character_index,
             }) => {
                 let menu = Column::new()
                     .align_items(Align::Start)
@@ -446,7 +230,7 @@ impl Application for Main {
                         name = &c.blueprint;
                     }
 
-                    let active = idx == active_character.index;
+                    let active = &idx == active_character_index;
 
                     characters = characters.push(character_item(name, idx, active, m));
                 }
@@ -457,12 +241,10 @@ impl Application for Main {
 
                 // Statistics
 
-                let character = active_character.view();
-
                 Row::new()
                     .push(menu)
                     .push(characters)
-                    .push(character)
+                    .push(active_character.view().map(MainMessage::CharacterMessage))
                     .into()
             }
         }
