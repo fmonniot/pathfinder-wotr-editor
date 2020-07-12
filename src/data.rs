@@ -13,11 +13,26 @@ pub struct Party {
     pub characters: Vec<Character>,
 }
 
+/* TODO Aligment
+   Aligment is found in `/Descriptor/Alignment/m_History/<last>/Position`:
+
+       "Position": {
+            "x": -4.28543032E-08,
+            "y": 1.0
+        }
+
+    `x` is describing the lawful/chaotic axis and `y` the good/evil one.
+    Needs to find out when the neutral switch happens but it looks like that
+    follow the disc-shape layout of the game (See samples/pfkm_alignment_wheels
+    for a visual representation)
+*/
 #[derive(Debug, Clone, PartialEq)]
 pub struct Character {
     pub id: String,
     pub name: String,
     pub blueprint: String,
+    pub experience: u64,
+    pub mythic_experience: u64,
     pub statistics: Vec<Stat>,
 }
 
@@ -34,7 +49,7 @@ pub struct Stat {
     #[serde(alias = "Type")]
     pub tpe: String,
     #[serde(alias = "m_BaseValue")]
-    pub base_value: i16,
+    pub base_value: u64,
 }
 
 #[derive(Debug)]
@@ -42,6 +57,8 @@ pub enum JsonReaderError {
     ArrayExpected(String, String),    // path and actual type
     ObjectExpected(String, String),   // path and actual type
     StringExpected(String, String),   // path and actual type
+    NumberExpected(String, String),   // path and actual type
+
     InvalidReference(String, String), // path and $ref value
     InvalidPointer(String),
     Deserialization(serde_json::Error),
@@ -137,10 +154,34 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonRe
         ))?
         .to_string();
 
+    let experience = json
+        .pointer("/Descriptor/Progression/Experience")
+        .ok_or(JsonReaderError::InvalidPointer(
+            "/Descriptor/Blueprint".to_string(),
+        ))?
+        .as_u64()
+        .ok_or(JsonReaderError::NumberExpected(
+            "/Descriptor/Progression/Experience".to_string(),
+            "todo".to_string(),
+        ))?;
+
+    let mythic_experience = json
+        .pointer("/Descriptor/Progression/MythicExperience")
+        .ok_or(JsonReaderError::InvalidPointer(
+            "/Descriptor/Blueprint".to_string(),
+        ))?
+        .as_u64()
+        .ok_or(JsonReaderError::NumberExpected(
+            "/Descriptor/Progression/MythicExperience".to_string(),
+            "todo".to_string(),
+        ))?;
+
     Ok(Character {
         id,
         name,
         blueprint,
+        experience,
+        mythic_experience,
         statistics,
     })
 }

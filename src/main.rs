@@ -29,13 +29,32 @@ struct LoadedState {
 
 struct CharacterView {
     index: usize,
+    experience: StatView,
+    mythic_experience: StatView,
     statistics: StatisticsView,
 }
 
 impl CharacterView {
     fn new(character: &data::Character, index: usize) -> CharacterView {
+
+        let experience = StatView {
+            label: "Experience",
+            id: character.id.clone(),
+            text_input: text_input::State::new(),
+            value: character.experience,
+        };
+
+        let mythic_experience = StatView {
+            label: "Mythic Experience",
+            id: character.id.clone(),
+            text_input: text_input::State::new(),
+            value: character.mythic_experience,
+        };
+
         CharacterView {
             index,
+            experience,
+            mythic_experience,
             statistics: StatisticsView::new(character),
         }
     }
@@ -154,7 +173,7 @@ struct StatView {
     label: &'static str,
     id: String,
     text_input: text_input::State,
-    value: i16,
+    value: u64,
 }
 
 impl StatView {
@@ -168,18 +187,19 @@ impl StatView {
     }
 
     fn view(&mut self) -> Element<MainMessage> {
-        let stat_id = self.id.clone();
+        let entity_id = self.id.clone();
         let input = TextInput::new(
             &mut self.text_input,
             self.label,
             &self.value.to_string(),
             move |value| {
-                let stat_id = stat_id.clone();
-                MainMessage::StatisticModified { stat_id, value }
+                let entity_id = entity_id.clone();
+                MainMessage::StatisticModified { entity_id, value }
             },
         );
 
         Row::new()
+            .width(Length::FillPortion(1))
             .push(Text::new(format!("{}: ", self.label)))
             .push(input)
             .into()
@@ -221,7 +241,7 @@ enum MainMessage {
     LoadProgressed(LoadingStep),
     SwitchCharacter(usize),
     StatisticModified {
-        stat_id: String,
+        entity_id: String,
         value: String, // TODO Add a way to find out which stat has been modified
     },
 }
@@ -393,9 +413,10 @@ impl Application for Main {
                     .width(Length::Fill)
                     .height(Length::from(50))
                     .align_items(Align::Center)
-                    .push(Text::new("Money: 38747G"))
-                    .push(Text::new("Experience: 38747"))
-                    .push(Text::new("Alignment: Neutral Good"));
+                    // Money is actually part of the player.json and not party.json.
+                    .push(Text::new("Money: 38747G").width(Length::FillPortion(1)))
+                    .push(active_character.experience.view())
+                    .push(active_character.mythic_experience.view());
 
                 let abilities_stats = Column::new()
                     .height(Length::Fill)
