@@ -18,20 +18,46 @@ struct LoadingState {
     // TODO Add progress bar
 }
 
+struct LoadedState {
+    party: data::Party,
+    secondary_menu_buttons: Vec<button::State>,
+    active_character: usize
+}
+
 enum Main {
     Loader {
         open_button_state: button::State,
         open_failed: Option<dialog::OpenError>
     },
     Loading(LoadingState),
-    Loaded { party: data::Party }, // Remember which character is currently active
+    Loaded(LoadedState),
+}
+
+impl Main {
+
+    fn new_loaded(party: data::Party) -> Main {
+        let characters_len = party.characters.len() as usize; // Pretty sure you can't more characters than that
+        let mut secondary_menu_buttons = Vec::with_capacity(characters_len);
+
+        for _ in 0..characters_len {
+            secondary_menu_buttons.push(button::State::new());
+        }
+
+        Main::Loaded(LoadedState{
+            party,
+            secondary_menu_buttons,
+            active_character: 0
+        })
+    }
+
 }
 
 #[derive(Debug, Clone)]
 enum MainMessage {
     OpenFileDialog,
     FileChosen(Result<PathBuf, dialog::OpenError>),
-    LoadProgressed(LoadingStep)
+    LoadProgressed(LoadingStep),
+    SwitchCharacter(usize),
 }
 
 impl Application for Main {
@@ -52,7 +78,8 @@ impl Application for Main {
         let party = data::read_entity_from_path("samples/party.json").unwrap();
         let party = data::IndexedJson::new(party);
         let party = data::read_party(party).unwrap();
-        let component = Main::Loaded { party };
+
+        let component = Main::new_loaded(party);
 
         (component, Command::none())
     }
@@ -92,7 +119,7 @@ impl Application for Main {
                     Main::Loading(ref mut state) => {
                         match step {
                             LoadingStep::Done { party } => {
-                                *self = Main::Loaded { party };
+                                *self = Main::new_loaded(party);
                                 Command::none()
                             },
                             _ =>  {
@@ -103,6 +130,15 @@ impl Application for Main {
                     },
                     _ => Command::none(),
                 }
+            },
+            MainMessage::SwitchCharacter(active_character) => {
+                match self {
+                    Main::Loaded(ref mut state) => {
+                        state.active_character = active_character;
+                    },
+                    _ => ()
+                };
+                Command::none()
             }
         }
     }
@@ -147,8 +183,8 @@ impl Application for Main {
 
                 Container::new(layout).into()
             },
-            Main::Loaded { party } => {
-                
+            Main::Loaded(LoadedState { party, secondary_menu_buttons, active_character }) => {
+
                 let menu = Column::new()
                     .align_items(Align::Start)
                     .push(menu_item("Party"));
@@ -160,13 +196,15 @@ impl Application for Main {
                     .width(Length::from(150))
                     .height(Length::Fill);
 
-                for c in &party.characters {
+                for (idx, (c, m)) in party.characters.iter().zip(secondary_menu_buttons).enumerate() {
                     let mut name = &c.name;
                     if name.is_empty() {
                         name = &c.blueprint;
                     }
 
-                    characters = characters.push(character_item(name, false));
+                    let active = &idx == active_character;
+
+                    characters = characters.push(character_item(name, idx, active, m));
                 }
 
                 let characters = Container::new(characters)
@@ -175,7 +213,7 @@ impl Application for Main {
 
                 // Statistics
 
-                let character = &party.characters.first().unwrap();
+                let character = &party.characters.get(*active_character).unwrap();
 
                 let main_stats = Row::new()
                     .width(Length::Fill)
@@ -280,14 +318,21 @@ fn menu_item(text: &str) -> Element<MainMessage> {
         .into()
 }
 
-fn character_item(text: &str, active: bool) -> Element<MainMessage> {
+fn character_item<'a>(text: &'a str,
+                      idx: usize,
+                      active: bool,
+                      state: &'a mut button::State) -> Element<'a, MainMessage> {
     let text = Text::new(text)
         .font(BOOKLETTER_1911)
         .size(30)
         .vertical_alignment(VerticalAlignment::Center)
         .horizontal_alignment(HorizontalAlignment::Left);
 
-    Container::new(text)
+    let b = Button::new(state, text)
+        .on_press(MainMessage::SwitchCharacter(idx))
+        .padding(10);
+
+    Container::new(b)
         .padding(10)
         .style(if active { style::SecondaryMenuItem::Active } else { style::SecondaryMenuItem::Inactive })
         .width(Length::Fill)
