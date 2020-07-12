@@ -1,6 +1,6 @@
 use iced::{
     button, text_input, Align, Application, Button, Column, Command, Container, Element, Font,
-    HorizontalAlignment, Length, Row, Settings, Subscription, Text, VerticalAlignment,
+    HorizontalAlignment, Length, Row, Settings, Subscription, Text, TextInput, VerticalAlignment,
 };
 use std::path::PathBuf;
 
@@ -24,7 +24,166 @@ struct LoadingState {
 struct LoadedState {
     party: data::Party,
     secondary_menu_buttons: Vec<button::State>,
-    active_character: usize,
+    active_character: CharacterView,
+}
+
+struct CharacterView {
+    index: usize,
+    statistics: StatisticsView,
+}
+
+impl CharacterView {
+    fn new(character: &data::Character, index: usize) -> CharacterView {
+        CharacterView {
+            index,
+            statistics: StatisticsView::new(character),
+        }
+    }
+}
+
+struct StatisticsView {
+    // Abilities
+    strength: StatView,
+    dexterity: StatView,
+    constitution: StatView,
+    intelligence: StatView,
+    wisdom: StatView,
+    charisma: StatView,
+    // Combat stats
+    attack_bonus: StatView,
+    cmb: StatView,
+    cmd: StatView,
+    ac: StatView,
+    bab: StatView,
+    hp: StatView,
+    initiative: StatView,
+    // Saves
+    save_fortitude: StatView,
+    save_reflex: StatView,
+    save_will: StatView,
+    // Skills
+    athletics: StatView,
+    mobility: StatView,
+    thievery: StatView,
+    stealth: StatView,
+    arcana: StatView,
+    world: StatView,
+    nature: StatView,
+    religion: StatView,
+    perception: StatView,
+    persuasion: StatView,
+    magic_device: StatView,
+    // Money & Experience should also goes here
+}
+
+/*
+  We have a few more skills we don't display on the UI at the moment
+  - "AdditionalDamage",
+  - "AttackOfOpportunityCount",
+  - "CheckBluff",
+  - "CheckDiplomacy",
+  - "CheckIntimidate",
+  - "DamageNonLethal",
+  - "Reach",
+  - "SneakAttack",
+  - "Speed",
+  - "TemporaryHitPoints",
+*/
+impl StatisticsView {
+    fn new(character: &data::Character) -> StatisticsView {
+        StatisticsView {
+            strength: StatView::new("STR", character.find_stat("Strength").unwrap()),
+            dexterity: StatView::new("DEX", character.find_stat("Dexterity").unwrap()),
+            constitution: StatView::new("CON", character.find_stat("Constitution").unwrap()),
+            intelligence: StatView::new("INT", character.find_stat("Intelligence").unwrap()),
+            wisdom: StatView::new("WIS", character.find_stat("Wisdom").unwrap()),
+            charisma: StatView::new("CHA", character.find_stat("Charisma").unwrap()),
+            attack_bonus: StatView::new(
+                "Additional Attack Bonus",
+                character.find_stat("AdditionalAttackBonus").unwrap(),
+            ),
+            cmb: StatView::new("CMB", character.find_stat("AdditionalCMB").unwrap()),
+            cmd: StatView::new("CMD", character.find_stat("AdditionalCMD").unwrap()),
+            ac: StatView::new("AC", character.find_stat("AC").unwrap()),
+            bab: StatView::new("BAB", character.find_stat("BaseAttackBonus").unwrap()),
+            hp: StatView::new("HP", character.find_stat("HitPoints").unwrap()),
+            initiative: StatView::new("Initiative", character.find_stat("Initiative").unwrap()),
+            save_fortitude: StatView::new(
+                "Save: Fortitude",
+                character.find_stat("SaveFortitude").unwrap(),
+            ),
+            save_reflex: StatView::new("Save: Reflex", character.find_stat("SaveReflex").unwrap()),
+            save_will: StatView::new("Save: Will", character.find_stat("SaveWill").unwrap()),
+            athletics: StatView::new("Athletics", character.find_stat("SkillAthletics").unwrap()),
+            mobility: StatView::new("Mobility", character.find_stat("SkillMobility").unwrap()),
+            thievery: StatView::new("Thievery", character.find_stat("SkillThievery").unwrap()),
+            stealth: StatView::new("Stealth", character.find_stat("SkillStealth").unwrap()),
+            arcana: StatView::new(
+                "Knowledge: Arcana",
+                character.find_stat("SkillKnowledgeArcana").unwrap(),
+            ),
+            world: StatView::new(
+                "Knowledge: World",
+                character.find_stat("SkillKnowledgeWorld").unwrap(),
+            ),
+            nature: StatView::new(
+                "Lore: Nature",
+                character.find_stat("SkillLoreNature").unwrap(),
+            ),
+            religion: StatView::new(
+                "Lore: Religion",
+                character.find_stat("SkillLoreReligion").unwrap(),
+            ),
+            perception: StatView::new(
+                "Perception",
+                character.find_stat("SkillPerception").unwrap(),
+            ),
+            persuasion: StatView::new(
+                "Persuasion",
+                character.find_stat("SkillPersuasion").unwrap(),
+            ),
+            magic_device: StatView::new(
+                "Use Magic Device",
+                character.find_stat("SkillUseMagicDevice").unwrap(),
+            ),
+        }
+    }
+}
+
+struct StatView {
+    label: &'static str,
+    id: String,
+    text_input: text_input::State,
+    value: i16,
+}
+
+impl StatView {
+    fn new(label: &'static str, stat: &data::Stat) -> StatView {
+        StatView {
+            label,
+            id: stat.id.clone(),
+            text_input: text_input::State::new(),
+            value: stat.base_value,
+        }
+    }
+
+    fn view(&mut self) -> Element<MainMessage> {
+        let stat_id = self.id.clone();
+        let input = TextInput::new(
+            &mut self.text_input,
+            self.label,
+            &self.value.to_string(),
+            move |value| {
+                let stat_id = stat_id.clone();
+                MainMessage::StatisticModified { stat_id, value }
+            },
+        );
+
+        Row::new()
+            .push(Text::new(format!("{}: ", self.label)))
+            .push(input)
+            .into()
+    }
 }
 
 enum Main {
@@ -45,10 +204,12 @@ impl Main {
             secondary_menu_buttons.push(button::State::new());
         }
 
+        let active_character = CharacterView::new(&party.characters.first().unwrap(), 0);
+
         Main::Loaded(LoadedState {
             party,
             secondary_menu_buttons,
-            active_character: 0,
+            active_character,
         })
     }
 }
@@ -59,6 +220,10 @@ enum MainMessage {
     FileChosen(Result<PathBuf, dialog::OpenError>),
     LoadProgressed(LoadingStep),
     SwitchCharacter(usize),
+    StatisticModified {
+        stat_id: String,
+        value: String, // TODO Add a way to find out which stat has been modified
+    },
 }
 
 impl Application for Main {
@@ -133,12 +298,14 @@ impl Application for Main {
             MainMessage::SwitchCharacter(active_character) => {
                 match self {
                     Main::Loaded(ref mut state) => {
-                        state.active_character = active_character;
+                        let character = state.party.characters.get(active_character).unwrap();
+                        state.active_character = CharacterView::new(character, active_character);
                     }
                     _ => (),
                 };
                 Command::none()
             }
+            MainMessage::StatisticModified { .. } => Command::none(),
         }
     }
 
@@ -211,7 +378,7 @@ impl Application for Main {
                         name = &c.blueprint;
                     }
 
-                    let active = &idx == active_character;
+                    let active = idx == active_character.index;
 
                     characters = characters.push(character_item(name, idx, active, m));
                 }
@@ -222,77 +389,60 @@ impl Application for Main {
 
                 // Statistics
 
-                let character = &party.characters.get(*active_character).unwrap();
-
                 let main_stats = Row::new()
                     .width(Length::Fill)
                     .height(Length::from(50))
+                    .align_items(Align::Center)
                     .push(Text::new("Money: 38747G"))
                     .push(Text::new("Experience: 38747"))
                     .push(Text::new("Alignment: Neutral Good"));
 
-                /*
-                We have a few more skills we don't display on the UI at the moment
-                "AdditionalDamage", "AttackOfOpportunityCount",
-                "CheckBluff", "CheckDiplomacy", "CheckIntimidate",
-                "DamageNonLethal", "Reach",
-                "SneakAttack", "Speed",  "TemporaryHitPoints", ""
-                */
-
-                let stat_text_view = |label: &str, key: &str| {
-                    let number = character
-                        .stat_for(key)
-                        .map(|i| i.to_string())
-                        .unwrap_or("NAN".to_string());
-
-                    Text::new(format!("{}: {}", label, number))
-                };
-
                 let abilities_stats = Column::new()
                     .height(Length::Fill)
-                    .push(stat_text_view("STR", "Strength"))
-                    .push(stat_text_view("DEX", "Dexterity"))
-                    .push(stat_text_view("CON", "Constitution"))
-                    .push(stat_text_view("INT", "Intelligence"))
-                    .push(stat_text_view("WIS", "Wisdom"))
-                    .push(stat_text_view("CHA", "Charisma"));
+                    .width(Length::FillPortion(1))
+                    .push(active_character.statistics.strength.view())
+                    .push(active_character.statistics.dexterity.view())
+                    .push(active_character.statistics.constitution.view())
+                    .push(active_character.statistics.intelligence.view())
+                    .push(active_character.statistics.wisdom.view())
+                    .push(active_character.statistics.charisma.view());
 
                 let combat_stats = Column::new()
-                    .push(stat_text_view(
-                        "Additional Attack Bonus",
-                        "AdditionalAttackBonus",
-                    ))
-                    .push(stat_text_view("CMB", "AdditionalCMB"))
-                    .push(stat_text_view("CMD", "AdditionalCMD"))
-                    .push(stat_text_view("AC", "AC"))
-                    .push(stat_text_view("BAB", "BaseAttackBonus"))
-                    .push(stat_text_view("HP", "HitPoints"))
-                    .push(stat_text_view("Initiative", "Initiative"))
-                    .push(stat_text_view("Save: Fortitude", "SaveFortitude"))
-                    .push(stat_text_view("Save: Reflex", "SaveReflex"))
-                    .push(stat_text_view("Save: Will", "SaveWill"))
-                    .push(Text::new("CMD 7"));
+                    .width(Length::FillPortion(1))
+                    .push(active_character.statistics.attack_bonus.view())
+                    .push(active_character.statistics.cmb.view())
+                    .push(active_character.statistics.cmd.view())
+                    .push(active_character.statistics.ac.view())
+                    .push(active_character.statistics.bab.view())
+                    .push(active_character.statistics.hp.view())
+                    .push(active_character.statistics.initiative.view())
+                    .push(active_character.statistics.save_fortitude.view())
+                    .push(active_character.statistics.save_reflex.view())
+                    .push(active_character.statistics.save_will.view());
 
                 let skills_stats = Column::new()
-                    .push(stat_text_view("Athletics", "SkillAthletics"))
-                    .push(stat_text_view("Mobility", "SkillMobility"))
-                    .push(stat_text_view("Thievery", "SkillThievery"))
-                    .push(stat_text_view("Stealth", "SkillStealth"))
-                    .push(stat_text_view("Knowledge: Arcana", "SkillKnowledgeArcana"))
-                    .push(stat_text_view("Knowledge: World", "SkillKnowledgeWorld"))
-                    .push(stat_text_view("Lore: Nature", "SkillLoreNature"))
-                    .push(stat_text_view("Lore: Religion", "SkillLoreReligion"))
-                    .push(stat_text_view("Perception", "SkillPerception"))
-                    .push(stat_text_view("Persuasion", "SkillPersuasion"))
-                    .push(stat_text_view("UseMagicDevice", "SkillUseMagicDevice"));
+                    .width(Length::FillPortion(1))
+                    .push(active_character.statistics.athletics.view())
+                    .push(active_character.statistics.mobility.view())
+                    .push(active_character.statistics.thievery.view())
+                    .push(active_character.statistics.stealth.view())
+                    .push(active_character.statistics.arcana.view())
+                    .push(active_character.statistics.world.view())
+                    .push(active_character.statistics.nature.view())
+                    .push(active_character.statistics.religion.view())
+                    .push(active_character.statistics.perception.view())
+                    .push(active_character.statistics.persuasion.view())
+                    .push(active_character.statistics.magic_device.view());
 
                 let statistics = Row::new()
+                    .spacing(25)
                     .push(abilities_stats)
                     .push(combat_stats)
                     .push(skills_stats);
 
                 let character = Column::new()
                     .width(Length::Fill)
+                    .padding(10)
                     .push(main_stats)
                     .push(statistics);
 
@@ -357,10 +507,6 @@ fn character_item<'a>(
         .into()
 }
 
-fn labelled_item(label: &str, value: String, state: text_input::State) -> Element<MainMessage> {
-    unimplemented!()
-}
-
 // Fonts
 const CALIGHRAPHIC_FONT: Font = Font::External {
     name: "Caligraphic",
@@ -373,10 +519,7 @@ const BOOKLETTER_1911: Font = Font::External {
 };
 
 mod style {
-    use iced::{
-        button, checkbox, container, progress_bar, radio, scrollable, slider, text_input,
-        Background, Color,
-    };
+    use iced::{container, Background, Color};
 
     pub struct MenuSurface;
 

@@ -15,25 +15,22 @@ pub struct Party {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Character {
-    id: String,
+    pub id: String,
     pub name: String,
     pub blueprint: String,
     pub statistics: Vec<Stat>,
 }
 
 impl Character {
-    pub fn stat_for(&self, name: &str) -> Option<i16> {
-        self.statistics
-            .iter()
-            .find(|s| s.tpe == name)
-            .map(|s| s.base_value)
+    pub fn find_stat(&self, name: &str) -> Option<&Stat> {
+        self.statistics.iter().find(|s| s.tpe == name)
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Stat {
     #[serde(alias = "$id")]
-    id: String,
+    pub id: String,
     #[serde(alias = "Type")]
     pub tpe: String,
     #[serde(alias = "m_BaseValue")]
