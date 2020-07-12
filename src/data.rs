@@ -210,10 +210,6 @@ impl IndexedJson {
     pub fn pointer(&self, pointer: &str) -> Option<&Value> {
         self.json.pointer(pointer)
     }
-
-    pub fn pointer_mut(&mut self, pointer: &str) -> Option<&mut Value> {
-        self.json.pointer_mut(pointer)
-    }
 }
 
 fn build_index(json: &Value, path: &str, index: &mut BTreeMap<String, String>) {
