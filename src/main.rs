@@ -364,7 +364,7 @@ fn labelled_item(label: &str, value: String, state: text_input::State) -> Elemen
 // Fonts
 const CALIGHRAPHIC_FONT: Font = Font::External {
     name: "Caligraphic",
-    bytes: include_bytes!("../fonts/beckett/BECKETT.ttf"),
+    bytes: include_bytes!("../fonts/beckett/BECKETT.TTF"),
 };
 
 const BOOKLETTER_1911: Font = Font::External {
