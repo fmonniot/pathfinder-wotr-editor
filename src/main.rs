@@ -27,40 +27,21 @@ struct LoadedState {
     active_character: CharacterView,
 }
 
+/*
+  We have a few more fields we don't display on the UI at the moment
+  - "AdditionalDamage",
+  - "AttackOfOpportunityCount",
+  - "CheckBluff",
+  - "CheckDiplomacy",
+  - "CheckIntimidate",
+  - "DamageNonLethal",
+  - "Reach",
+  - "SneakAttack",
+  - "Speed",
+  - "TemporaryHitPoints",
+*/
 struct CharacterView {
     index: usize,
-    experience: StatView,
-    mythic_experience: StatView,
-    statistics: StatisticsView,
-}
-
-impl CharacterView {
-    fn new(character: &data::Character, index: usize) -> CharacterView {
-
-        let experience = StatView {
-            label: "Experience",
-            id: character.id.clone(),
-            text_input: text_input::State::new(),
-            value: character.experience,
-        };
-
-        let mythic_experience = StatView {
-            label: "Mythic Experience",
-            id: character.id.clone(),
-            text_input: text_input::State::new(),
-            value: character.mythic_experience,
-        };
-
-        CharacterView {
-            index,
-            experience,
-            mythic_experience,
-            statistics: StatisticsView::new(character),
-        }
-    }
-}
-
-struct StatisticsView {
     // Abilities
     strength: StatView,
     dexterity: StatView,
@@ -93,24 +74,30 @@ struct StatisticsView {
     persuasion: StatView,
     magic_device: StatView,
     // Money & Experience should also goes here
+    experience: StatView,
+    mythic_experience: StatView,
 }
 
-/*
-  We have a few more skills we don't display on the UI at the moment
-  - "AdditionalDamage",
-  - "AttackOfOpportunityCount",
-  - "CheckBluff",
-  - "CheckDiplomacy",
-  - "CheckIntimidate",
-  - "DamageNonLethal",
-  - "Reach",
-  - "SneakAttack",
-  - "Speed",
-  - "TemporaryHitPoints",
-*/
-impl StatisticsView {
-    fn new(character: &data::Character) -> StatisticsView {
-        StatisticsView {
+impl CharacterView {
+    fn new(character: &data::Character, index: usize) -> CharacterView {
+        let experience = StatView {
+            label: "Experience",
+            id: character.id.clone(),
+            text_input: text_input::State::new(),
+            value: character.experience,
+        };
+
+        let mythic_experience = StatView {
+            label: "Mythic Experience",
+            id: character.id.clone(),
+            text_input: text_input::State::new(),
+            value: character.mythic_experience,
+        };
+
+        CharacterView {
+            index,
+            experience,
+            mythic_experience,
             strength: StatView::new("STR", character.find_stat("Strength").unwrap()),
             dexterity: StatView::new("DEX", character.find_stat("Dexterity").unwrap()),
             constitution: StatView::new("CON", character.find_stat("Constitution").unwrap()),
@@ -166,6 +153,67 @@ impl StatisticsView {
                 character.find_stat("SkillUseMagicDevice").unwrap(),
             ),
         }
+    }
+
+    fn view(&mut self) -> Element<MainMessage> {
+        let main_stats = Row::new()
+            .width(Length::Fill)
+            .height(Length::from(50))
+            .align_items(Align::Center)
+            // Money is actually part of the player.json and not party.json.
+            .push(Text::new("Money: 38747G").width(Length::FillPortion(1)))
+            .push(self.experience.view())
+            .push(self.mythic_experience.view());
+
+        let abilities_stats = Column::new()
+            .height(Length::Fill)
+            .width(Length::FillPortion(1))
+            .push(self.strength.view())
+            .push(self.dexterity.view())
+            .push(self.constitution.view())
+            .push(self.intelligence.view())
+            .push(self.wisdom.view())
+            .push(self.charisma.view());
+
+        let combat_stats = Column::new()
+            .width(Length::FillPortion(1))
+            .push(self.attack_bonus.view())
+            .push(self.cmb.view())
+            .push(self.cmd.view())
+            .push(self.ac.view())
+            .push(self.bab.view())
+            .push(self.hp.view())
+            .push(self.initiative.view())
+            .push(self.save_fortitude.view())
+            .push(self.save_reflex.view())
+            .push(self.save_will.view());
+
+        let skills_stats = Column::new()
+            .width(Length::FillPortion(1))
+            .push(self.athletics.view())
+            .push(self.mobility.view())
+            .push(self.thievery.view())
+            .push(self.stealth.view())
+            .push(self.arcana.view())
+            .push(self.world.view())
+            .push(self.nature.view())
+            .push(self.religion.view())
+            .push(self.perception.view())
+            .push(self.persuasion.view())
+            .push(self.magic_device.view());
+
+        let statistics = Row::new()
+            .spacing(25)
+            .push(abilities_stats)
+            .push(combat_stats)
+            .push(skills_stats);
+
+        Column::new()
+            .width(Length::Fill)
+            .padding(10)
+            .push(main_stats)
+            .push(statistics)
+            .into()
     }
 }
 
@@ -409,63 +457,7 @@ impl Application for Main {
 
                 // Statistics
 
-                let main_stats = Row::new()
-                    .width(Length::Fill)
-                    .height(Length::from(50))
-                    .align_items(Align::Center)
-                    // Money is actually part of the player.json and not party.json.
-                    .push(Text::new("Money: 38747G").width(Length::FillPortion(1)))
-                    .push(active_character.experience.view())
-                    .push(active_character.mythic_experience.view());
-
-                let abilities_stats = Column::new()
-                    .height(Length::Fill)
-                    .width(Length::FillPortion(1))
-                    .push(active_character.statistics.strength.view())
-                    .push(active_character.statistics.dexterity.view())
-                    .push(active_character.statistics.constitution.view())
-                    .push(active_character.statistics.intelligence.view())
-                    .push(active_character.statistics.wisdom.view())
-                    .push(active_character.statistics.charisma.view());
-
-                let combat_stats = Column::new()
-                    .width(Length::FillPortion(1))
-                    .push(active_character.statistics.attack_bonus.view())
-                    .push(active_character.statistics.cmb.view())
-                    .push(active_character.statistics.cmd.view())
-                    .push(active_character.statistics.ac.view())
-                    .push(active_character.statistics.bab.view())
-                    .push(active_character.statistics.hp.view())
-                    .push(active_character.statistics.initiative.view())
-                    .push(active_character.statistics.save_fortitude.view())
-                    .push(active_character.statistics.save_reflex.view())
-                    .push(active_character.statistics.save_will.view());
-
-                let skills_stats = Column::new()
-                    .width(Length::FillPortion(1))
-                    .push(active_character.statistics.athletics.view())
-                    .push(active_character.statistics.mobility.view())
-                    .push(active_character.statistics.thievery.view())
-                    .push(active_character.statistics.stealth.view())
-                    .push(active_character.statistics.arcana.view())
-                    .push(active_character.statistics.world.view())
-                    .push(active_character.statistics.nature.view())
-                    .push(active_character.statistics.religion.view())
-                    .push(active_character.statistics.perception.view())
-                    .push(active_character.statistics.persuasion.view())
-                    .push(active_character.statistics.magic_device.view());
-
-                let statistics = Row::new()
-                    .spacing(25)
-                    .push(abilities_stats)
-                    .push(combat_stats)
-                    .push(skills_stats);
-
-                let character = Column::new()
-                    .width(Length::Fill)
-                    .padding(10)
-                    .push(main_stats)
-                    .push(statistics);
+                let character = active_character.view();
 
                 Row::new()
                     .push(menu)

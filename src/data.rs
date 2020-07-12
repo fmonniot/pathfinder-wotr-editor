@@ -54,10 +54,10 @@ pub struct Stat {
 
 #[derive(Debug)]
 pub enum JsonReaderError {
-    ArrayExpected(String, String),    // path and actual type
-    ObjectExpected(String, String),   // path and actual type
-    StringExpected(String, String),   // path and actual type
-    NumberExpected(String, String),   // path and actual type
+    ArrayExpected(String, String),  // path and actual type
+    ObjectExpected(String, String), // path and actual type
+    StringExpected(String, String), // path and actual type
+    NumberExpected(String, String), // path and actual type
 
     InvalidReference(String, String), // path and $ref value
     InvalidPointer(String),
