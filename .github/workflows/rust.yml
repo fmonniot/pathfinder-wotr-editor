@@ -19,7 +19,12 @@ jobs:
       - name: Cache Rust dependencies
         uses: actions/cache@v2
         with:
-          path: target
+          path: |
+            target
+            /usr/share/rust/.cargo/bin/
+            /usr/share/rust/.cargo/registry/index/
+            /usr/share/rust/.cargo/registry/cache/
+            /usr/share/rust/.cargo/git/db/
           key: ${{ runner.OS }}-test-suite-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.OS }}-test-suite-
