@@ -84,7 +84,8 @@ mod paths {
         use std::path::PathBuf;
 
         pub fn save_game() -> Option<PathBuf> {
-            dirs::config_dir().map(|h| h.join("unity3d/Owlcat Games/Pathfinder Kingmaker/Saved Games/"))
+            dirs::config_dir()
+                .map(|h| h.join("unity3d/Owlcat Games/Pathfinder Kingmaker/Saved Games/"))
         }
     }
     #[cfg(any(target_os = "linux"))]
