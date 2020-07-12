@@ -349,12 +349,12 @@ fn labelled_item(label: &str,
 // Fonts
 const CALIGHRAPHIC_FONT: Font = Font::External {
     name: "Caligraphic",
-    bytes: include_bytes!("../fonts/beckett/BECKETT.ttf"),
+    bytes: include_bytes!("fonts/beckett/BECKETT.ttf"),
 };
 
 const BOOKLETTER_1911: Font = Font::External {
     name: "Goudy_Bookletter_1911",
-    bytes: include_bytes!("../fonts/Goudy_Bookletter_1911/GoudyBookletter1911-Regular.ttf"),
+    bytes: include_bytes!("fonts/Goudy_Bookletter_1911/GoudyBookletter1911-Regular.ttf"),
 };
 
 mod style {
