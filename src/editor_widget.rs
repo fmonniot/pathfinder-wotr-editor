@@ -1,5 +1,5 @@
 use crate::character_view::{self, CharacterView};
-use crate::data::Party;
+use crate::data::{Party, Player};
 use iced::{
     button, Align, Button, Column, Command, Container, Element, Font, HorizontalAlignment, Length,
     Row, Text, VerticalAlignment,
@@ -22,7 +22,7 @@ enum Msg {
 }
 
 impl EditorWidget {
-    pub fn new(party: Party) -> EditorWidget {
+    pub fn new(party: Party, _player: Player) -> EditorWidget {
         let characters_len = party.characters.len() as usize; // Pretty sure you can't more characters than that
         let mut secondary_menu_buttons = Vec::with_capacity(characters_len);
 

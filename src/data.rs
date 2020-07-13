@@ -11,7 +11,7 @@ use std::path::Path;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Party {
-    index: IndexedJson,
+    index: IndexedJson, // TODO keep the index ?
     pub characters: Vec<Character>,
 }
 
@@ -225,7 +225,180 @@ fn json_type(value: &Value) -> &'static str {
     }
 }
 
-pub fn read_entity_from_path<P: AsRef<Path>>(path: P) -> Result<Value, Box<dyn Error>> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct Player {
+    armies: Vec<Army>,
+    money: u64,
+    recruits: RecruitsManager,
+    resources: KingdomResources,
+    resources_per_turn: KingdomResources,
+    // TODO modifiers (rankup, claim, etc…)
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Army {
+    id: String,
+    experience: u64,
+    movement_points: f64,
+    squads: Vec<Squad>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct Squad {
+    #[serde(alias = "$id")]
+    id: String,
+    #[serde(alias = "Unit")]
+    unit: String,
+    #[serde(alias = "Count")]
+    count: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct RecruitsManager {
+    #[serde(alias = "m_Pool")]
+    pool: Vec<Recruit>,
+    #[serde(alias = "m_Growth")]
+    growth: Vec<Recruit>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct Recruit {
+    #[serde(alias = "$id")]
+    id: String,
+    #[serde(alias = "Unit")]
+    unit: String,
+    #[serde(alias = "Count")]
+    count: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct KingdomResources {
+    #[serde(alias = "$id")]
+    id: String,
+    #[serde(alias = "m_Finances")]
+    finances: u64,
+    #[serde(alias = "m_Basics")]
+    basics: u64,
+    #[serde(alias = "m_Favors")]
+    favors: u64,
+    #[serde(alias = "m_Mana")]
+    mana: u64,
+}
+
+pub fn read_player(index: IndexedJson) -> Result<Player, JsonReaderError> {
+    let maps = index
+        .pointer("/m_GlobalMaps")
+        .ok_or_else(|| JsonReaderError::InvalidPointer("/m_GlobalMaps".to_string()))?;
+    
+    let armies = maps
+        .as_array()
+        .ok_or_else(|| {
+            JsonReaderError::ArrayExpected("/m_GlobalMaps".to_string(), json_type(maps).to_string())
+        })?
+        .iter()
+        .map(|json| {
+            let armies = json
+                .pointer("/m_Armies")
+                .ok_or_else(|| JsonReaderError::InvalidPointer("/m_Armies".to_string()))?;
+
+
+            armies
+                .as_array()
+                .ok_or_else(|| {
+                    JsonReaderError::ArrayExpected("/m_Armies".to_string(), json_type(armies).to_string())
+                })?
+                .iter()
+                .filter(|json| {
+                    // We only keep the crusaders squads
+                    json.pointer("/Data/Faction")
+                        .and_then(|v| v.as_str())
+                        .filter(|s| s == &"Crusaders")
+                        .is_some()
+                })
+                .map(|json| {
+
+                    let id = json
+                        .get("$id")
+                        .and_then(Value::as_str)
+                        .map(str::to_string)
+                        .ok_or_else(|| JsonReaderError::InvalidPointer("/$id".to_string()))?;
+
+                    let movement_points = json
+                        .pointer("/MovementPoints")
+                        .ok_or_else(|| JsonReaderError::InvalidPointer("/MovementPoints".to_string()))?
+                        .as_f64()
+                        .ok_or_else(|| {
+                            JsonReaderError::NumberExpected(
+                                "/MovementPoints".to_string(),
+                                "todo".to_string(),
+                            )
+                        })?;
+
+                    let experience = json
+                        .pointer("/Data/Experience")
+                        .ok_or_else(|| JsonReaderError::InvalidPointer("/Data/Experience".to_string()))?
+                        .as_u64()
+                        .ok_or_else(|| {
+                            JsonReaderError::NumberExpected(
+                                "/Data/Experience".to_string(),
+                                "todo".to_string(),
+                            )
+                        })?;
+
+                    let squads = json
+                        .pointer("/Data/Squads")
+                        .ok_or_else(|| JsonReaderError::InvalidPointer("/Data/Squads".to_string()))?;
+                    let squads = serde_json::from_value(squads.clone())?;
+
+                    Ok(Army {
+                        id,
+                        experience,
+                        movement_points,
+                        squads,
+                    })
+                    
+                })
+                .collect::<Result<Vec<_>, JsonReaderError>>() 
+        })
+        .collect::<Result<Vec<_>, JsonReaderError>>()?
+        .iter().flatten().cloned().collect::<Vec<_>>();
+
+
+        /*
+        */
+
+    let resources = index
+        .pointer("/Kingdom/Resources")
+        .ok_or_else(|| JsonReaderError::InvalidPointer("/Kingdom/Resources".to_string()))?;
+    let resources = serde_json::from_value(resources.clone())?;
+
+    let resources_per_turn = index
+        .pointer("/Kingdom/ResourcesPerTurn")
+        .ok_or_else(|| JsonReaderError::InvalidPointer("/Kingdom/ResourcesPerTurn".to_string()))?;
+    let resources_per_turn = serde_json::from_value(resources_per_turn.clone())?;
+
+    let recruits_manager = index
+        .pointer("/Kingdom/RecruitsManager")
+        .ok_or_else(|| JsonReaderError::InvalidPointer("/Kingdom/RecruitsManager".to_string()))?;
+    let recruits = serde_json::from_value(recruits_manager.clone())?;
+
+    let money = index
+        .pointer("/Money")
+        .ok_or_else(|| JsonReaderError::InvalidPointer("/Money".to_string()))?
+        .as_u64()
+        .ok_or_else(|| JsonReaderError::NumberExpected("/Money".to_string(), "todo".to_string()))?;
+
+    Ok(Player {
+        armies,
+        money,
+        recruits,
+        resources,
+        resources_per_turn,
+    })
+}
+
+// debug only
+pub fn read_json_from_path<P: AsRef<Path>>(path: P) -> Result<Value, Box<dyn Error>> {
     // Open the file in read-only mode with buffer.
     let file = File::open(path)?;
     let reader = BufReader::new(file);

@@ -56,10 +56,17 @@ impl Application for Main {
         */
 
         // Hack to speed up development, should probably be behind a flag
-        let party = data::read_entity_from_path("samples/party.json").unwrap();
+        let party = data::read_json_from_path("samples/party.json").unwrap();
         let party = data::IndexedJson::new(party);
         let party = data::read_party(party).unwrap();
-        let component = Box::new(EditorWidget::new(party));
+
+        let player = data::read_json_from_path("samples/player.json").unwrap();
+        let player = data::IndexedJson::new(player);
+        let player = data::read_player(player).unwrap();
+
+        println!("Player: {:#?}", player);
+
+        let component = Box::new(EditorWidget::new(party, player));
 
         (Main::Loaded(component), Command::none())
     }
@@ -98,8 +105,8 @@ impl Application for Main {
             }
             MainMessage::LoadProgressed(step) => match self {
                 Main::Loading(ref mut state) => match step {
-                    LoadingStep::Done { party } => {
-                        *self = Main::Loaded(Box::new(EditorWidget::new(party)));
+                    LoadingStep::Done { party, player } => {
+                        *self = Main::Loaded(Box::new(EditorWidget::new(party, player)));
                         Command::none()
                     }
                     _ => {
