@@ -3,6 +3,7 @@
 use crate::data::Character;
 use iced::{text_input, Align, Column, Command, Element, Length, Row, Text, TextInput};
 
+// TODO Invert Msg and Message, making Message the public type
 #[derive(Debug, Clone)]
 pub struct Msg(Message);
 
@@ -122,13 +123,14 @@ impl Field {
 
         let value = match stat_key {
             Some(key) => character.find_stat(key).unwrap().base_value,
-            None => {
-                match self {
-                    Field::Experience => character.experience,
-                    Field::MythicExperience => character.mythic_experience,
-                    _ => panic!("A field ({:?}) was not matched when building its view, please report", self),
-                }
-            }
+            None => match self {
+                Field::Experience => character.experience,
+                Field::MythicExperience => character.mythic_experience,
+                _ => panic!(
+                    "A field ({:?}) was not matched when building its view, please report",
+                    self
+                ),
+            },
         };
 
         StatView::new(self, value)
@@ -187,7 +189,6 @@ pub struct CharacterView {
 
 impl CharacterView {
     pub fn new(character: &Character) -> CharacterView {
-
         CharacterView {
             experience: Field::Experience.build_view(character),
             mythic_experience: Field::MythicExperience.build_view(character),
@@ -288,7 +289,7 @@ impl CharacterView {
                 if let Ok(n) = value.parse::<u64>() {
                     self.stat_view_for_field(&entity_id).value = n;
                 }
-            },
+            }
         };
         Command::none()
     }

@@ -1,15 +1,16 @@
 use iced::{
-    button, Align, Application, Button, Column, Command, Container, Element, Font,
-    HorizontalAlignment, Length, Row, Settings, Subscription, Text, VerticalAlignment,
+    button, Align, Application, Button, Column, Command, Container, Element, Length, Settings,
+    Subscription, Text,
 };
 use std::path::PathBuf;
 
 mod character_view;
 mod data;
 mod dialog;
+mod editor_widget;
 mod loader;
 
-use character_view::CharacterView;
+use editor_widget::EditorWidget;
 use loader::{Loader, LoaderError, LoadingStep};
 
 pub fn main() {
@@ -23,40 +24,13 @@ struct LoadingState {
     // TODO Add progress bar
 }
 
-struct LoadedState {
-    party: data::Party,
-    secondary_menu_buttons: Vec<button::State>,
-    active_character: CharacterView,
-    active_character_index: usize,
-}
-
 enum Main {
     Loader {
         open_button_state: button::State,
         open_failed: Option<dialog::OpenError>,
     },
     Loading(LoadingState),
-    Loaded(LoadedState),
-}
-
-impl Main {
-    fn new_loaded(party: data::Party) -> Main {
-        let characters_len = party.characters.len() as usize; // Pretty sure you can't more characters than that
-        let mut secondary_menu_buttons = Vec::with_capacity(characters_len);
-
-        for _ in 0..characters_len {
-            secondary_menu_buttons.push(button::State::new());
-        }
-
-        let active_character = CharacterView::new(&party.characters.first().unwrap());
-
-        Main::Loaded(LoadedState {
-            party,
-            secondary_menu_buttons,
-            active_character,
-            active_character_index: 0,
-        })
-    }
+    Loaded(EditorWidget),
 }
 
 #[derive(Debug, Clone)]
@@ -64,8 +38,7 @@ enum MainMessage {
     OpenFileDialog,
     FileChosen(Result<PathBuf, dialog::OpenError>),
     LoadProgressed(LoadingStep),
-    SwitchCharacter(usize),
-    CharacterMessage(character_view::Msg),
+    EditorMessage(editor_widget::Message),
 }
 
 impl Application for Main {
@@ -87,9 +60,7 @@ impl Application for Main {
         let party = data::IndexedJson::new(party);
         let party = data::read_party(party).unwrap();
 
-        let component = Main::new_loaded(party);
-
-        (component, Command::none())
+        (Main::Loaded(EditorWidget::new(party)), Command::none())
     }
 
     fn title(&self) -> String {
@@ -127,7 +98,7 @@ impl Application for Main {
             MainMessage::LoadProgressed(step) => match self {
                 Main::Loading(ref mut state) => match step {
                     LoadingStep::Done { party } => {
-                        *self = Main::new_loaded(party);
+                        *self = Main::Loaded(EditorWidget::new(party));
                         Command::none()
                     }
                     _ => {
@@ -137,21 +108,10 @@ impl Application for Main {
                 },
                 _ => Command::none(),
             },
-            MainMessage::SwitchCharacter(active_character) => {
+            MainMessage::EditorMessage(msg) => {
                 match self {
                     Main::Loaded(ref mut state) => {
-                        let character = state.party.characters.get(active_character).unwrap();
-                        state.active_character = CharacterView::new(character);
-                        state.active_character_index = active_character;
-                    }
-                    _ => (),
-                };
-                Command::none()
-            }
-            MainMessage::CharacterMessage(msg) => {
-                match self {
-                    Main::Loaded(ref mut state) => {
-                        state.active_character.update(msg);
+                        state.update(msg);
                     }
                     _ => (),
                 };
@@ -204,44 +164,7 @@ impl Application for Main {
 
                 Container::new(layout).into()
             }
-            Main::Loaded(LoadedState {
-                party,
-                secondary_menu_buttons,
-                active_character,
-                active_character_index,
-            }) => {
-                let menu = Column::new()
-                    .align_items(Align::Start)
-                    .push(menu_item("Party"));
-                let menu = Container::new(menu)
-                    .style(style::MenuSurface)
-                    .height(Length::Fill);
-
-                let mut characters = Column::new().width(Length::from(150)).height(Length::Fill);
-
-                for (idx, (c, m)) in party
-                    .characters
-                    .iter()
-                    .zip(secondary_menu_buttons)
-                    .enumerate()
-                {
-                    let active = &idx == active_character_index;
-
-                    characters = characters.push(character_item(c.name(), idx, active, m));
-                }
-
-                let characters = Container::new(characters)
-                    .style(style::SecondaryMenuSurface)
-                    .height(Length::Fill);
-
-                // Statistics
-
-                Row::new()
-                    .push(menu)
-                    .push(characters)
-                    .push(active_character.view().map(MainMessage::CharacterMessage))
-                    .into()
-            }
+            Main::Loaded(editor) => editor.view().map(MainMessage::EditorMessage),
         }
     }
 
@@ -252,135 +175,6 @@ impl Application for Main {
                 iced::Subscription::from_recipe(l).map(Self::Message::LoadProgressed)
             }
             _ => Subscription::none(),
-        }
-    }
-}
-
-fn menu_item(text: &str) -> Element<MainMessage> {
-    let length = Length::from(75);
-
-    let text = Text::new(text)
-        .font(CALIGHRAPHIC_FONT)
-        .horizontal_alignment(HorizontalAlignment::Center)
-        .vertical_alignment(VerticalAlignment::Center)
-        .width(length)
-        .height(length)
-        .size(30);
-
-    Container::new(text).style(style::MenuItem).into()
-}
-
-fn character_item<'a>(
-    text: String,
-    idx: usize,
-    active: bool,
-    state: &'a mut button::State,
-) -> Element<'a, MainMessage> {
-    let text = Text::new(text)
-        .font(BOOKLETTER_1911)
-        .size(30)
-        .vertical_alignment(VerticalAlignment::Center)
-        .horizontal_alignment(HorizontalAlignment::Left);
-
-    let b = Button::new(state, text)
-        .on_press(MainMessage::SwitchCharacter(idx))
-        .width(Length::Fill)
-        .padding(10);
-
-    Container::new(b)
-        .padding(10)
-        .style(if active {
-            style::SecondaryMenuItem::Active
-        } else {
-            style::SecondaryMenuItem::Inactive
-        })
-        .width(Length::Fill)
-        .into()
-}
-
-// Fonts
-const CALIGHRAPHIC_FONT: Font = Font::External {
-    name: "Caligraphic",
-    bytes: include_bytes!("../fonts/beckett/BECKETT.TTF"),
-};
-
-const BOOKLETTER_1911: Font = Font::External {
-    name: "Goudy_Bookletter_1911",
-    bytes: include_bytes!("../fonts/Goudy_Bookletter_1911/GoudyBookletter1911-Regular.ttf"),
-};
-
-mod style {
-    use iced::{container, Background, Color};
-
-    pub struct MenuSurface;
-
-    impl container::StyleSheet for MenuSurface {
-        fn style(&self) -> container::Style {
-            container::Style {
-                background: Some(Background::Color(Color::from_rgb8(0x2e, 0x31, 0x36))),
-                ..container::Style::default()
-            }
-        }
-    }
-
-    /*
-    $layoutBackground: #2e3136;
-    $layoutTabsBackground: #252729;
-    $layoutTabsActiveColor: #ffffff;
-    */
-    pub struct MenuItem;
-
-    impl container::StyleSheet for MenuItem {
-        fn style(&self) -> container::Style {
-            container::Style {
-                background: Some(Background::Color(Color::from_rgb8(0x2e, 0x31, 0x36))),
-                border_width: 1,
-                border_color: Color::from_rgb8(0x4c, 0x50, 0x53),
-                text_color: Some(Color::WHITE),
-                ..container::Style::default()
-            }
-        }
-    }
-
-    /*
-    // Secondary menu (eg. characters in a party)
-    $sidebarBackground: #36393e;
-    $sidebarActiveBackground: #414448;
-    $sidebarSubmenuActiveColor: #ffffff;
-    $sidebarSubmenuActiveBackground: #00796b;
-    */
-
-    pub struct SecondaryMenuSurface;
-
-    impl container::StyleSheet for SecondaryMenuSurface {
-        fn style(&self) -> container::Style {
-            container::Style {
-                background: Some(Background::Color(Color::from_rgb8(0x36, 0x39, 0x3e))),
-                ..container::Style::default()
-            }
-        }
-    }
-
-    pub enum SecondaryMenuItem {
-        Active,
-        Inactive,
-    }
-
-    impl container::StyleSheet for SecondaryMenuItem {
-        fn style(&self) -> container::Style {
-            let (bg, text) = match self {
-                SecondaryMenuItem::Inactive => (
-                    Color::from_rgb8(0x36, 0x39, 0x3e),
-                    Color::from_rgb8(0x87, 0x90, 0x9c),
-                ),
-                SecondaryMenuItem::Active => (Color::from_rgb8(0x41, 0x44, 0x48), Color::WHITE),
-            };
-
-            container::Style {
-                background: Some(Background::Color(bg)),
-                text_color: Some(text),
-                ..container::Style::default()
-            }
         }
     }
 }
