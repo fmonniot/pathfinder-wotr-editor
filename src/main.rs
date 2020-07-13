@@ -29,7 +29,7 @@ enum Main {
         open_button_state: button::State,
         open_failed: Option<dialog::OpenError>,
     },
-    Loading(LoadingState),
+    Loading(Box<LoadingState>),
     Loaded(Box<EditorWidget>),
 }
 
@@ -72,8 +72,8 @@ impl Application for Main {
     fn title(&self) -> String {
         match self {
             Main::Loader { .. } => "Pathfinder WotR Editor".to_string(),
-            Main::Loading(LoadingState { loader, .. }) => {
-                format!("Loading file {:?}", loader.file_path())
+            Main::Loading(state) => {
+                format!("Loading file {:?}", state.loader.file_path())
             }
             Main::Loaded { .. } => "Pathfinder WotR Editor".to_string(),
         }
@@ -87,11 +87,11 @@ impl Application for Main {
             }
             MainMessage::FileChosen(Ok(path)) => {
                 println!("Let's open {:?}", path);
-                *self = Main::Loading(LoadingState {
+                *self = Main::Loading(Box::new(LoadingState {
                     loader: Loader::new(path),
                     current_step: LoadingStep::Initialized,
                     failed: None,
-                });
+                }));
                 Command::none()
             }
             MainMessage::FileChosen(Err(error)) => {
@@ -103,8 +103,8 @@ impl Application for Main {
             }
             MainMessage::LoadProgressed(step) => match self {
                 Main::Loading(ref mut state) => match step {
-                    LoadingStep::Done { party, player } => {
-                        *self = Main::Loaded(Box::new(EditorWidget::new(party, player)));
+                    LoadingStep::Done(done) => {
+                        *self = Main::Loaded(Box::new(EditorWidget::new(done.party, done.player)));
                         Command::none()
                     }
                     _ => {
@@ -147,22 +147,18 @@ impl Application for Main {
 
                 layout.into()
             }
-            Main::Loading(LoadingState {
-                loader,
-                failed,
-                current_step,
-            }) => {
-                let layout = match failed {
+            Main::Loading(state) => {
+                let layout = match &state.failed {
                     Some(error) => Column::new()
                         .push(Text::new("Loading failed"))
                         .push(Text::new(format!("{:?}", error))),
                     None => Column::new()
-                        .push(Text::new(format!("Loading {:?}", loader.file_path())))
+                        .push(Text::new(format!("Loading {:?}", state.loader.file_path())))
                         .push(Text::new(format!(
                             "Completion: {}/100",
-                            current_step.completion_percentage()
+                            state.current_step.completion_percentage()
                         )))
-                        .push(Text::new(current_step.next_description())),
+                        .push(Text::new(state.current_step.next_description())),
                 };
 
                 Container::new(layout).into()
@@ -173,8 +169,8 @@ impl Application for Main {
 
     fn subscription(&self) -> Subscription<Self::Message> {
         match self {
-            Main::Loading(LoadingState { loader, .. }) => {
-                let l = loader.clone();
+            Main::Loading(state) => {
+                let l = state.loader.clone();
                 iced::Subscription::from_recipe(l).map(Self::Message::LoadProgressed)
             }
             _ => Subscription::none(),

@@ -32,8 +32,14 @@ pub enum LoadingStep {
     ReadingFile,
     ReadingParty,
     ReadingPlayer,
-    Done { party: Party, player: Player },
+    Done(Box<LoadingDone>),
     Error(LoaderError),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LoadingDone {
+    pub party: Party,
+    pub player: Player
 }
 
 impl LoadingStep {
@@ -138,7 +144,7 @@ impl LSM {
             ReadingPlayer { archive, party } => {
                 // TODO Use the archive instead of reading from disk
                 match extract_player(&archive).await {
-                    Ok(player) => Some((LoadingStep::Done { party, player }, Terminated)),
+                    Ok(player) => Some((LoadingStep::Done(Box::new(LoadingDone{ party, player })), Terminated)),
                     Err(error) => Some((LoadingStep::Error(error), Terminated)),
                 }
             }
