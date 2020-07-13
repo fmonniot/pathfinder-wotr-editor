@@ -284,6 +284,7 @@ fn character_item<'a>(
 
     let b = Button::new(state, text)
         .on_press(MainMessage::SwitchCharacter(idx))
+        .width(Length::Fill)
         .padding(10);
 
     Container::new(b)
