@@ -58,13 +58,11 @@ impl Application for Main {
         // Hack to speed up development, should probably be behind a flag
         let party = data::read_json_from_path("samples/party.json").unwrap();
         let party = data::IndexedJson::new(party);
-        let party = data::read_party(party).unwrap();
+        let party = data::read_party(&party).unwrap();
 
         let player = data::read_json_from_path("samples/player.json").unwrap();
         let player = data::IndexedJson::new(player);
-        let player = data::read_player(player).unwrap();
-
-        println!("Player: {:#?}", player);
+        let player = data::read_player(&player).unwrap();
 
         let component = Box::new(EditorWidget::new(party, player));
 

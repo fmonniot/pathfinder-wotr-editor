@@ -157,7 +157,7 @@ async fn extract_party(_archive: &()) -> Result<Party, LoaderError> {
     let indexed_json = IndexedJson::new(json);
 
     let party =
-        data::read_party(indexed_json).map_err(|err| LoaderError::json_error("party.json", err))?;
+        data::read_party(&indexed_json).map_err(|err| LoaderError::json_error("party.json", err))?;
 
     Ok(party)
 }
@@ -171,7 +171,7 @@ async fn extract_player(_archive: &()) -> Result<Player, LoaderError> {
 
     let indexed_json = IndexedJson::new(json);
 
-    let player = data::read_player(indexed_json)
+    let player = data::read_player(&indexed_json)
         .map_err(|err| LoaderError::json_error("player.json", err))?;
 
     Ok(player)

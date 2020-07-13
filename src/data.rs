@@ -11,7 +11,6 @@ use std::path::Path;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Party {
-    index: IndexedJson, // TODO keep the index ?
     pub characters: Vec<Character>,
 }
 
@@ -83,11 +82,9 @@ pub struct Stat {
 pub enum JsonReaderError {
     ArrayExpected(String, String),  // path and actual type
     ObjectExpected(String, String), // path and actual type
-    StringExpected(String, String), // path and actual type
-    NumberExpected(String, String), // path and actual type
 
     InvalidReference(String, String), // path and $ref value
-    InvalidPointer(String),
+    InvalidPointer(String),           // pointer
     Deserialization(serde_json::Error),
 }
 
@@ -97,17 +94,8 @@ impl std::convert::From<serde_json::Error> for JsonReaderError {
     }
 }
 
-pub fn read_party(index: IndexedJson) -> Result<Party, JsonReaderError> {
-    let pointer = "/m_EntityData";
-
-    let characters_json = index
-        .pointer(&pointer)
-        .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.to_string()))?;
-    let characters_json = characters_json.as_array().ok_or_else(|| {
-        JsonReaderError::ArrayExpected(pointer.to_string(), json_type(characters_json).to_string())
-    })?;
-
-    let characters = characters_json
+pub fn read_party(index: &IndexedJson) -> Result<Party, JsonReaderError> {
+    let characters = reader::pointer_as_array(&index.json, "/m_EntityData")?
         .iter()
         .filter(|json| {
             // Only keep the entry of type unit
@@ -119,73 +107,27 @@ pub fn read_party(index: IndexedJson) -> Result<Party, JsonReaderError> {
         .map(|json| read_character(&index, json))
         .collect::<Result<Vec<_>, JsonReaderError>>()?;
 
-    Ok(Party { index, characters })
+    Ok(Party { characters })
 }
 
 fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonReaderError> {
-    // Statistics
-    let pointer = "/Descriptor/Stats";
-
-    let stats_json = json
-        .pointer(&pointer)
-        .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.to_string()))?;
-    let stats_json = stats_json.as_object().ok_or_else(|| {
-        JsonReaderError::ObjectExpected(pointer.to_string(), json_type(stats_json).to_string())
-    })?;
-
-    let statistics = stats_json
+    let statistics = reader::pointer_as_object(&json, "/Descriptor/Stats")?
         .iter()
         .filter(|(key, _)| key != &"$id")
         .map(|(key, value)| {
-            let ptr = format!("{}/{}", pointer, key);
-            let value = dereference(value, &index, &ptr)?;
+            let ptr = format!("/Descriptor/Stats/{}", key);
+            let value = index.dereference(value, &ptr)?;
             let stat = serde_json::from_value(value.clone())?;
 
             Ok(stat)
         })
         .collect::<Result<Vec<_>, JsonReaderError>>()?;
 
-    // Better error type ?
-    let id = json
-        .get("$id")
-        .and_then(Value::as_str)
-        .map(str::to_string)
-        .ok_or_else(|| JsonReaderError::InvalidPointer("/$id".to_string()))?;
-    let name = json
-        .pointer("/Descriptor/CustomName")
-        .ok_or_else(|| JsonReaderError::InvalidPointer("/Descriptor/CustomName".to_string()))?
-        .as_str()
-        .ok_or_else(|| JsonReaderError::StringExpected(pointer.to_string(), "todo".to_string()))?
-        .to_string();
-
-    let blueprint = json
-        .pointer("/Descriptor/Blueprint")
-        .ok_or_else(|| JsonReaderError::InvalidPointer("/Descriptor/Blueprint".to_string()))?
-        .as_str()
-        .ok_or_else(|| JsonReaderError::StringExpected(pointer.to_string(), "todo".to_string()))?
-        .to_string();
-
-    let experience = json
-        .pointer("/Descriptor/Progression/Experience")
-        .ok_or_else(|| JsonReaderError::InvalidPointer("/Descriptor/Blueprint".to_string()))?
-        .as_u64()
-        .ok_or_else(|| {
-            JsonReaderError::NumberExpected(
-                "/Descriptor/Progression/Experience".to_string(),
-                "todo".to_string(),
-            )
-        })?;
-
-    let mythic_experience = json
-        .pointer("/Descriptor/Progression/MythicExperience")
-        .ok_or_else(|| JsonReaderError::InvalidPointer("/Descriptor/Blueprint".to_string()))?
-        .as_u64()
-        .ok_or_else(|| {
-            JsonReaderError::NumberExpected(
-                "/Descriptor/Progression/MythicExperience".to_string(),
-                "todo".to_string(),
-            )
-        })?;
+    let id = reader::pointer_as(&json, "/$id")?;
+    let name = reader::pointer_as(&json, "/Descriptor/CustomName")?;
+    let blueprint = reader::pointer_as(&json, "/Descriptor/Blueprint")?;
+    let experience = reader::pointer_as(&json, "/Descriptor/Progression/Experience")?;
+    let mythic_experience = reader::pointer_as(&json, "/Descriptor/Progression/MythicExperience")?;
 
     Ok(Character {
         id,
@@ -195,34 +137,6 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonRe
         mythic_experience,
         statistics,
     })
-}
-
-fn dereference<'a>(
-    value: &'a Value,
-    index: &'a IndexedJson,
-    path: &str,
-) -> Result<&'a Value, JsonReaderError> {
-    let sta = value.as_object().ok_or_else(|| {
-        JsonReaderError::ObjectExpected(path.to_string(), json_type(value).to_string())
-    })?;
-
-    match sta.get("$ref").and_then(|j| j.as_str()) {
-        Some(reference) => index.reference(reference).ok_or_else(|| {
-            JsonReaderError::InvalidReference(path.to_string(), reference.to_string())
-        }),
-        None => Ok(value),
-    }
-}
-
-fn json_type(value: &Value) -> &'static str {
-    match value {
-        Value::Null => "null",
-        Value::Bool(..) => "bool",
-        Value::Number(..) => "number",
-        Value::String(..) => "string",
-        Value::Array(..) => "array",
-        Value::Object(..) => "object",
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -285,28 +199,11 @@ pub struct KingdomResources {
     mana: u64,
 }
 
-pub fn read_player(index: IndexedJson) -> Result<Player, JsonReaderError> {
-    let maps = index
-        .pointer("/m_GlobalMaps")
-        .ok_or_else(|| JsonReaderError::InvalidPointer("/m_GlobalMaps".to_string()))?;
-    
-    let armies = maps
-        .as_array()
-        .ok_or_else(|| {
-            JsonReaderError::ArrayExpected("/m_GlobalMaps".to_string(), json_type(maps).to_string())
-        })?
+pub fn read_player(index: &IndexedJson) -> Result<Player, JsonReaderError> {
+    let armies = reader::pointer_as_array(&index.json, "/m_GlobalMaps")?
         .iter()
         .map(|json| {
-            let armies = json
-                .pointer("/m_Armies")
-                .ok_or_else(|| JsonReaderError::InvalidPointer("/m_Armies".to_string()))?;
-
-
-            armies
-                .as_array()
-                .ok_or_else(|| {
-                    JsonReaderError::ArrayExpected("/m_Armies".to_string(), json_type(armies).to_string())
-                })?
+            reader::pointer_as_array(&json, "/m_Armies")?
                 .iter()
                 .filter(|json| {
                     // We only keep the crusaders squads
@@ -316,39 +213,10 @@ pub fn read_player(index: IndexedJson) -> Result<Player, JsonReaderError> {
                         .is_some()
                 })
                 .map(|json| {
-
-                    let id = json
-                        .get("$id")
-                        .and_then(Value::as_str)
-                        .map(str::to_string)
-                        .ok_or_else(|| JsonReaderError::InvalidPointer("/$id".to_string()))?;
-
-                    let movement_points = json
-                        .pointer("/MovementPoints")
-                        .ok_or_else(|| JsonReaderError::InvalidPointer("/MovementPoints".to_string()))?
-                        .as_f64()
-                        .ok_or_else(|| {
-                            JsonReaderError::NumberExpected(
-                                "/MovementPoints".to_string(),
-                                "todo".to_string(),
-                            )
-                        })?;
-
-                    let experience = json
-                        .pointer("/Data/Experience")
-                        .ok_or_else(|| JsonReaderError::InvalidPointer("/Data/Experience".to_string()))?
-                        .as_u64()
-                        .ok_or_else(|| {
-                            JsonReaderError::NumberExpected(
-                                "/Data/Experience".to_string(),
-                                "todo".to_string(),
-                            )
-                        })?;
-
-                    let squads = json
-                        .pointer("/Data/Squads")
-                        .ok_or_else(|| JsonReaderError::InvalidPointer("/Data/Squads".to_string()))?;
-                    let squads = serde_json::from_value(squads.clone())?;
+                    let id = reader::pointer_as(&json, "/$id")?;
+                    let movement_points = reader::pointer_as(&json, "/MovementPoints")?;
+                    let experience = reader::pointer_as(&json, "/Data/Experience")?;
+                    let squads = reader::pointer_as(&json, "/Data/Squads")?;
 
                     Ok(Army {
                         id,
@@ -356,37 +224,19 @@ pub fn read_player(index: IndexedJson) -> Result<Player, JsonReaderError> {
                         movement_points,
                         squads,
                     })
-                    
                 })
-                .collect::<Result<Vec<_>, JsonReaderError>>() 
+                .collect::<Result<Vec<_>, JsonReaderError>>()
         })
         .collect::<Result<Vec<_>, JsonReaderError>>()?
-        .iter().flatten().cloned().collect::<Vec<_>>();
+        .iter()
+        .flatten()
+        .cloned()
+        .collect::<Vec<_>>();
 
-
-        /*
-        */
-
-    let resources = index
-        .pointer("/Kingdom/Resources")
-        .ok_or_else(|| JsonReaderError::InvalidPointer("/Kingdom/Resources".to_string()))?;
-    let resources = serde_json::from_value(resources.clone())?;
-
-    let resources_per_turn = index
-        .pointer("/Kingdom/ResourcesPerTurn")
-        .ok_or_else(|| JsonReaderError::InvalidPointer("/Kingdom/ResourcesPerTurn".to_string()))?;
-    let resources_per_turn = serde_json::from_value(resources_per_turn.clone())?;
-
-    let recruits_manager = index
-        .pointer("/Kingdom/RecruitsManager")
-        .ok_or_else(|| JsonReaderError::InvalidPointer("/Kingdom/RecruitsManager".to_string()))?;
-    let recruits = serde_json::from_value(recruits_manager.clone())?;
-
-    let money = index
-        .pointer("/Money")
-        .ok_or_else(|| JsonReaderError::InvalidPointer("/Money".to_string()))?
-        .as_u64()
-        .ok_or_else(|| JsonReaderError::NumberExpected("/Money".to_string(), "todo".to_string()))?;
+    let resources = reader::pointer_as(&index.json, "/Kingdom/Resources")?;
+    let resources_per_turn = reader::pointer_as(&index.json, "/Kingdom/ResourcesPerTurn")?;
+    let recruits = reader::pointer_as(&index.json, "/Kingdom/RecruitsManager")?;
+    let money = reader::pointer_as(&index.json, "/Money")?;
 
     Ok(Player {
         armies,
@@ -421,16 +271,35 @@ impl IndexedJson {
         IndexedJson { json, index }
     }
 
-    // TODO Maybe opaque type for references ?
-    pub fn reference(&self, reference: &str) -> Option<&Value> {
-        self.index
-            .get(reference)
-            .and_then(|pointer| self.json.pointer(pointer))
+    /// Get the value following a JSON pointer `path`. If the pointed node is a JSON
+    /// object containing the field `$ref`, return the JSON node with the associated
+    /// `$id`.
+    fn dereference<'a>(
+        &'a self,
+        value: &'a Value,
+        path: &str,
+    ) -> Result<&'a Value, JsonReaderError> {
+        let sta = value.as_object().ok_or_else(|| {
+            JsonReaderError::ObjectExpected(path.to_string(), reader::json_type(value).to_string())
+        })?;
+
+        match sta.get("$ref").and_then(|j| j.as_str()) {
+            Some(reference) => self
+                .index
+                .get(reference)
+                .and_then(|pointer| self.json.pointer(pointer))
+                .ok_or_else(|| {
+                    JsonReaderError::InvalidReference(path.to_string(), reference.to_string())
+                }),
+            None => Ok(value),
+        }
     }
 
-    pub fn pointer(&self, pointer: &str) -> Option<&Value> {
-        self.json.pointer(pointer)
+    /* When we start doing actual modification
+    pub fn pointer_mut(&mut self, pointer: &str) -> Option<&mut Value> {
+        self.json.pointer_mut(pointer)
     }
+    */
 }
 
 fn build_index(json: &Value, path: &str, index: &mut BTreeMap<String, String>) {
@@ -455,5 +324,68 @@ fn build_index(json: &Value, path: &str, index: &mut BTreeMap<String, String>) {
             }
         }
         _ => (),
+    }
+}
+
+/// A module containing helper functions to read data from a [serde_json::Value]
+/// into a `Result<T, JsonReaderError>` container. This module use _pointer_
+/// exclusively as they produce nice error message and goes well with the
+/// (convoluted) JSON format of the save games.
+mod reader {
+    use super::JsonReaderError;
+    use serde::de::DeserializeOwned;
+    use serde_json::Value;
+
+    // In doc: Clone the JSON value before deserialization
+    pub fn pointer_as<T>(json: &Value, pointer: &str) -> Result<T, JsonReaderError>
+    where
+        T: DeserializeOwned,
+    {
+        let json = json
+            .pointer(pointer)
+            .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.to_string()))?;
+
+        Ok(serde_json::from_value(json.clone())?)
+    }
+
+    // Very similar to [pointer_as] but simplify type inference a lot at callsite
+    // (plus this does not clone the pointed json before returning it)
+    pub fn pointer_as_array<'a>(
+        json: &'a Value,
+        pointer: &'_ str,
+    ) -> Result<&'a Vec<Value>, JsonReaderError> {
+        let json = json
+            .pointer(pointer)
+            .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.to_string()))?;
+
+        json.as_array().ok_or_else(|| {
+            JsonReaderError::ArrayExpected(pointer.to_string(), json_type(json).to_string())
+        })
+    }
+
+    // Very similar to [pointer_as] but simplify type inference a lot at callsite
+    // (plus this does not clone the pointed json before returning it)
+    pub fn pointer_as_object<'a>(
+        json: &'a Value,
+        pointer: &'_ str,
+    ) -> Result<&'a serde_json::map::Map<String, Value>, JsonReaderError> {
+        let json = json
+            .pointer(pointer)
+            .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.to_string()))?;
+
+        json.as_object().ok_or_else(|| {
+            JsonReaderError::ObjectExpected(pointer.to_string(), json_type(json).to_string())
+        })
+    }
+
+    pub(super) fn json_type(value: &Value) -> &'static str {
+        match value {
+            Value::Null => "null",
+            Value::Bool(..) => "bool",
+            Value::Number(..) => "number",
+            Value::String(..) => "string",
+            Value::Array(..) => "array",
+            Value::Object(..) => "object",
+        }
     }
 }
