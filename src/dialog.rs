@@ -35,9 +35,9 @@ pub async fn open_file() -> Result<PathBuf, OpenError> {
     path.push(Path::new(&file_path));
 
     if path.exists() {
-        return Ok(path);
+        Ok(path)
     } else {
-        return Err(OpenError::NotExists(path));
+        Err(OpenError::NotExists(path))
     }
 }
 

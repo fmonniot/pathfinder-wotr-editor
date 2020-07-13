@@ -111,12 +111,12 @@ fn menu_item(text: &str) -> Element<Message> {
     Container::new(text).style(style::MenuItem).into()
 }
 
-fn character_item<'a>(
+fn character_item(
     text: String,
     idx: usize,
     active: bool,
-    state: &'a mut button::State,
-) -> Element<'a, Message> {
+    state: &mut button::State,
+) -> Element<Message> {
     let text = Text::new(text)
         .font(BOOKLETTER_1911)
         .size(30)

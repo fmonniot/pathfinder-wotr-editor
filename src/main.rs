@@ -30,7 +30,7 @@ enum Main {
         open_failed: Option<dialog::OpenError>,
     },
     Loading(LoadingState),
-    Loaded(EditorWidget),
+    Loaded(Box<EditorWidget>),
 }
 
 #[derive(Debug, Clone)]
@@ -59,17 +59,18 @@ impl Application for Main {
         let party = data::read_entity_from_path("samples/party.json").unwrap();
         let party = data::IndexedJson::new(party);
         let party = data::read_party(party).unwrap();
+        let component = Box::new(EditorWidget::new(party));
 
-        (Main::Loaded(EditorWidget::new(party)), Command::none())
+        (Main::Loaded(component), Command::none())
     }
 
     fn title(&self) -> String {
         match self {
-            Main::Loader { .. } => format!("Pathfinder WotR Editor"),
+            Main::Loader { .. } => "Pathfinder WotR Editor".to_string(),
             Main::Loading(LoadingState { loader, .. }) => {
                 format!("Loading file {:?}", loader.file_path())
             }
-            Main::Loaded { .. } => format!("Pathfinder WotR Editor"),
+            Main::Loaded { .. } => "Pathfinder WotR Editor".to_string(),
         }
     }
 
@@ -98,7 +99,7 @@ impl Application for Main {
             MainMessage::LoadProgressed(step) => match self {
                 Main::Loading(ref mut state) => match step {
                     LoadingStep::Done { party } => {
-                        *self = Main::Loaded(EditorWidget::new(party));
+                        *self = Main::Loaded(Box::new(EditorWidget::new(party)));
                         Command::none()
                     }
                     _ => {
@@ -109,12 +110,9 @@ impl Application for Main {
                 _ => Command::none(),
             },
             MainMessage::EditorMessage(msg) => {
-                match self {
-                    Main::Loaded(ref mut state) => {
-                        state.update(msg);
-                    }
-                    _ => (),
-                };
+                if let Main::Loaded(ref mut state) = self {
+                    state.update(msg);
+                }
                 Command::none()
             }
         }
@@ -159,7 +157,7 @@ impl Application for Main {
                             "Completion: {}/100",
                             current_step.completion_percentage()
                         )))
-                        .push(Text::new(format!("{}", current_step.next_description()))),
+                        .push(Text::new(current_step.next_description())),
                 };
 
                 Container::new(layout).into()

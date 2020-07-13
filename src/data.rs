@@ -1,4 +1,6 @@
-// Data model for the save game
+/// Data model for the save game
+/// TODO Improve the pointer and conversion logic. At the moment we have a lot of repetition
+/// to manage errors.
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -49,8 +51,8 @@ impl Character {
         }
     }
 
-    fn blueprint_to_name(s: &String) -> Option<String> {
-        let opt = match s.as_ref() {
+    fn blueprint_to_name(s: &str) -> Option<String> {
+        let opt = match s {
             "397b090721c41044ea3220445300e1b8" => Some("Camellia"),
             "54be53f0b35bf3c4592a97ae335fe765" => Some("Seelah"),
             "cb29621d99b902e4da6f5d232352fbda" => Some("Laan"),
@@ -100,13 +102,10 @@ pub fn read_party(index: IndexedJson) -> Result<Party, JsonReaderError> {
 
     let characters_json = index
         .pointer(&pointer)
-        .ok_or(JsonReaderError::InvalidPointer(pointer.to_string()))?;
-    let characters_json = characters_json
-        .as_array()
-        .ok_or(JsonReaderError::ArrayExpected(
-            pointer.to_string(),
-            json_type(characters_json).to_string(),
-        ))?;
+        .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.to_string()))?;
+    let characters_json = characters_json.as_array().ok_or_else(|| {
+        JsonReaderError::ArrayExpected(pointer.to_string(), json_type(characters_json).to_string())
+    })?;
 
     let characters = characters_json
         .iter()
@@ -129,13 +128,10 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonRe
 
     let stats_json = json
         .pointer(&pointer)
-        .ok_or(JsonReaderError::InvalidPointer(pointer.to_string()))?;
-    let stats_json = stats_json
-        .as_object()
-        .ok_or(JsonReaderError::ObjectExpected(
-            pointer.to_string(),
-            json_type(stats_json).to_string(),
-        ))?;
+        .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.to_string()))?;
+    let stats_json = stats_json.as_object().ok_or_else(|| {
+        JsonReaderError::ObjectExpected(pointer.to_string(), json_type(stats_json).to_string())
+    })?;
 
     let statistics = stats_json
         .iter()
@@ -154,52 +150,42 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonRe
         .get("$id")
         .and_then(Value::as_str)
         .map(str::to_string)
-        .ok_or(JsonReaderError::InvalidPointer("/$id".to_string()))?;
+        .ok_or_else(|| JsonReaderError::InvalidPointer("/$id".to_string()))?;
     let name = json
         .pointer("/Descriptor/CustomName")
-        .ok_or(JsonReaderError::InvalidPointer(
-            "/Descriptor/CustomName".to_string(),
-        ))?
+        .ok_or_else(|| JsonReaderError::InvalidPointer("/Descriptor/CustomName".to_string()))?
         .as_str()
-        .ok_or(JsonReaderError::StringExpected(
-            pointer.to_string(),
-            "todo".to_string(),
-        ))?
+        .ok_or_else(|| JsonReaderError::StringExpected(pointer.to_string(), "todo".to_string()))?
         .to_string();
 
     let blueprint = json
         .pointer("/Descriptor/Blueprint")
-        .ok_or(JsonReaderError::InvalidPointer(
-            "/Descriptor/Blueprint".to_string(),
-        ))?
+        .ok_or_else(|| JsonReaderError::InvalidPointer("/Descriptor/Blueprint".to_string()))?
         .as_str()
-        .ok_or(JsonReaderError::StringExpected(
-            pointer.to_string(),
-            "todo".to_string(),
-        ))?
+        .ok_or_else(|| JsonReaderError::StringExpected(pointer.to_string(), "todo".to_string()))?
         .to_string();
 
     let experience = json
         .pointer("/Descriptor/Progression/Experience")
-        .ok_or(JsonReaderError::InvalidPointer(
-            "/Descriptor/Blueprint".to_string(),
-        ))?
+        .ok_or_else(|| JsonReaderError::InvalidPointer("/Descriptor/Blueprint".to_string()))?
         .as_u64()
-        .ok_or(JsonReaderError::NumberExpected(
-            "/Descriptor/Progression/Experience".to_string(),
-            "todo".to_string(),
-        ))?;
+        .ok_or_else(|| {
+            JsonReaderError::NumberExpected(
+                "/Descriptor/Progression/Experience".to_string(),
+                "todo".to_string(),
+            )
+        })?;
 
     let mythic_experience = json
         .pointer("/Descriptor/Progression/MythicExperience")
-        .ok_or(JsonReaderError::InvalidPointer(
-            "/Descriptor/Blueprint".to_string(),
-        ))?
+        .ok_or_else(|| JsonReaderError::InvalidPointer("/Descriptor/Blueprint".to_string()))?
         .as_u64()
-        .ok_or(JsonReaderError::NumberExpected(
-            "/Descriptor/Progression/MythicExperience".to_string(),
-            "todo".to_string(),
-        ))?;
+        .ok_or_else(|| {
+            JsonReaderError::NumberExpected(
+                "/Descriptor/Progression/MythicExperience".to_string(),
+                "todo".to_string(),
+            )
+        })?;
 
     Ok(Character {
         id,
@@ -216,18 +202,14 @@ fn dereference<'a>(
     index: &'a IndexedJson,
     path: &str,
 ) -> Result<&'a Value, JsonReaderError> {
-    let sta = value.as_object().ok_or(JsonReaderError::ObjectExpected(
-        path.to_string(),
-        json_type(value).to_string(),
-    ))?;
+    let sta = value.as_object().ok_or_else(|| {
+        JsonReaderError::ObjectExpected(path.to_string(), json_type(value).to_string())
+    })?;
 
     match sta.get("$ref").and_then(|j| j.as_str()) {
-        Some(reference) => index
-            .reference(reference)
-            .ok_or(JsonReaderError::InvalidReference(
-                path.to_string(),
-                reference.to_string(),
-            )),
+        Some(reference) => index.reference(reference).ok_or_else(|| {
+            JsonReaderError::InvalidReference(path.to_string(), reference.to_string())
+        }),
         None => Ok(value),
     }
 }
