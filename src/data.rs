@@ -40,6 +40,31 @@ impl Character {
     pub fn find_stat(&self, name: &str) -> Option<&Stat> {
         self.statistics.iter().find(|s| s.tpe == name)
     }
+
+    pub fn name(&self) -> String {
+        if self.name.is_empty() {
+            Character::blueprint_to_name(&self.blueprint).unwrap_or_else(|| self.blueprint.clone())
+        } else {
+            self.name.clone()
+        }
+    }
+
+    fn blueprint_to_name(s: &String) -> Option<String> {
+        let opt = match s.as_ref() {
+            "397b090721c41044ea3220445300e1b8" => Some("Camellia"),
+            "54be53f0b35bf3c4592a97ae335fe765" => Some("Seelah"),
+            "cb29621d99b902e4da6f5d232352fbda" => Some("Laan"),
+            "766435873b1361c4287c351de194e5f9" => Some("Woljif"),
+            "2779754eecffd044fbd4842dba55312c" => Some("Ember"),
+            "096fc4a96d675bb45a0396bcaa7aa993" => Some("Daeran"),
+            "8a6986e17799d7d4b90f0c158b31c5b9" => Some("Smilodon"), // Or pet in general ?
+            "1cbbbb892f93c3d439f8417ad7cbb6aa" => Some("Sosiel"),
+            "f72bb7c48bb3e45458f866045448fb58" => None, // Unknown at the moment, let me progress in game. maybe.
+            _ => None
+        };
+
+        opt.map(str::to_string)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

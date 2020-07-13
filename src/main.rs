@@ -225,14 +225,9 @@ impl Application for Main {
                     .zip(secondary_menu_buttons)
                     .enumerate()
                 {
-                    let mut name = &c.name;
-                    if name.is_empty() {
-                        name = &c.blueprint;
-                    }
-
                     let active = &idx == active_character_index;
 
-                    characters = characters.push(character_item(name, idx, active, m));
+                    characters = characters.push(character_item(c.name(), idx, active, m));
                 }
 
                 let characters = Container::new(characters)
@@ -276,7 +271,7 @@ fn menu_item(text: &str) -> Element<MainMessage> {
 }
 
 fn character_item<'a>(
-    text: &'a str,
+    text: String,
     idx: usize,
     active: bool,
     state: &'a mut button::State,
