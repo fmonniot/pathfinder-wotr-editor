@@ -1,7 +1,7 @@
 // TODO Rename this module to character_widget (and its main type to CharacterWidget)
 
+use crate::data::Character;
 use iced::{text_input, Align, Column, Command, Element, Length, Row, Text, TextInput};
-use crate::data::{Character, Stat};
 
 #[derive(Debug, Clone)]
 pub struct Msg(Message);
@@ -14,7 +14,7 @@ enum Message {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum Field {
     // Abilities
     Strength,
@@ -82,47 +82,56 @@ impl Field {
             Field::Perception => "Perception",
             Field::Persuasion => "Persuasion",
             Field::UseMagicDevice => "Use Magic Device",
-            Field::Experience => "",
-            Field::MythicExperience => "",
+            Field::Experience => "Experience",
+            Field::MythicExperience => "Mythic Experience",
         }
     }
 
     fn build_view(self, character: &Character) -> StatView {
-        let key = match self {
-            Field::Strength => "Strength",
-            Field::Dexterity => "Dexterity",
-            Field::Constitution => "Constitution",
-            Field::Intelligence => "Intelligence",
-            Field::Wisdom => "Wisdom",
-            Field::Charisma => "Charisma",
-            Field::AttackBonus => "AdditionalAttackBonus",
-            Field::CMB => "AdditionalCMB",
-            Field::CMD => "AdditionalCMD",
-            Field::ArmorClass => "AC",
-            Field::BaseAttackBonus => "BaseAttackBonus",
-            Field::HitPoints => "HitPoints",
-            Field::Initiative => "Initiative",
-            Field::SaveFortitude => "SaveFortitude",
-            Field::SaveReflex => "SaveReflex",
-            Field::SaveWill => "SaveWill",
-            Field::Athletics => "SkillAthletics",
-            Field::Mobility => "SkillMobility",
-            Field::Thievery => "SkillThievery",
-            Field::Stealth => "SkillStealth",
-            Field::KnowledgeArcana => "SkillKnowledgeArcana",
-            Field::KnowledgeWorld => "SkillKnowledgeWorld",
-            Field::LoreNature => "SkillLoreNature",
-            Field::LoreReligion => "SkillLoreReligion",
-            Field::Perception => "SkillPerception",
-            Field::Persuasion => "SkillPersuasion",
-            Field::UseMagicDevice => "SkillUseMagicDevice",
-            Field::Experience => "",
-            Field::MythicExperience => "",
+        let stat_key = match self {
+            Field::Strength => Some("Strength"),
+            Field::Dexterity => Some("Dexterity"),
+            Field::Constitution => Some("Constitution"),
+            Field::Intelligence => Some("Intelligence"),
+            Field::Wisdom => Some("Wisdom"),
+            Field::Charisma => Some("Charisma"),
+            Field::AttackBonus => Some("AdditionalAttackBonus"),
+            Field::CMB => Some("AdditionalCMB"),
+            Field::CMD => Some("AdditionalCMD"),
+            Field::ArmorClass => Some("AC"),
+            Field::BaseAttackBonus => Some("BaseAttackBonus"),
+            Field::HitPoints => Some("HitPoints"),
+            Field::Initiative => Some("Initiative"),
+            Field::SaveFortitude => Some("SaveFortitude"),
+            Field::SaveReflex => Some("SaveReflex"),
+            Field::SaveWill => Some("SaveWill"),
+            Field::Athletics => Some("SkillAthletics"),
+            Field::Mobility => Some("SkillMobility"),
+            Field::Thievery => Some("SkillThievery"),
+            Field::Stealth => Some("SkillStealth"),
+            Field::KnowledgeArcana => Some("SkillKnowledgeArcana"),
+            Field::KnowledgeWorld => Some("SkillKnowledgeWorld"),
+            Field::LoreNature => Some("SkillLoreNature"),
+            Field::LoreReligion => Some("SkillLoreReligion"),
+            Field::Perception => Some("SkillPerception"),
+            Field::Persuasion => Some("SkillPersuasion"),
+            Field::UseMagicDevice => Some("SkillUseMagicDevice"),
+            Field::Experience => None,
+            Field::MythicExperience => None,
         };
 
-        let stat = character.find_stat(key).unwrap();
+        let value = match stat_key {
+            Some(key) => character.find_stat(key).unwrap().base_value,
+            None => {
+                match self {
+                    Field::Experience => character.experience,
+                    Field::MythicExperience => character.mythic_experience,
+                    _ => panic!("A field ({:?}) was not matched when building its view, please report", self),
+                }
+            }
+        };
 
-        StatView::new(self, stat)
+        StatView::new(self, value)
     }
 }
 
@@ -178,6 +187,7 @@ pub struct CharacterView {
 
 impl CharacterView {
     pub fn new(character: &Character) -> CharacterView {
+
         CharacterView {
             experience: Field::Experience.build_view(character),
             mythic_experience: Field::MythicExperience.build_view(character),
@@ -274,12 +284,47 @@ impl CharacterView {
 
     pub fn update(&mut self, message: Msg) -> Command<Msg> {
         match message {
-            Msg(Message::StatisticModified { .. }) => {
-
-                ()
-            }
+            Msg(Message::StatisticModified { entity_id, value }) => {
+                if let Ok(n) = value.parse::<u64>() {
+                    self.stat_view_for_field(&entity_id).value = n;
+                }
+            },
         };
         Command::none()
+    }
+
+    fn stat_view_for_field(&mut self, field: &Field) -> &mut StatView {
+        match field {
+            Field::Strength => &mut self.strength,
+            Field::Dexterity => &mut self.dexterity,
+            Field::Constitution => &mut self.constitution,
+            Field::Intelligence => &mut self.intelligence,
+            Field::Wisdom => &mut self.wisdom,
+            Field::Charisma => &mut self.charisma,
+            Field::AttackBonus => &mut self.attack_bonus,
+            Field::CMB => &mut self.cmb,
+            Field::CMD => &mut self.cmd,
+            Field::ArmorClass => &mut self.ac,
+            Field::BaseAttackBonus => &mut self.bab,
+            Field::HitPoints => &mut self.hp,
+            Field::Initiative => &mut self.initiative,
+            Field::SaveFortitude => &mut self.save_fortitude,
+            Field::SaveReflex => &mut self.save_reflex,
+            Field::SaveWill => &mut self.save_will,
+            Field::Athletics => &mut self.athletics,
+            Field::Mobility => &mut self.mobility,
+            Field::Thievery => &mut self.thievery,
+            Field::Stealth => &mut self.stealth,
+            Field::KnowledgeArcana => &mut self.arcana,
+            Field::KnowledgeWorld => &mut self.world,
+            Field::LoreNature => &mut self.nature,
+            Field::LoreReligion => &mut self.religion,
+            Field::Perception => &mut self.perception,
+            Field::Persuasion => &mut self.persuasion,
+            Field::UseMagicDevice => &mut self.magic_device,
+            Field::Experience => &mut self.experience,
+            Field::MythicExperience => &mut self.mythic_experience,
+        }
     }
 }
 
@@ -290,12 +335,11 @@ struct StatView {
 }
 
 impl StatView {
-
-    fn new(field: Field, stat: &Stat) -> StatView {
+    fn new(field: Field, value: u64) -> StatView {
         StatView {
             id: field,
             text_input: text_input::State::new(),
-            value: stat.base_value,
+            value,
         }
     }
 
