@@ -190,13 +190,13 @@ pub struct KingdomResources {
     #[serde(alias = "$id")]
     id: String,
     #[serde(alias = "m_Finances")]
-    finances: u64,
+    pub finances: u64,
     #[serde(alias = "m_Basics")]
-    basics: u64,
+    pub basics: u64,
     #[serde(alias = "m_Favors")]
-    favors: u64,
+    pub favors: u64,
     #[serde(alias = "m_Mana")]
-    mana: u64,
+    pub mana: u64,
 }
 
 pub fn read_player(index: &IndexedJson) -> Result<Player, JsonReaderError> {
