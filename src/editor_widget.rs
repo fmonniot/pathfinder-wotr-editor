@@ -11,44 +11,45 @@ pub struct Message(Msg);
 #[derive(Debug, Clone)]
 enum Msg {
     ChangeActivePane(Pane),
-    SwitchCharacter(usize),
+    SwitchCharacter(String),
     CharacterMessage(character_view::Msg),
 }
 
 pub struct EditorWidget {
-    pane_selector: PaneSelector,
     party: Party,
-    secondary_menu_buttons: Vec<button::State>,
+    pane_selector: PaneSelector,
+    character_selector: CharacterSelector,
     active_character: CharacterView,
-    active_character_index: usize,
 }
 
 impl EditorWidget {
     pub fn new(party: Party, _player: Player) -> EditorWidget {
-        let characters_len = party.characters.len() as usize; // Pretty sure you can't more characters than that
-        let mut secondary_menu_buttons = Vec::with_capacity(characters_len);
-
-        for _ in 0..characters_len {
-            secondary_menu_buttons.push(button::State::new());
-        }
-
+        let character_selector = CharacterSelector::new(&party.characters);
         let active_character = CharacterView::new(&party.characters.first().unwrap());
 
         EditorWidget {
             pane_selector: PaneSelector::new(),
+            character_selector,
             party,
-            secondary_menu_buttons,
             active_character,
-            active_character_index: 0,
         }
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message(Msg::SwitchCharacter(active_character)) => {
-                let character = self.party.characters.get(active_character).unwrap();
+            Message(Msg::ChangeActivePane(new_pane)) => {
+                self.pane_selector.active = new_pane;
+                Command::none()
+            }
+            Message(Msg::SwitchCharacter(active_character_id)) => {
+                let character = self
+                    .party
+                    .characters
+                    .iter()
+                    .find(|c| c.id == active_character_id)
+                    .unwrap();
                 self.active_character = CharacterView::new(character);
-                self.active_character_index = active_character;
+                self.character_selector.active_character_id = active_character_id;
 
                 Command::none()
             }
@@ -57,46 +58,21 @@ impl EditorWidget {
 
                 Command::none()
             }
-            Message(Msg::ChangeActivePane(new_pane)) => {
-                self.pane_selector.active = new_pane;
-                Command::none()
-            }
         }
     }
 
     pub fn view(&mut self) -> Element<Message> {
-
         match self.pane_selector.active {
-            Pane::Party => {
-                let mut characters = Column::new().width(Length::from(150)).height(Length::Fill);
+            Pane::Party => Row::new()
+                .push(self.pane_selector.view())
+                .push(self.character_selector.view())
+                .push(
+                    self.active_character
+                        .view()
+                        .map(|msg| Message(Msg::CharacterMessage(msg))),
+                )
+                .into(),
 
-                for (idx, (c, m)) in self
-                    .party
-                    .characters
-                    .iter()
-                    .zip(&mut self.secondary_menu_buttons)
-                    .enumerate()
-                {
-                    let active = idx == self.active_character_index;
-        
-                    characters = characters.push(character_item(c.name(), idx, active, m));
-                }
-        
-                let characters = Container::new(characters)
-                    .style(style::SecondaryMenuSurface)
-                    .height(Length::Fill);
-        
-                let character: Element<Message> = self
-                    .active_character
-                    .view()
-                    .map(|msg| Message(Msg::CharacterMessage(msg)));
-        
-                Row::new()
-                    .push(self.pane_selector.view())
-                    .push(characters)
-                    .push(character)
-                    .into()
-            },
             Pane::Crusade => {
                 let content = Container::new(Text::new("Crusade pane tbd"))
                     .width(Length::Fill)
@@ -173,28 +149,56 @@ impl PaneSelector {
     }
 }
 
-fn character_item(
-    text: String,
-    idx: usize,
-    active: bool,
-    state: &mut button::State,
-) -> Element<Message> {
-    let text = Text::new(text)
-        .font(BOOKLETTER_1911)
-        .size(30)
-        .vertical_alignment(VerticalAlignment::Center)
-        .horizontal_alignment(HorizontalAlignment::Left);
+struct CharacterSelector {
+    characters: Vec<(button::State, String, String)>, // (state, name, id)
+    active_character_id: String,
+}
 
-    Button::new(state, text)
-        .on_press(Message(Msg::SwitchCharacter(idx)))
-        .width(Length::Fill)
-        .style(if active {
-            style::SecondaryMenuItem::Selected
-        } else {
-            style::SecondaryMenuItem::Inactive
-        })
-        .padding(10)
-        .into()
+impl CharacterSelector {
+    fn new(characters: &Vec<crate::data::Character>) -> CharacterSelector {
+        let characters = characters
+            .iter()
+            .map(|c| (button::State::new(), c.name(), c.id.clone()))
+            .collect::<Vec<_>>();
+
+        let active_character_id = characters.first().unwrap().2.to_string();
+
+        CharacterSelector {
+            characters,
+            active_character_id,
+        }
+    }
+
+    fn view(&mut self) -> Element<Message> {
+        let mut characters = Column::new().width(Length::from(150)).height(Length::Fill);
+
+        for (ref mut state, ref name, id) in &mut self.characters {
+            let active = id == &self.active_character_id;
+
+            let text = Text::new(name)
+                .font(BOOKLETTER_1911)
+                .size(30)
+                .vertical_alignment(VerticalAlignment::Center)
+                .horizontal_alignment(HorizontalAlignment::Left);
+
+            let button = Button::new(state, text)
+                .on_press(Message(Msg::SwitchCharacter(id.clone())))
+                .width(Length::Fill)
+                .style(if active {
+                    style::SecondaryMenuItem::Selected
+                } else {
+                    style::SecondaryMenuItem::Inactive
+                })
+                .padding(10);
+
+            characters = characters.push(button);
+        }
+
+        Container::new(characters)
+            .style(style::SecondaryMenuSurface)
+            .height(Length::Fill)
+            .into()
+    }
 }
 
 // Fonts (might need to move to style.rs if I create that file)
