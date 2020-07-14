@@ -141,11 +141,11 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonRe
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Player {
-    armies: Vec<Army>,
-    money: u64,
-    recruits: RecruitsManager,
-    resources: KingdomResources,
-    resources_per_turn: KingdomResources,
+    pub armies: Vec<Army>,
+    pub money: u64,
+    pub recruits: RecruitsManager,
+    pub resources: KingdomResources,
+    pub resources_per_turn: KingdomResources,
     // TODO modifiers (rankup, claim, etc…)
 }
 

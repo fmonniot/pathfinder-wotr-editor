@@ -1,5 +1,6 @@
 use crate::character_view::{self, CharacterView};
 use crate::data::{Party, Player};
+use crate::player_widget::{self, PlayerWidget};
 use iced::{
     button, Align, Button, Column, Command, Container, Element, Font, HorizontalAlignment, Length,
     Row, Text, VerticalAlignment,
@@ -13,6 +14,7 @@ enum Msg {
     ChangeActivePane(Pane),
     SwitchCharacter(String),
     CharacterMessage(character_view::Msg),
+    Player(player_widget::Message),
 }
 
 pub struct EditorWidget {
@@ -20,10 +22,11 @@ pub struct EditorWidget {
     pane_selector: PaneSelector,
     character_selector: CharacterSelector,
     active_character: CharacterView,
+    player_widget: PlayerWidget,
 }
 
 impl EditorWidget {
-    pub fn new(party: Party, _player: Player) -> EditorWidget {
+    pub fn new(party: Party, player: Player) -> EditorWidget {
         let character_selector = CharacterSelector::new(&party.characters);
         let active_character = CharacterView::new(&party.characters.first().unwrap());
 
@@ -32,6 +35,7 @@ impl EditorWidget {
             character_selector,
             party,
             active_character,
+            player_widget: PlayerWidget::new(&player),
         }
     }
 
@@ -53,11 +57,14 @@ impl EditorWidget {
 
                 Command::none()
             }
-            Message(Msg::CharacterMessage(msg)) => {
-                self.active_character.update(msg);
-
-                Command::none()
-            }
+            Message(Msg::CharacterMessage(msg)) => self
+                .active_character
+                .update(msg)
+                .map(|msg| Message(Msg::CharacterMessage(msg))),
+            Message(Msg::Player(msg)) => self
+                .player_widget
+                .update(msg)
+                .map(|msg| Message(Msg::Player(msg))),
         }
     }
 
@@ -73,17 +80,14 @@ impl EditorWidget {
                 )
                 .into(),
 
-            Pane::Crusade => {
-                let content = Container::new(Text::new("Crusade pane tbd"))
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .style(style::MainPane);
-
-                Row::new()
-                    .push(self.pane_selector.view())
-                    .push(content)
-                    .into()
-            }
+            Pane::Crusade => Row::new()
+                .push(self.pane_selector.view())
+                .push(
+                    self.player_widget
+                        .view()
+                        .map(|msg| Message(Msg::Player(msg))),
+                )
+                .into(),
         }
     }
 }

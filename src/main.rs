@@ -9,6 +9,7 @@ mod data;
 mod dialog;
 mod editor_widget;
 mod loader;
+mod player_widget;
 
 use editor_widget::EditorWidget;
 use loader::{Loader, LoaderError, LoadingStep};
