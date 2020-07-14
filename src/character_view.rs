@@ -1,7 +1,8 @@
 // TODO Rename this module to character_widget (and its main type to CharacterWidget)
 
 use crate::data::Character;
-use iced::{text_input, Align, Column, Command, Container, Element, Length, Row, Text, TextInput};
+use crate::labelled_input_number::LabelledInputNumber;
+use iced::{Align, Column, Command, Container, Element, Length, Row, Text};
 
 // TODO Invert Msg and Message, making Message the public type
 #[derive(Debug, Clone)]
@@ -13,6 +14,15 @@ enum Message {
         entity_id: Field,
         value: String, // TODO Add a way to find out which stat has been modified
     },
+}
+
+impl Message {
+    fn statistic_modified(field: Field, value: String) -> Msg {
+        Msg(Message::StatisticModified {
+            entity_id: field,
+            value,
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -53,42 +63,44 @@ enum Field {
     MythicExperience,
 }
 
-impl Field {
-    fn label(&self) -> &'static str {
+impl std::fmt::Display for Field {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Field::Strength => "Strength",
-            Field::Dexterity => "Dexterity",
-            Field::Constitution => "Constitution",
-            Field::Intelligence => "Intelligence",
-            Field::Wisdom => "Wisdom",
-            Field::Charisma => "Charisma",
-            Field::AttackBonus => "Attack Bonus",
-            Field::CMB => "CMB",
-            Field::CMD => "CMD",
-            Field::ArmorClass => "Armor Class",
-            Field::BaseAttackBonus => "Base Attack Bonus",
-            Field::HitPoints => "Hit Points",
-            Field::Initiative => "Initiative",
-            Field::SaveFortitude => "Save: Fortitude",
-            Field::SaveReflex => "Save: Reflex",
-            Field::SaveWill => "Save: Will",
-            Field::Athletics => "Athletics",
-            Field::Mobility => "Mobility",
-            Field::Thievery => "Thievery",
-            Field::Stealth => "Stealth",
-            Field::KnowledgeArcana => "Knowledge: Arcana",
-            Field::KnowledgeWorld => "Knowledge: World",
-            Field::LoreNature => "Lore: Nature",
-            Field::LoreReligion => "Lore: Religion",
-            Field::Perception => "Perception",
-            Field::Persuasion => "Persuasion",
-            Field::UseMagicDevice => "Use Magic Device",
-            Field::Experience => "Experience",
-            Field::MythicExperience => "Mythic Experience",
+            Field::Strength => write!(f, "Strength"),
+            Field::Dexterity => write!(f, "Dexterity"),
+            Field::Constitution => write!(f, "Constitution"),
+            Field::Intelligence => write!(f, "Intelligence"),
+            Field::Wisdom => write!(f, "Wisdom"),
+            Field::Charisma => write!(f, "Charisma"),
+            Field::AttackBonus => write!(f, "Attack Bonus"),
+            Field::CMB => write!(f, "CMB"),
+            Field::CMD => write!(f, "CMD"),
+            Field::ArmorClass => write!(f, "Armor Class"),
+            Field::BaseAttackBonus => write!(f, "Base Attack Bonus"),
+            Field::HitPoints => write!(f, "Hit Points"),
+            Field::Initiative => write!(f, "Initiative"),
+            Field::SaveFortitude => write!(f, "Save: Fortitude"),
+            Field::SaveReflex => write!(f, "Save: Reflex"),
+            Field::SaveWill => write!(f, "Save: Will"),
+            Field::Athletics => write!(f, "Athletics"),
+            Field::Mobility => write!(f, "Mobility"),
+            Field::Thievery => write!(f, "Thievery"),
+            Field::Stealth => write!(f, "Stealth"),
+            Field::KnowledgeArcana => write!(f, "Knowledge: Arcana"),
+            Field::KnowledgeWorld => write!(f, "Knowledge: World"),
+            Field::LoreNature => write!(f, "Lore: Nature"),
+            Field::LoreReligion => write!(f, "Lore: Religion"),
+            Field::Perception => write!(f, "Perception"),
+            Field::Persuasion => write!(f, "Persuasion"),
+            Field::UseMagicDevice => write!(f, "Use Magic Device"),
+            Field::Experience => write!(f, "Experience"),
+            Field::MythicExperience => write!(f, "Mythic Experience"),
         }
     }
+}
 
-    fn build_view(self, character: &Character) -> StatView {
+impl Field {
+    fn build_view(self, character: &Character) -> LabelledInputNumber<Field> {
         let stat_key = match self {
             Field::Strength => Some("Strength"),
             Field::Dexterity => Some("Dexterity"),
@@ -133,7 +145,7 @@ impl Field {
             },
         };
 
-        StatView::new(self, value)
+        LabelledInputNumber::new(self, value)
     }
 }
 
@@ -152,39 +164,39 @@ impl Field {
 */
 pub struct CharacterView {
     // Abilities
-    strength: StatView,
-    dexterity: StatView,
-    constitution: StatView,
-    intelligence: StatView,
-    wisdom: StatView,
-    charisma: StatView,
+    strength: LabelledInputNumber<Field>,
+    dexterity: LabelledInputNumber<Field>,
+    constitution: LabelledInputNumber<Field>,
+    intelligence: LabelledInputNumber<Field>,
+    wisdom: LabelledInputNumber<Field>,
+    charisma: LabelledInputNumber<Field>,
     // Combat stats
-    attack_bonus: StatView,
-    cmb: StatView,
-    cmd: StatView,
-    ac: StatView,
-    bab: StatView,
-    hp: StatView,
-    initiative: StatView,
+    attack_bonus: LabelledInputNumber<Field>,
+    cmb: LabelledInputNumber<Field>,
+    cmd: LabelledInputNumber<Field>,
+    ac: LabelledInputNumber<Field>,
+    bab: LabelledInputNumber<Field>,
+    hp: LabelledInputNumber<Field>,
+    initiative: LabelledInputNumber<Field>,
     // Saves
-    save_fortitude: StatView,
-    save_reflex: StatView,
-    save_will: StatView,
+    save_fortitude: LabelledInputNumber<Field>,
+    save_reflex: LabelledInputNumber<Field>,
+    save_will: LabelledInputNumber<Field>,
     // Skills
-    athletics: StatView,
-    mobility: StatView,
-    thievery: StatView,
-    stealth: StatView,
-    arcana: StatView,
-    world: StatView,
-    nature: StatView,
-    religion: StatView,
-    perception: StatView,
-    persuasion: StatView,
-    magic_device: StatView,
+    athletics: LabelledInputNumber<Field>,
+    mobility: LabelledInputNumber<Field>,
+    thievery: LabelledInputNumber<Field>,
+    stealth: LabelledInputNumber<Field>,
+    arcana: LabelledInputNumber<Field>,
+    world: LabelledInputNumber<Field>,
+    nature: LabelledInputNumber<Field>,
+    religion: LabelledInputNumber<Field>,
+    perception: LabelledInputNumber<Field>,
+    persuasion: LabelledInputNumber<Field>,
+    magic_device: LabelledInputNumber<Field>,
     // Money & Experience should also goes here
-    experience: StatView,
-    mythic_experience: StatView,
+    experience: LabelledInputNumber<Field>,
+    mythic_experience: LabelledInputNumber<Field>,
 }
 
 impl CharacterView {
@@ -229,45 +241,45 @@ impl CharacterView {
             .align_items(Align::Center)
             // Money is actually part of the player.json and not party.json.
             .push(Text::new("Money: 38747G").width(Length::FillPortion(1)))
-            .push(self.experience.view())
-            .push(self.mythic_experience.view());
+            .push(self.experience.view(Message::statistic_modified))
+            .push(self.mythic_experience.view(Message::statistic_modified));
 
         let abilities_stats = Column::new()
             .height(Length::Fill)
             .width(Length::FillPortion(1))
-            .push(self.strength.view())
-            .push(self.dexterity.view())
-            .push(self.constitution.view())
-            .push(self.intelligence.view())
-            .push(self.wisdom.view())
-            .push(self.charisma.view());
+            .push(self.strength.view(Message::statistic_modified))
+            .push(self.dexterity.view(Message::statistic_modified))
+            .push(self.constitution.view(Message::statistic_modified))
+            .push(self.intelligence.view(Message::statistic_modified))
+            .push(self.wisdom.view(Message::statistic_modified))
+            .push(self.charisma.view(Message::statistic_modified));
 
         let combat_stats = Column::new()
             .width(Length::FillPortion(1))
-            .push(self.attack_bonus.view())
-            .push(self.cmb.view())
-            .push(self.cmd.view())
-            .push(self.ac.view())
-            .push(self.bab.view())
-            .push(self.hp.view())
-            .push(self.initiative.view())
-            .push(self.save_fortitude.view())
-            .push(self.save_reflex.view())
-            .push(self.save_will.view());
+            .push(self.attack_bonus.view(Message::statistic_modified))
+            .push(self.cmb.view(Message::statistic_modified))
+            .push(self.cmd.view(Message::statistic_modified))
+            .push(self.ac.view(Message::statistic_modified))
+            .push(self.bab.view(Message::statistic_modified))
+            .push(self.hp.view(Message::statistic_modified))
+            .push(self.initiative.view(Message::statistic_modified))
+            .push(self.save_fortitude.view(Message::statistic_modified))
+            .push(self.save_reflex.view(Message::statistic_modified))
+            .push(self.save_will.view(Message::statistic_modified));
 
         let skills_stats = Column::new()
             .width(Length::FillPortion(1))
-            .push(self.athletics.view())
-            .push(self.mobility.view())
-            .push(self.thievery.view())
-            .push(self.stealth.view())
-            .push(self.arcana.view())
-            .push(self.world.view())
-            .push(self.nature.view())
-            .push(self.religion.view())
-            .push(self.perception.view())
-            .push(self.persuasion.view())
-            .push(self.magic_device.view());
+            .push(self.athletics.view(Message::statistic_modified))
+            .push(self.mobility.view(Message::statistic_modified))
+            .push(self.thievery.view(Message::statistic_modified))
+            .push(self.stealth.view(Message::statistic_modified))
+            .push(self.arcana.view(Message::statistic_modified))
+            .push(self.world.view(Message::statistic_modified))
+            .push(self.nature.view(Message::statistic_modified))
+            .push(self.religion.view(Message::statistic_modified))
+            .push(self.perception.view(Message::statistic_modified))
+            .push(self.persuasion.view(Message::statistic_modified))
+            .push(self.magic_device.view(Message::statistic_modified));
 
         let statistics = Row::new()
             .spacing(25)
@@ -297,7 +309,7 @@ impl CharacterView {
         Command::none()
     }
 
-    fn stat_view_for_field(&mut self, field: &Field) -> &mut StatView {
+    fn stat_view_for_field(&mut self, field: &Field) -> &mut LabelledInputNumber<Field> {
         match field {
             Field::Strength => &mut self.strength,
             Field::Dexterity => &mut self.dexterity,
@@ -329,43 +341,5 @@ impl CharacterView {
             Field::Experience => &mut self.experience,
             Field::MythicExperience => &mut self.mythic_experience,
         }
-    }
-}
-
-struct StatView {
-    id: Field,
-    text_input: text_input::State,
-    value: u64,
-}
-
-impl StatView {
-    fn new(field: Field, value: u64) -> StatView {
-        StatView {
-            id: field,
-            text_input: text_input::State::new(),
-            value,
-        }
-    }
-
-    fn view(&mut self) -> Element<Msg> {
-        let entity_id = self.id.clone();
-        let input = TextInput::new(
-            &mut self.text_input,
-            self.id.label(),
-            &self.value.to_string(),
-            move |value| {
-                // Not sure why just moving the view's entity_id is not enough, but given how
-                // cheap a Field is I can leave with that clone.
-                let entity_id = entity_id.clone();
-                Msg(Message::StatisticModified { entity_id, value })
-            },
-        )
-        .style(crate::editor_widget::style::MainPane);
-
-        Row::new()
-            .width(Length::FillPortion(1))
-            .push(Text::new(format!("{}: ", self.id.label())))
-            .push(input)
-            .into()
     }
 }

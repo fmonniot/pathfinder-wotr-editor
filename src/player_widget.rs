@@ -1,6 +1,7 @@
 use crate::data::Player;
 use crate::editor_widget::style;
-use iced::{text_input, Column, Command, Container, Element, Length, Row, Text, TextInput};
+use crate::labelled_input_number::LabelledInputNumber;
+use iced::{Column, Command, Container, Element, Length, Row, Text};
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
@@ -25,13 +26,13 @@ impl Display for Field {
 }
 
 pub struct PlayerWidget {
-    money: LabelledInputText<Field>,
+    money: LabelledInputNumber<Field>,
 }
 
 impl PlayerWidget {
     pub fn new(player: &Player) -> PlayerWidget {
         PlayerWidget {
-            money: LabelledInputText::new(Field::Money, player.money),
+            money: LabelledInputNumber::new(Field::Money, player.money),
         }
     }
 
@@ -59,53 +60,9 @@ impl PlayerWidget {
         Command::none()
     }
 
-    fn view_for_field(&mut self, field: &Field) -> &mut LabelledInputText<Field> {
+    fn view_for_field(&mut self, field: &Field) -> &mut LabelledInputNumber<Field> {
         match field {
             Field::Money => &mut self.money,
         }
-    }
-}
-
-struct LabelledInputText<Id> {
-    id: Id,
-    text_input: text_input::State,
-    value: u64,
-}
-
-impl<Id: 'static + Clone + Display> LabelledInputText<Id> {
-    fn new(id: Id, value: u64) -> LabelledInputText<Id> {
-        LabelledInputText {
-            id,
-            text_input: text_input::State::new(),
-            value,
-        }
-    }
-
-    fn view<'a, Msg, F>(&'a mut self, make_message: F) -> Element<'a, Msg>
-    where
-        F: 'static + Fn(Id, String) -> Msg,
-        Msg: 'a + Clone,
-    {
-        let label = format!("{}", self.id);
-        let entity_id = self.id.clone();
-
-        let input = TextInput::new(
-            &mut self.text_input,
-            &label,
-            &self.value.to_string(),
-            move |value| {
-                // Not sure why just moving the view's entity_id is not enough, but given how
-                // cheap a Field is I can leave with that clone.
-                let entity_id = entity_id.clone();
-                make_message(entity_id, value)
-            },
-        )
-        .style(crate::editor_widget::style::MainPane);
-
-        Row::new()
-            .width(Length::FillPortion(1))
-            .push(Text::new(format!("{}: ", label)))
-            .push(input)
-            .into()
     }
 }
