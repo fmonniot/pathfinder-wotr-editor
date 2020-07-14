@@ -159,7 +159,7 @@ struct CharacterSelector {
 }
 
 impl CharacterSelector {
-    fn new(characters: &Vec<crate::data::Character>) -> CharacterSelector {
+    fn new(characters: &[crate::data::Character]) -> CharacterSelector {
         let characters = characters
             .iter()
             .map(|c| (button::State::new(), c.name(), c.id.clone()))
