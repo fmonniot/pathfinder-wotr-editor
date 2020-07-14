@@ -39,7 +39,7 @@ pub enum LoadingStep {
 #[derive(Debug, Clone, PartialEq)]
 pub struct LoadingDone {
     pub party: Party,
-    pub player: Player
+    pub player: Player,
 }
 
 impl LoadingStep {
@@ -144,7 +144,10 @@ impl LSM {
             ReadingPlayer { archive, party } => {
                 // TODO Use the archive instead of reading from disk
                 match extract_player(&archive).await {
-                    Ok(player) => Some((LoadingStep::Done(Box::new(LoadingDone{ party, player })), Terminated)),
+                    Ok(player) => Some((
+                        LoadingStep::Done(Box::new(LoadingDone { party, player })),
+                        Terminated,
+                    )),
                     Err(error) => Some((LoadingStep::Error(error), Terminated)),
                 }
             }
@@ -162,8 +165,8 @@ async fn extract_party(_archive: &()) -> Result<Party, LoaderError> {
 
     let indexed_json = IndexedJson::new(json);
 
-    let party =
-        data::read_party(&indexed_json).map_err(|err| LoaderError::json_error("party.json", err))?;
+    let party = data::read_party(&indexed_json)
+        .map_err(|err| LoaderError::json_error("party.json", err))?;
 
     Ok(party)
 }

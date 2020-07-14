@@ -72,9 +72,7 @@ impl Application for Main {
     fn title(&self) -> String {
         match self {
             Main::Loader { .. } => "Pathfinder WotR Editor".to_string(),
-            Main::Loading(state) => {
-                format!("Loading file {:?}", state.loader.file_path())
-            }
+            Main::Loading(state) => format!("Loading file {:?}", state.loader.file_path()),
             Main::Loaded { .. } => "Pathfinder WotR Editor".to_string(),
         }
     }

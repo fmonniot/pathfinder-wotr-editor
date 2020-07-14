@@ -1,7 +1,7 @@
 // TODO Rename this module to character_widget (and its main type to CharacterWidget)
 
 use crate::data::Character;
-use iced::{text_input, Align, Column, Command, Element, Length, Row, Text, TextInput};
+use iced::{text_input, Align, Column, Command, Container, Element, Length, Row, Text, TextInput};
 
 // TODO Invert Msg and Message, making Message the public type
 #[derive(Debug, Clone)]
@@ -275,12 +275,15 @@ impl CharacterView {
             .push(combat_stats)
             .push(skills_stats);
 
-        Column::new()
-            .width(Length::Fill)
-            .padding(10)
-            .push(main_stats)
-            .push(statistics)
-            .into()
+        Container::new(
+            Column::new()
+                .width(Length::Fill)
+                .padding(10)
+                .push(main_stats)
+                .push(statistics),
+        )
+        .style(crate::editor_widget::style::MainPane)
+        .into()
     }
 
     pub fn update(&mut self, message: Msg) -> Command<Msg> {
@@ -356,7 +359,8 @@ impl StatView {
                 let entity_id = entity_id.clone();
                 Msg(Message::StatisticModified { entity_id, value })
             },
-        );
+        )
+        .style(crate::editor_widget::style::MainPane);
 
         Row::new()
             .width(Length::FillPortion(1))
