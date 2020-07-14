@@ -5,20 +5,22 @@ use iced::{
     Row, Text, VerticalAlignment,
 };
 
-pub struct EditorWidget {
-    party: Party,
-    secondary_menu_buttons: Vec<button::State>,
-    active_character: CharacterView,
-    active_character_index: usize,
-}
-
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
 
 #[derive(Debug, Clone)]
 enum Msg {
+    ChangeActivePane(Pane),
     SwitchCharacter(usize),
     CharacterMessage(character_view::Msg),
+}
+
+pub struct EditorWidget {
+    pane_selector: PaneSelector,
+    party: Party,
+    secondary_menu_buttons: Vec<button::State>,
+    active_character: CharacterView,
+    active_character_index: usize,
 }
 
 impl EditorWidget {
@@ -33,6 +35,7 @@ impl EditorWidget {
         let active_character = CharacterView::new(&party.characters.first().unwrap());
 
         EditorWidget {
+            pane_selector: PaneSelector::new(),
             party,
             secondary_menu_buttons,
             active_character,
@@ -53,19 +56,15 @@ impl EditorWidget {
                 self.active_character.update(msg);
 
                 Command::none()
+            },
+            Message(Msg::ChangeActivePane(new_pane)) => {
+                self.pane_selector.active = new_pane;
+                Command::none()
             }
         }
     }
 
     pub fn view(&mut self) -> Element<Message> {
-        let menu = Column::new()
-            .align_items(Align::Start)
-            .push(menu_item("Party"))
-            .push(menu_item("Crusade"));
-        let menu = Container::new(menu)
-            .style(style::MenuSurface)
-            .height(Length::Fill);
-
         let mut characters = Column::new().width(Length::from(150)).height(Length::Fill);
 
         for (idx, (c, m)) in self
@@ -90,25 +89,75 @@ impl EditorWidget {
             .map(|msg| Message(Msg::CharacterMessage(msg)));
 
         Row::new()
-            .push(menu)
+            .push(self.pane_selector.view())
             .push(characters)
             .push(character)
             .into()
     }
 }
 
-fn menu_item(text: &str) -> Element<Message> {
-    let length = Length::from(75);
+#[derive(Debug, Clone, PartialEq)]
+enum Pane {
+    Party,
+    Crusade
+}
 
-    let text = Text::new(text)
-        .font(CALIGHRAPHIC_FONT)
-        .horizontal_alignment(HorizontalAlignment::Center)
-        .vertical_alignment(VerticalAlignment::Center)
-        .width(length)
-        .height(length)
-        .size(30);
+#[derive(Debug, Clone, PartialEq)]
+struct PaneSelector {
+    party_button: button::State,
+    crusade_button: button::State,
+    active: Pane
+}
 
-    Container::new(text).style(style::MenuItem).into()
+impl PaneSelector {
+
+    fn new() -> PaneSelector {
+        PaneSelector {
+            party_button: button::State::new(),
+            crusade_button: button::State::new(),
+            active: Pane::Party,
+        }
+    }
+
+    fn view(&mut self) -> Element<Message> {        
+        let item = |pane, state, active| {
+            let label = match pane {
+                Pane::Party => "Party",
+                Pane::Crusade => "Crusade"
+            };
+
+            let is_active = &pane == active;
+
+            let txt = Text::new(label)
+                .font(CALIGHRAPHIC_FONT)
+                .size(30)
+                .horizontal_alignment(HorizontalAlignment::Center)
+                .vertical_alignment(VerticalAlignment::Center);
+
+            Button::new(state, txt)
+                .on_press(Message(Msg::ChangeActivePane(pane)))
+                .width(Length::from(100))
+                .height(Length::from(80))
+                .padding(1)
+                .style(if is_active {
+                    style::PaneSelectorButton::Selected
+                } else {
+                    style::PaneSelectorButton::Inactive
+                })
+        };
+
+        let layout = Column::new()
+            .align_items(Align::Start)
+            .push(item(Pane::Party, &mut self.party_button, &self.active))
+            .push(item(Pane::Crusade, &mut self.crusade_button, &self.active));
+
+        Container::new(layout)
+            .height(Length::Fill)
+            .style(style::PaneSelectorSurface)
+            .into()
+    }
+
+
 }
 
 fn character_item(
@@ -151,37 +200,68 @@ const BOOKLETTER_1911: Font = Font::External {
 };
 
 mod style {
-    use iced::{container, Background, Color};
+    use iced::{button, container, Background, Color};
 
-    pub struct MenuSurface;
 
-    impl container::StyleSheet for MenuSurface {
+    /// style marker for the widgets composing the left hand side menu structure.
+    /// This part of the UI is basically a list of buttons which can be in two states:
+    /// - inactive: a button is inactive when its pane isn't the one displayed or the user
+    ///             doesn't have the focus on it,
+    /// - selected: the opposite, when the button's pane is displayed or the user has
+    ///             put focus on this button (hover or press).
+    pub struct PaneSelectorSurface;
+
+    impl container::StyleSheet for PaneSelectorSurface {
         fn style(&self) -> container::Style {
             container::Style {
-                background: Some(Background::Color(Color::from_rgb8(0x2e, 0x31, 0x36))),
+                background: Some(Background::Color(Color::from_rgb8(0x25, 0x27, 0x29))),
                 ..container::Style::default()
             }
         }
     }
 
-    /*
-    $layoutBackground: #2e3136;
-    $layoutTabsBackground: #252729;
-    $layoutTabsActiveColor: #ffffff;
-    */
-    pub struct MenuItem;
+    pub enum PaneSelectorButton {
+        Selected,
+        Inactive
+    }
 
-    impl container::StyleSheet for MenuItem {
-        fn style(&self) -> container::Style {
-            container::Style {
+    impl PaneSelectorButton {
+        fn inactive(&self) -> button::Style {
+            button::Style {
+                border_radius: 0,
+                text_color: Color::from_rgb8(0xdd, 0xdd, 0xdd),
+                ..button::Style::default()
+            }
+        }
+
+        fn selected(&self) -> button::Style {
+            button::Style {
                 background: Some(Background::Color(Color::from_rgb8(0x2e, 0x31, 0x36))),
-                border_width: 1,
-                border_color: Color::from_rgb8(0x4c, 0x50, 0x53),
-                text_color: Some(Color::WHITE),
-                ..container::Style::default()
+                text_color: Color::WHITE,
+                ..self.inactive()
             }
         }
     }
+
+    impl button::StyleSheet for PaneSelectorButton {
+
+        // Strangely enough, the active() method return a style used when the button is not active :)
+        fn active(&self) -> button::Style {
+            match self {
+                PaneSelectorButton::Inactive => self.inactive(),
+                PaneSelectorButton::Selected => self.selected(),
+            }
+        }
+
+        fn hovered(&self) -> button::Style {
+            self.selected()
+        }
+
+        fn pressed(&self) -> button::Style {
+            self.selected()
+        }
+    }
+
 
     /*
     // Secondary menu (eg. characters in a party)
