@@ -65,34 +65,50 @@ impl EditorWidget {
     }
 
     pub fn view(&mut self) -> Element<Message> {
-        let mut characters = Column::new().width(Length::from(150)).height(Length::Fill);
 
-        for (idx, (c, m)) in self
-            .party
-            .characters
-            .iter()
-            .zip(&mut self.secondary_menu_buttons)
-            .enumerate()
-        {
-            let active = idx == self.active_character_index;
+        match self.pane_selector.active {
+            Pane::Party => {
+                let mut characters = Column::new().width(Length::from(150)).height(Length::Fill);
 
-            characters = characters.push(character_item(c.name(), idx, active, m));
+                for (idx, (c, m)) in self
+                    .party
+                    .characters
+                    .iter()
+                    .zip(&mut self.secondary_menu_buttons)
+                    .enumerate()
+                {
+                    let active = idx == self.active_character_index;
+        
+                    characters = characters.push(character_item(c.name(), idx, active, m));
+                }
+        
+                let characters = Container::new(characters)
+                    .style(style::SecondaryMenuSurface)
+                    .height(Length::Fill);
+        
+                let character: Element<Message> = self
+                    .active_character
+                    .view()
+                    .map(|msg| Message(Msg::CharacterMessage(msg)));
+        
+                Row::new()
+                    .push(self.pane_selector.view())
+                    .push(characters)
+                    .push(character)
+                    .into()
+            },
+            Pane::Crusade => {
+                let content = Container::new(Text::new("Crusade pane tbd"))
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .style(style::MainPane);
+
+                Row::new()
+                    .push(self.pane_selector.view())
+                    .push(content)
+                    .into()
+            }
         }
-
-        let characters = Container::new(characters)
-            .style(style::SecondaryMenuSurface)
-            .height(Length::Fill);
-
-        let character: Element<Message> = self
-            .active_character
-            .view()
-            .map(|msg| Message(Msg::CharacterMessage(msg)));
-
-        Row::new()
-            .push(self.pane_selector.view())
-            .push(characters)
-            .push(character)
-            .into()
     }
 }
 
@@ -255,22 +271,8 @@ pub mod style {
         }
     }
 
-    /*
-    // Secondary menu (eg. characters in a party)
-    $sidebarBackground: #36393e;
-    $sidebarActiveBackground: #414448;
-    $sidebarSubmenuActiveColor: #ffffff;
-    $sidebarSubmenuActiveBackground: #00796b;
-    */
-
     pub struct SecondaryMenuSurface;
 
-    /*
-    //pane selector:     0x25, 0x27, 0x29
-    //secondary menu:    0x2d, 0x30, 0x34
-    //main pane surface: 0x36, 0x39, 0x3F
-
-    */
     impl container::StyleSheet for SecondaryMenuSurface {
         fn style(&self) -> container::Style {
             container::Style {
