@@ -8,6 +8,7 @@ pub enum LoaderError {
     IoError(String),
     SerdeError(String, String),
     JsonError(String, String),
+    ZipError(String),
 }
 
 impl LoaderError {
@@ -23,6 +24,12 @@ impl LoaderError {
 impl From<std::io::Error> for LoaderError {
     fn from(e: std::io::Error) -> Self {
         Self::IoError(format!("{}", e))
+    }
+}
+
+impl From<zip::result::ZipError> for LoaderError {
+    fn from(e: zip::result::ZipError) -> Self {
+        Self::ZipError(format!("{}", e))
     }
 }
 
@@ -108,12 +115,23 @@ where
     }
 }
 
+type InMemoryArchive = zip::ZipArchive<std::io::Cursor<std::vec::Vec<u8>>>;
+
 #[allow(dead_code)] // Until we got the archive extraction stuff in place
 enum LSM {
-    Initializing { file_path: PathBuf },
-    ReadingFile { file_path: PathBuf },
-    ReadingParty { archive: () },
-    ReadingPlayer { archive: (), party: Party },
+    Initializing {
+        file_path: PathBuf,
+    },
+    ReadingFile {
+        file_path: PathBuf,
+    },
+    ReadingParty {
+        archive: InMemoryArchive,
+    },
+    ReadingPlayer {
+        archive: InMemoryArchive,
+        party: Party,
+    },
     // This state is reached after completion, whether it's because of an error or a normal end.
     Terminated,
 }
@@ -126,42 +144,39 @@ impl LSM {
             Initializing { file_path } => {
                 Some((LoadingStep::ReadingFile, ReadingFile { file_path }))
             }
-            ReadingFile { .. } => {
+            ReadingFile { file_path } => {
                 // Create archive struct with file_path
                 // Verify all required files are present (header.json, party.json, etc...)
+                let res = load_archive(file_path)
+                    .await
+                    .and_then(|archive| contains_required_file(&archive).map(|_| archive));
 
-                Some((LoadingStep::ReadingParty, ReadingParty { archive: () }))
-            }
-            ReadingParty { archive } => {
-                // TODO Use the archive instead of reading from disk
-                match extract_party(&archive).await {
-                    Ok(party) => {
-                        Some((LoadingStep::ReadingPlayer, ReadingPlayer { archive, party }))
-                    }
+                match res {
+                    Ok(archive) => Some((LoadingStep::ReadingParty, ReadingParty { archive })),
                     Err(error) => Some((LoadingStep::Error(error), Terminated)),
                 }
             }
-            ReadingPlayer { archive, party } => {
-                // TODO Use the archive instead of reading from disk
-                match extract_player(&archive).await {
-                    Ok(player) => Some((
-                        LoadingStep::Done(Box::new(LoadingDone { party, player })),
-                        Terminated,
-                    )),
-                    Err(error) => Some((LoadingStep::Error(error), Terminated)),
-                }
-            }
+            ReadingParty { mut archive } => match extract_party(&mut archive).await {
+                Ok(party) => Some((LoadingStep::ReadingPlayer, ReadingPlayer { archive, party })),
+                Err(error) => Some((LoadingStep::Error(error), Terminated)),
+            },
+            ReadingPlayer { mut archive, party } => match extract_player(&mut archive).await {
+                Ok(player) => Some((
+                    LoadingStep::Done(Box::new(LoadingDone { party, player })),
+                    Terminated,
+                )),
+                Err(error) => Some((LoadingStep::Error(error), Terminated)),
+            },
             Terminated => None,
         }
     }
 }
 
-async fn extract_party(_archive: &()) -> Result<Party, LoaderError> {
-    // TODO Should be done from the archive
-    let file_content = tokio::fs::read("samples/party.json").await?;
+async fn extract_party(archive: &mut InMemoryArchive) -> Result<Party, LoaderError> {
+    let file = archive.by_name("party.json")?;
 
-    let json = serde_json::from_slice(&file_content)
-        .map_err(|err| LoaderError::serde_error("party.json", err))?;
+    let json =
+        serde_json::from_reader(file).map_err(|err| LoaderError::serde_error("party.json", err))?;
 
     let indexed_json = IndexedJson::new(json);
 
@@ -171,11 +186,10 @@ async fn extract_party(_archive: &()) -> Result<Party, LoaderError> {
     Ok(party)
 }
 
-async fn extract_player(_archive: &()) -> Result<Player, LoaderError> {
-    // TODO Should be done from the archive
-    let file_content = tokio::fs::read("samples/player.json").await?;
+async fn extract_player(archive: &mut InMemoryArchive) -> Result<Player, LoaderError> {
+    let file = archive.by_name("player.json")?;
 
-    let json = serde_json::from_slice(&file_content)
+    let json = serde_json::from_reader(file)
         .map_err(|err| LoaderError::serde_error("player.json", err))?;
 
     let indexed_json = IndexedJson::new(json);
@@ -184,4 +198,27 @@ async fn extract_player(_archive: &()) -> Result<Player, LoaderError> {
         .map_err(|err| LoaderError::json_error("player.json", err))?;
 
     Ok(player)
+}
+
+pub async fn load_archive(path: PathBuf) -> Result<InMemoryArchive, LoaderError> {
+    let buf = tokio::fs::read(path).await?;
+
+    let reader = std::io::Cursor::new(buf);
+
+    Ok(zip::ZipArchive::new(reader)?)
+}
+
+// TODO Check presente of player.json, party.json and header.json
+fn contains_required_file(archive: &InMemoryArchive) -> Result<(), LoaderError> {
+    let exists = |s: &str| {
+        archive.file_names().find(|n| n == &s).ok_or_else(|| {
+            LoaderError::ZipError(format!("{} file not found in archive", s))
+        })
+    };
+
+    exists("header.json")?;
+    exists("party.json")?;
+    exists("player.json")?;
+
+    Ok(())
 }

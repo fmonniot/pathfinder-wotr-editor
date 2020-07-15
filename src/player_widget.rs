@@ -67,7 +67,7 @@ impl PlayerWidget {
         let resources = Row::with_children(vec![
             self.resources.view("Resources", Field::Resources),
             self.resources_per_turn
-                    .view("Resources/turn", Field::ResourcesPerTurn),
+                .view("Resources/turn", Field::ResourcesPerTurn),
         ]);
 
         let layout = Column::new()

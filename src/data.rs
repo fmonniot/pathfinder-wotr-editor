@@ -4,10 +4,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
-use std::error::Error;
-use std::fs::File;
-use std::io::BufReader;
-use std::path::Path;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Party {
@@ -245,16 +241,6 @@ pub fn read_player(index: &IndexedJson) -> Result<Player, JsonReaderError> {
         resources,
         resources_per_turn,
     })
-}
-
-// debug only
-pub fn read_json_from_path<P: AsRef<Path>>(path: P) -> Result<Value, Box<dyn Error>> {
-    // Open the file in read-only mode with buffer.
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
-
-    // Read the JSON contents of the file
-    Ok(serde_json::from_reader(reader)?)
 }
 
 #[derive(Debug, Clone, PartialEq)]

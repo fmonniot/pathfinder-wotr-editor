@@ -16,3 +16,4 @@ tokio = { version = "0.2", features = ["blocking", "fs"] }
 dirs = "3.0"
 async-trait = "0.1"
 futures = "0.3"
+zip = "0.5"

@@ -57,18 +57,14 @@ impl Application for Main {
         };
         */
 
-        // Hack to speed up development, should probably be behind a flag
-        let party = data::read_json_from_path("samples/party.json").unwrap();
-        let party = data::IndexedJson::new(party);
-        let party = data::read_party(&party).unwrap();
+        // Hack to speed up development, should probably be behind a flag (open via cli)
+        let component = Main::Loading(Box::new(LoadingState {
+            loader: Loader::new("samples/Manual_17____27_Gozran__IV__4710___11_43_08.zks".into()),
+            current_step: LoadingStep::Initialized,
+            failed: None,
+        }));
 
-        let player = data::read_json_from_path("samples/player.json").unwrap();
-        let player = data::IndexedJson::new(player);
-        let player = data::read_player(&player).unwrap();
-
-        let component = Box::new(EditorWidget::new(party, player));
-
-        (Main::Loaded(component), Command::none())
+        (component, Command::none())
     }
 
     fn title(&self) -> String {
