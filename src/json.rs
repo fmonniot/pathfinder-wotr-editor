@@ -22,7 +22,7 @@ impl std::convert::From<serde_json::Error> for JsonReaderError {
 #[derive(Debug, Clone, PartialEq)]
 pub struct IndexedJson {
     pub json: Value,
-    pub index: BTreeMap<String, String>,
+    index: BTreeMap<String, String>,
 }
 
 impl IndexedJson {
@@ -56,29 +56,6 @@ impl IndexedJson {
             None => Ok(value),
         }
     }
-
-    // While nice to write, this isn't actually useful to us :)
-    /*
-    fn dereference_mut<'a>(&'a mut self, value: &'a mut Value, path: &str) -> Result<&'a mut Value, JsonReaderError> {
-        let sta = match value.as_object_mut() {
-            Some(v) => Ok(v),
-            None => Err(JsonReaderError::ObjectExpected(path.to_string(), reader::json_type(value).to_string()))
-        }?;
-
-        match sta.get_mut("$ref").and_then(|j| j.as_str()) {
-            Some(reference) => {
-                let pointer = self.index.get(reference).ok_or_else(|| {
-                    JsonReaderError::InvalidReference(path.to_string(), reference.to_string())
-                })?;
-
-                self.json.pointer_mut(pointer).ok_or_else(|| {
-                    JsonReaderError::InvalidReference(path.to_string(), reference.to_string())
-                })
-            },
-            None => Ok(value),
-        }
-    }
-    */
 
     //* When we start doing actual modification
     fn pointer_mut(&mut self, pointer: &str) -> Option<&mut Value> {
