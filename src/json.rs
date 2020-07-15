@@ -2,27 +2,49 @@
 ///! and in particular with the quirks of the Unity data model.
 pub use serde_json::Value;
 use std::collections::BTreeMap;
+use std::convert::From;
+
+#[derive(Debug, Clone)]
+pub struct JsonPointer(String);
+
+impl From<&str> for JsonPointer {
+    fn from(s: &str) -> Self {
+        JsonPointer(s.to_string())
+    }
+}
+
+impl From<String> for JsonPointer {
+    fn from(s: String) -> Self {
+        JsonPointer(s)
+    }
+}
+
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq)]
+pub struct Id(String);
 
 #[derive(Debug)]
 pub enum JsonReaderError {
-    ArrayExpected(String, String),  // path and actual type
-    ObjectExpected(String, String), // path and actual type
+    ArrayExpected(JsonPointer, String),  // path and actual type
+    ObjectExpected(JsonPointer, String), // path and actual type
+    WrongType(String, String), // when there is no path information ((actual, expected))
 
-    InvalidReference(String, String), // path and $ref value
-    InvalidPointer(String),           // pointer
+    InvalidReference(JsonPointer, Id), // path and $ref value
+    InvalidPointer(JsonPointer),
+    UnknownId(Id),
     Deserialization(serde_json::Error),
 }
 
-impl std::convert::From<serde_json::Error> for JsonReaderError {
+impl From<serde_json::Error> for JsonReaderError {
     fn from(err: serde_json::Error) -> Self {
         JsonReaderError::Deserialization(err)
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct IndexedJson {
     pub json: Value,
-    index: BTreeMap<String, String>,
+    index: BTreeMap<Id, JsonPointer>,
 }
 
 impl IndexedJson {
@@ -33,35 +55,36 @@ impl IndexedJson {
         IndexedJson { json, index }
     }
 
+    /// Given an id, get the associated pointer for its JSON value
+    pub fn pointer_for(&self, id: Id) -> Result<JsonPointer, JsonReaderError> {
+        self.index.get(&id)
+            .map(|s| s.clone())
+            .ok_or_else(|| JsonReaderError::UnknownId(id))
+    }
+
     /// Get the value following a JSON pointer `path`. If the pointed node is a JSON
     /// object containing the field `$ref`, return the JSON node with the associated
     /// `$id`.
     pub fn dereference<'a>(
         &'a self,
         value: &'a Value,
-        path: &str,
+        path: &JsonPointer,
     ) -> Result<&'a Value, JsonReaderError> {
         let sta = value.as_object().ok_or_else(|| {
-            JsonReaderError::ObjectExpected(path.to_string(), reader::json_type(value).to_string())
+            JsonReaderError::ObjectExpected(path.clone(), reader::json_type(value).to_string())
         })?;
 
-        match sta.get("$ref").and_then(|j| j.as_str()) {
+        match sta.get("$ref").and_then(|j| j.as_str()).map(|s| Id(s.to_string())) {
             Some(reference) => self
                 .index
-                .get(reference)
-                .and_then(|pointer| self.json.pointer(pointer))
+                .get(&reference)
+                .and_then(|pointer| self.json.pointer(&pointer.0))
                 .ok_or_else(|| {
-                    JsonReaderError::InvalidReference(path.to_string(), reference.to_string())
+                    JsonReaderError::InvalidReference(path.clone(), reference)
                 }),
             None => Ok(value),
         }
     }
-
-    //* When we start doing actual modification
-    fn pointer_mut(&mut self, pointer: &str) -> Option<&mut Value> {
-        self.json.pointer_mut(pointer)
-    }
-    //*/
 
     // TODO Might need something else that Reader, or rename Reader to a more generic term
     pub fn patch(&mut self, patch: JsonPatch) -> Result<(), JsonReaderError> {
@@ -71,7 +94,7 @@ impl IndexedJson {
                 // Clone the pointer to release the immutable reference to self
                 let pointer = self.index.get(&id).unwrap().clone(); // TODO Error management
 
-                let value = self.pointer_mut(&pointer).unwrap();
+                let value = self.json.pointer_mut(&pointer.0).unwrap();
 
                 // TODO Check the $id field is present in the new value
                 *value = Value::Object(new_value);
@@ -79,7 +102,7 @@ impl IndexedJson {
                 Ok(())
             }
             JsonPatch::Pointer { pointer, new_value } => {
-                let value = self.pointer_mut(&pointer).unwrap();
+                let value = self.json.pointer_mut(&pointer.0).unwrap();
 
                 *value = new_value;
                 
@@ -91,11 +114,11 @@ impl IndexedJson {
 
 pub enum JsonPatch {
     Id {
-        id: String,
+        id: Id,
         new_value: serde_json::Map<String, Value>
     },
     Pointer {
-        pointer: String,
+        pointer: JsonPointer,
         new_value: Value
     }
 }
@@ -103,20 +126,20 @@ pub enum JsonPatch {
 impl JsonPatch {
     // Can only work with pointer, not with $id
     // When working with $id, we need an object (which would include the $id field, although we can it ourselves)
-    pub fn u64(pointer: String, value: u64) -> JsonPatch {
+    pub fn u64(pointer: JsonPointer, value: u64) -> JsonPatch {
         JsonPatch::Pointer {
             pointer, new_value: serde_json::to_value(value).unwrap()
         }
     }
 
-    pub fn by_id(id: String, json: Value) -> Result<JsonPatch, JsonReaderError> {
+    pub fn by_id(id: Id, json: Value) -> Result<JsonPatch, JsonReaderError> {
         let mut json = match json {
             Value::Object(map) => Ok(map),
-            _ => Err(JsonReaderError::ObjectExpected(id.clone(), reader::json_type(&json).to_string()))
+            _ => Err(JsonReaderError::WrongType(reader::json_type(&json).to_string(), "Object".to_string()))
         }?;
 
         if json.get("$id").is_none() {
-            json.insert("$id".to_string(), Value::String(id.clone()));
+            json.insert("$id".to_string(), Value::String(id.0.clone()));
         }
 
         Ok(JsonPatch::Id {
@@ -125,7 +148,7 @@ impl JsonPatch {
     }
 }
 
-fn build_index(json: &Value, path: &str, index: &mut BTreeMap<String, String>) {
+fn build_index(json: &Value, path: &str, index: &mut BTreeMap<Id, JsonPointer>) {
     match json {
         Value::Array(values) => {
             for (idx, value) in values.iter().enumerate() {
@@ -136,7 +159,7 @@ fn build_index(json: &Value, path: &str, index: &mut BTreeMap<String, String>) {
             // Check if there is an $id. If so, add the id with the json pointer to the index
             map.get("$id")
                 .and_then(|j| j.as_str())
-                .and_then(|id| index.insert(id.to_string(), path.to_string()));
+                .and_then(|id| index.insert(Id(id.to_string()), JsonPointer(path.to_string())));
 
             for (key, value) in map {
                 if key == "$id" {
@@ -155,18 +178,18 @@ fn build_index(json: &Value, path: &str, index: &mut BTreeMap<String, String>) {
 /// exclusively as they produce nice error message and goes well with the
 /// (convoluted) JSON format of the save games.
 pub mod reader {
-    use super::JsonReaderError;
+    use super::{JsonReaderError, JsonPointer};
     use serde::de::DeserializeOwned;
     use serde_json::Value;
 
     // In doc: Clone the JSON value before deserialization
-    pub fn pointer_as<T>(json: &Value, pointer: &str) -> Result<T, JsonReaderError>
+    pub fn pointer_as<T>(json: &Value, pointer: &JsonPointer) -> Result<T, JsonReaderError>
     where
         T: DeserializeOwned,
     {
         let json = json
-            .pointer(pointer)
-            .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.to_string()))?;
+            .pointer(&pointer.0)
+            .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.clone()))?;
 
         Ok(serde_json::from_value(json.clone())?)
     }
@@ -175,14 +198,14 @@ pub mod reader {
     // (plus this does not clone the pointed json before returning it)
     pub fn pointer_as_array<'a>(
         json: &'a Value,
-        pointer: &'_ str,
+        pointer: &'_ JsonPointer,
     ) -> Result<&'a Vec<Value>, JsonReaderError> {
         let json = json
-            .pointer(pointer)
-            .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.to_string()))?;
+            .pointer(&pointer.0)
+            .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.clone()))?;
 
         json.as_array().ok_or_else(|| {
-            JsonReaderError::ArrayExpected(pointer.to_string(), json_type(json).to_string())
+            JsonReaderError::ArrayExpected(pointer.clone(), json_type(json).to_string())
         })
     }
 
@@ -190,14 +213,14 @@ pub mod reader {
     // (plus this does not clone the pointed json before returning it)
     pub fn pointer_as_object<'a>(
         json: &'a Value,
-        pointer: &'_ str,
+        pointer: &'_ JsonPointer,
     ) -> Result<&'a serde_json::map::Map<String, Value>, JsonReaderError> {
         let json = json
-            .pointer(pointer)
-            .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.to_string()))?;
+            .pointer(&pointer.0)
+            .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.clone()))?;
 
         json.as_object().ok_or_else(|| {
-            JsonReaderError::ObjectExpected(pointer.to_string(), json_type(json).to_string())
+            JsonReaderError::ObjectExpected(pointer.clone(), json_type(json).to_string())
         })
     }
 
@@ -243,7 +266,7 @@ mod tests {
     fn indexed_json_can_patch_u64_by_pointer() {
         let (base, expected) = fixtures();
         let mut index = IndexedJson::new(base);
-        let patch = JsonPatch::u64("/other/value".to_string(), 7);        
+        let patch = JsonPatch::u64("/other/value".into(), 7);        
 
         index.patch(patch).unwrap();
 
@@ -254,7 +277,7 @@ mod tests {
     fn indexed_json_can_patch_by_id_with_id_in_patch() {
         let (base, expected) = fixtures();
         let mut index = IndexedJson::new(base);
-        let patch = JsonPatch::by_id("2".to_string(), serde_json::from_str(r#"{"$id":"2","value":7}"#).unwrap()).unwrap();        
+        let patch = JsonPatch::by_id(Id("2".to_string()), serde_json::from_str(r#"{"$id":"2","value":7}"#).unwrap()).unwrap();        
 
         index.patch(patch).unwrap();
 
@@ -265,7 +288,7 @@ mod tests {
     fn indexed_json_can_patch_by_id_without_id_in_patch() {
         let (base, expected) = fixtures();
         let mut index = IndexedJson::new(base);
-        let patch = JsonPatch::by_id("2".to_string(), serde_json::from_str(r#"{"value":7}"#).unwrap()).unwrap();        
+        let patch = JsonPatch::by_id(Id("2".to_string()), serde_json::from_str(r#"{"value":7}"#).unwrap()).unwrap();        
 
         index.patch(patch).unwrap();
 

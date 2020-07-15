@@ -75,7 +75,7 @@ pub struct Stat {
 }
 
 pub fn read_party(index: &IndexedJson) -> Result<Party, JsonReaderError> {
-    let characters = reader::pointer_as_array(&index.json, "/m_EntityData")?
+    let characters = reader::pointer_as_array(&index.json, &"/m_EntityData".into())?
         .iter()
         .filter(|json| {
             // Only keep the entry of type unit
@@ -91,23 +91,22 @@ pub fn read_party(index: &IndexedJson) -> Result<Party, JsonReaderError> {
 }
 
 fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonReaderError> {
-    let statistics = reader::pointer_as_object(&json, "/Descriptor/Stats")?
+    let statistics = reader::pointer_as_object(&json, &"/Descriptor/Stats".into())?
         .iter()
         .filter(|(key, _)| key != &"$id")
         .map(|(key, value)| {
-            let ptr = format!("/Descriptor/Stats/{}", key);
-            let value = index.dereference(value, &ptr)?;
+            let value = index.dereference(value, &format!("/Descriptor/Stats/{}", key).into())?;
             let stat = serde_json::from_value(value.clone())?;
 
             Ok(stat)
         })
         .collect::<Result<Vec<_>, JsonReaderError>>()?;
 
-    let id = reader::pointer_as(&json, "/$id")?;
-    let name = reader::pointer_as(&json, "/Descriptor/CustomName")?;
-    let blueprint = reader::pointer_as(&json, "/Descriptor/Blueprint")?;
-    let experience = reader::pointer_as(&json, "/Descriptor/Progression/Experience")?;
-    let mythic_experience = reader::pointer_as(&json, "/Descriptor/Progression/MythicExperience")?;
+    let id = reader::pointer_as(&json, &"/$id".into())?;
+    let name = reader::pointer_as(&json, &"/Descriptor/CustomName".into())?;
+    let blueprint = reader::pointer_as(&json, &"/Descriptor/Blueprint".into())?;
+    let experience = reader::pointer_as(&json, &"/Descriptor/Progression/Experience".into())?;
+    let mythic_experience = reader::pointer_as(&json, &"/Descriptor/Progression/MythicExperience".into())?;
 
     Ok(Character {
         id,
@@ -180,10 +179,10 @@ pub struct KingdomResources {
 }
 
 pub fn read_player(index: &IndexedJson) -> Result<Player, JsonReaderError> {
-    let armies = reader::pointer_as_array(&index.json, "/m_GlobalMaps")?
+    let armies = reader::pointer_as_array(&index.json, &"/m_GlobalMaps".into())?
         .iter()
         .map(|json| {
-            reader::pointer_as_array(&json, "/m_Armies")?
+            reader::pointer_as_array(&json, &"/m_Armies".into())?
                 .iter()
                 .filter(|json| {
                     // We only keep the crusaders squads
@@ -193,10 +192,10 @@ pub fn read_player(index: &IndexedJson) -> Result<Player, JsonReaderError> {
                         .is_some()
                 })
                 .map(|json| {
-                    let id = reader::pointer_as(&json, "/$id")?;
-                    let movement_points = reader::pointer_as(&json, "/MovementPoints")?;
-                    let experience = reader::pointer_as(&json, "/Data/Experience")?;
-                    let squads = reader::pointer_as(&json, "/Data/Squads")?;
+                    let id = reader::pointer_as(&json, &"/$id".into())?;
+                    let movement_points = reader::pointer_as(&json, &"/MovementPoints".into())?;
+                    let experience = reader::pointer_as(&json, &"/Data/Experience".into())?;
+                    let squads = reader::pointer_as(&json, &"/Data/Squads".into())?;
 
                     Ok(Army {
                         id,
@@ -213,10 +212,10 @@ pub fn read_player(index: &IndexedJson) -> Result<Player, JsonReaderError> {
         .cloned()
         .collect::<Vec<_>>();
 
-    let resources = reader::pointer_as(&index.json, "/Kingdom/Resources")?;
-    let resources_per_turn = reader::pointer_as(&index.json, "/Kingdom/ResourcesPerTurn")?;
-    let recruits = reader::pointer_as(&index.json, "/Kingdom/RecruitsManager")?;
-    let money = reader::pointer_as(&index.json, "/Money")?;
+    let resources = reader::pointer_as(&index.json, &"/Kingdom/Resources".into())?;
+    let resources_per_turn = reader::pointer_as(&index.json, &"/Kingdom/ResourcesPerTurn".into())?;
+    let recruits = reader::pointer_as(&index.json, &"/Kingdom/RecruitsManager".into())?;
+    let money = reader::pointer_as(&index.json, &"/Money".into())?;
 
     Ok(Player {
         armies,
