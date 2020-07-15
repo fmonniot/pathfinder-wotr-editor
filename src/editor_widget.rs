@@ -1,5 +1,6 @@
 use crate::character_view::{self, CharacterView};
 use crate::data::{Party, Player};
+use crate::json::Id;
 use crate::player_widget::{self, PlayerWidget};
 use iced::{
     button, Align, Button, Column, Command, Container, Element, Font, HorizontalAlignment, Length,
@@ -12,7 +13,7 @@ pub struct Message(Msg);
 #[derive(Debug, Clone)]
 enum Msg {
     ChangeActivePane(Pane),
-    SwitchCharacter(String),
+    SwitchCharacter(Id),
     CharacterMessage(character_view::Msg),
     Player(player_widget::Message),
 }
@@ -154,8 +155,8 @@ impl PaneSelector {
 }
 
 struct CharacterSelector {
-    characters: Vec<(button::State, String, String)>, // (state, name, id)
-    active_character_id: String,
+    characters: Vec<(button::State, String, Id)>, // (state, name, id)
+    active_character_id: Id,
 }
 
 impl CharacterSelector {
@@ -165,7 +166,7 @@ impl CharacterSelector {
             .map(|c| (button::State::new(), c.name(), c.id.clone()))
             .collect::<Vec<_>>();
 
-        let active_character_id = characters.first().unwrap().2.to_string();
+        let active_character_id = characters.first().unwrap().2.clone();
 
         CharacterSelector {
             characters,

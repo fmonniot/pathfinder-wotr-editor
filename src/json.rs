@@ -1,10 +1,11 @@
 ///! This module describe our utilities to work with JSON
 ///! and in particular with the quirks of the Unity data model.
 pub use serde_json::Value;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::convert::From;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct JsonPointer(String);
 
 impl From<&str> for JsonPointer {
@@ -20,7 +21,7 @@ impl From<String> for JsonPointer {
 }
 
 
-#[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize)]
 pub struct Id(String);
 
 #[derive(Debug)]

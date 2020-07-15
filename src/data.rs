@@ -3,7 +3,7 @@
 /// to manage errors.
 use serde::{Deserialize, Serialize};
 
-use crate::json::{IndexedJson, Value, reader, JsonReaderError};
+use crate::json::{IndexedJson, Value, reader, JsonReaderError, Id};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Party {
@@ -25,7 +25,7 @@ pub struct Party {
 */
 #[derive(Debug, Clone, PartialEq)]
 pub struct Character {
-    pub id: String,
+    pub id: Id,
     pub name: String,
     pub blueprint: String,
     pub experience: u64,
@@ -67,7 +67,7 @@ impl Character {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Stat {
     #[serde(alias = "$id")]
-    pub id: String,
+    pub id: Id,
     #[serde(alias = "Type")]
     pub tpe: String,
     #[serde(alias = "m_BaseValue")]
@@ -130,7 +130,7 @@ pub struct Player {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Army {
-    id: String,
+    id: Id,
     experience: u64,
     movement_points: f64,
     squads: Vec<Squad>,
@@ -139,7 +139,7 @@ pub struct Army {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Squad {
     #[serde(alias = "$id")]
-    id: String,
+    id: Id,
     #[serde(alias = "Unit")]
     unit: String,
     #[serde(alias = "Count")]
@@ -157,7 +157,7 @@ pub struct RecruitsManager {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Recruit {
     #[serde(alias = "$id")]
-    id: String,
+    id: Id,
     #[serde(alias = "Unit")]
     unit: String,
     #[serde(alias = "Count")]
@@ -167,7 +167,7 @@ pub struct Recruit {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct KingdomResources {
     #[serde(alias = "$id")]
-    id: String,
+    id: Id,
     #[serde(alias = "m_Finances")]
     pub finances: u64,
     #[serde(alias = "m_Basics")]
