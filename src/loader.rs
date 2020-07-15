@@ -1,4 +1,5 @@
-use crate::data::{self, IndexedJson, Party, Player};
+use crate::data::{self, Party, Player};
+use crate::json::{IndexedJson, JsonReaderError};
 use std::path::PathBuf;
 
 // Start by declaring the public interface
@@ -16,7 +17,7 @@ impl LoaderError {
         LoaderError::SerdeError(file_name.to_string(), format!("{}", err))
     }
 
-    fn json_error(file_name: &str, err: data::JsonReaderError) -> LoaderError {
+    fn json_error(file_name: &str, err: JsonReaderError) -> LoaderError {
         LoaderError::JsonError(file_name.to_string(), format!("{:?}", err))
     }
 }

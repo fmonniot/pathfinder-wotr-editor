@@ -8,6 +8,7 @@ mod character_view;
 mod data;
 mod dialog;
 mod editor_widget;
+mod json;
 mod labelled_input_number;
 mod loader;
 mod player_widget;
