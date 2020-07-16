@@ -1,5 +1,8 @@
 use crate::data::{self, Party, Player};
-use crate::json::{IndexedJson, JsonReaderError};
+use crate::json::{IndexedJson, JsonPatch, JsonReaderError};
+use async_channel::{Receiver, Sender};
+use std::hash::Hash;
+use std::io::Write;
 use std::path::PathBuf;
 
 // Start by declaring the public interface
@@ -48,6 +51,7 @@ pub enum LoadingStep {
 pub struct LoadingDone {
     pub party: Party,
     pub player: Player,
+    pub archive_path: PathBuf,
 }
 
 impl LoadingStep {
@@ -97,8 +101,6 @@ where
     type Output = LoadingStep;
 
     fn hash(&self, state: &mut H) {
-        use std::hash::Hash;
-
         std::any::TypeId::of::<Self>().hash(state);
         self.file_path.hash(state);
     }
@@ -116,9 +118,143 @@ where
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum SavingStep {
+    LoadingArchive,
+    ExtractingPlayer,
+    ExtractingParty,
+    ExtractingHeader,
+    ApplyingPatches,
+    SerializingJson,
+    WritingArchive,
+    WritingCustomFiles,
+    FinishingArchive,
+    WritingToDisk,
+
+    Errored(LoaderError),
+}
+
+pub struct SavingSaveGame {
+    patches: Vec<JsonPatch>,
+    archive_path: PathBuf,
+    tx: Sender<SavingStep>,
+}
+
+impl SavingSaveGame {
+    pub fn new(patches: Vec<JsonPatch>, archive_path: PathBuf) -> (SavingSaveGame, SubReceiver) {
+        let (tx, rx) = async_channel::bounded(1);
+
+        (
+            SavingSaveGame {
+                patches,
+                archive_path,
+                tx,
+            },
+            SubReceiver(rx),
+        )
+    }
+
+    // TODO Return Result<(), LoaderError> instead of `unwrap()` everything
+    pub async fn save(self) {
+        self.tx.send(SavingStep::LoadingArchive).await.unwrap();
+        let archive = load_archive(&self.archive_path).await;
+        let mut archive = match archive {
+            Ok(a) => a,
+            Err(err) => {
+                self.tx.send(SavingStep::Errored(err)).await.unwrap();
+                return;
+            }
+        };
+
+        self.tx.send(SavingStep::ExtractingPlayer).await.unwrap();
+        let (_, mut player_index) = match extract_player(&mut archive).await {
+            Ok(p) => p,
+            Err(err) => {
+                self.tx.send(SavingStep::Errored(err)).await.unwrap();
+                return;
+            }
+        };
+
+        self.tx.send(SavingStep::ExtractingParty).await.unwrap();
+        // TODO
+
+        self.tx.send(SavingStep::ExtractingHeader).await.unwrap();
+        // TODO
+
+        self.tx.send(SavingStep::ApplyingPatches).await.unwrap();
+        for patch in &self.patches {
+            player_index.patch(patch).unwrap();
+        }
+
+        self.tx.send(SavingStep::SerializingJson).await.unwrap();
+        let player_bytes = player_index.bytes().unwrap();
+        // TODO party & header
+
+        let not_modified_files: Vec<_> = archive
+            .file_names()
+            .filter(|n| n != &"header.json" && n != &"party.json" && n != &"player.json")
+            .map(str::to_string)
+            .collect();
+
+        let buf: &mut Vec<u8> = &mut vec![];
+        let w = std::io::Cursor::new(buf);
+        let mut zip = zip::ZipWriter::new(w);
+
+        self.tx.send(SavingStep::WritingArchive).await.unwrap();
+        for file in not_modified_files {
+            let mut original = archive.by_name(&file).unwrap();
+            let options = zip::write::FileOptions::default()
+                .compression_method(original.compression())
+                .last_modified_time(original.last_modified());
+            let options = match original.unix_mode() {
+                Some(m) => options.unix_permissions(m),
+                None => options,
+            };
+
+            zip.start_file(original.name(), options).unwrap();
+            std::io::copy(&mut original, &mut zip).unwrap();
+        }
+
+        self.tx.send(SavingStep::WritingCustomFiles).await.unwrap();
+        let options =
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        zip.start_file("player.json", options).unwrap();
+        zip.write(&player_bytes).unwrap();
+
+        self.tx.send(SavingStep::FinishingArchive).await.unwrap();
+        zip.finish().unwrap();
+
+        self.tx.send(SavingStep::WritingToDisk).await.unwrap();
+        // TODO
+
+        // done, finally :)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SubReceiver(Receiver<SavingStep>);
+
+impl<H, I> iced_native::subscription::Recipe<H, I> for SubReceiver
+where
+    H: std::hash::Hasher,
+{
+    type Output = SavingStep;
+
+    fn hash(&self, state: &mut H) {
+        std::any::TypeId::of::<Self>().hash(state);
+    }
+
+    fn stream(
+        self: Box<Self>,
+        _input: futures::stream::BoxStream<'static, I>,
+    ) -> futures::stream::BoxStream<'static, Self::Output> {
+        Box::pin(self.0)
+    }
+}
+
 type InMemoryArchive = zip::ZipArchive<std::io::Cursor<std::vec::Vec<u8>>>;
 
-#[allow(dead_code)] // Until we got the archive extraction stuff in place
+// TODO Rewrite using the pattern above (channel for notification + async fn driving the read)
 enum LSM {
     Initializing {
         file_path: PathBuf,
@@ -127,9 +263,11 @@ enum LSM {
         file_path: PathBuf,
     },
     ReadingParty {
+        file_path: PathBuf,
         archive: InMemoryArchive,
     },
     ReadingPlayer {
+        file_path: PathBuf,
         archive: InMemoryArchive,
         party: Party,
     },
@@ -146,24 +284,43 @@ impl LSM {
                 Some((LoadingStep::ReadingFile, ReadingFile { file_path }))
             }
             ReadingFile { file_path } => {
-                // Create archive struct with file_path
-                // Verify all required files are present (header.json, party.json, etc...)
-                let res = load_archive(file_path)
+                let res = load_archive(&file_path)
                     .await
                     .and_then(|archive| contains_required_file(&archive).map(|_| archive));
 
                 match res {
-                    Ok(archive) => Some((LoadingStep::ReadingParty, ReadingParty { archive })),
+                    Ok(archive) => Some((
+                        LoadingStep::ReadingParty,
+                        ReadingParty { archive, file_path },
+                    )),
                     Err(error) => Some((LoadingStep::Error(error), Terminated)),
                 }
             }
-            ReadingParty { mut archive } => match extract_party(&mut archive).await {
-                Ok(party) => Some((LoadingStep::ReadingPlayer, ReadingPlayer { archive, party })),
+            ReadingParty {
+                mut archive,
+                file_path,
+            } => match extract_party(&mut archive).await {
+                Ok(party) => Some((
+                    LoadingStep::ReadingPlayer,
+                    ReadingPlayer {
+                        archive,
+                        party,
+                        file_path,
+                    },
+                )),
                 Err(error) => Some((LoadingStep::Error(error), Terminated)),
             },
-            ReadingPlayer { mut archive, party } => match extract_player(&mut archive).await {
-                Ok(player) => Some((
-                    LoadingStep::Done(Box::new(LoadingDone { party, player })),
+            ReadingPlayer {
+                mut archive,
+                party,
+                file_path,
+            } => match extract_player(&mut archive).await {
+                Ok((player, _)) => Some((
+                    LoadingStep::Done(Box::new(LoadingDone {
+                        party,
+                        player,
+                        archive_path: file_path,
+                    })),
                     Terminated,
                 )),
                 Err(error) => Some((LoadingStep::Error(error), Terminated)),
@@ -187,7 +344,9 @@ async fn extract_party(archive: &mut InMemoryArchive) -> Result<Party, LoaderErr
     Ok(party)
 }
 
-async fn extract_player(archive: &mut InMemoryArchive) -> Result<Player, LoaderError> {
+async fn extract_player(
+    archive: &mut InMemoryArchive,
+) -> Result<(Player, IndexedJson), LoaderError> {
     let file = archive.by_name("player.json")?;
 
     let json = serde_json::from_reader(file)
@@ -198,10 +357,10 @@ async fn extract_player(archive: &mut InMemoryArchive) -> Result<Player, LoaderE
     let player = data::read_player(&indexed_json)
         .map_err(|err| LoaderError::json_error("player.json", err))?;
 
-    Ok(player)
+    Ok((player, indexed_json))
 }
 
-pub async fn load_archive(path: PathBuf) -> Result<InMemoryArchive, LoaderError> {
+async fn load_archive(path: &PathBuf) -> Result<InMemoryArchive, LoaderError> {
     let buf = tokio::fs::read(path).await?;
 
     let reader = std::io::Cursor::new(buf);
@@ -212,9 +371,10 @@ pub async fn load_archive(path: PathBuf) -> Result<InMemoryArchive, LoaderError>
 // TODO Check presente of player.json, party.json and header.json
 fn contains_required_file(archive: &InMemoryArchive) -> Result<(), LoaderError> {
     let exists = |s: &str| {
-        archive.file_names().find(|n| n == &s).ok_or_else(|| {
-            LoaderError::ZipError(format!("{} file not found in archive", s))
-        })
+        archive
+            .file_names()
+            .find(|n| n == &s)
+            .ok_or_else(|| LoaderError::ZipError(format!("{} file not found in archive", s)))
     };
 
     exists("header.json")?;

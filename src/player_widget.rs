@@ -1,5 +1,6 @@
 use crate::data::{KingdomResources, Player};
 use crate::editor_widget::style;
+use crate::json::{Id, JsonPatch, JsonReaderError};
 use crate::labelled_input_number::LabelledInputNumber;
 use iced::{Column, Command, Container, Element, Length, Row, Text};
 use std::fmt::Display;
@@ -113,9 +114,19 @@ impl PlayerWidget {
         }
         Command::none()
     }
+
+    pub fn patches(&self) -> Result<Vec<JsonPatch>, JsonReaderError> {
+        let mut patches = vec![];
+
+        patches.push(self.resources.patch()?);
+        patches.push(self.resources_per_turn.patch()?);
+
+        Ok(patches)
+    }
 }
 
 struct KingdomResourcesWidget {
+    id: Id,
     finances: LabelledInputNumber<KingdomResourcesField>,
     basics: LabelledInputNumber<KingdomResourcesField>,
     favors: LabelledInputNumber<KingdomResourcesField>,
@@ -125,6 +136,7 @@ struct KingdomResourcesWidget {
 impl KingdomResourcesWidget {
     fn new(resources: &KingdomResources) -> KingdomResourcesWidget {
         KingdomResourcesWidget {
+            id: resources.id.clone(),
             finances: LabelledInputNumber::new(KingdomResourcesField::Finances, resources.finances),
             basics: LabelledInputNumber::new(KingdomResourcesField::Basics, resources.basics),
             favors: LabelledInputNumber::new(KingdomResourcesField::Favors, resources.favors),
@@ -149,5 +161,29 @@ impl KingdomResourcesWidget {
             .width(Length::Fill)
             .style(style::MainPane)
             .into()
+    }
+
+    fn patch(&self) -> Result<JsonPatch, JsonReaderError> {
+        let mut object = serde_json::Map::new();
+
+        object.insert(
+            "finances".to_string(),
+            serde_json::to_value(self.finances.value).unwrap(),
+        );
+        object.insert(
+            "basics".to_string(),
+            serde_json::to_value(self.basics.value).unwrap(),
+        );
+        object.insert(
+            "favors".to_string(),
+            serde_json::to_value(self.favors.value).unwrap(),
+        );
+        object.insert(
+            "mana".to_string(),
+            serde_json::to_value(self.mana.value).unwrap(),
+        );
+
+        let json = serde_json::Value::Object(object);
+        JsonPatch::by_id(self.id.clone(), json)
     }
 }

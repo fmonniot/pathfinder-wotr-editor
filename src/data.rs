@@ -3,7 +3,7 @@
 /// to manage errors.
 use serde::{Deserialize, Serialize};
 
-use crate::json::{IndexedJson, Value, reader, JsonReaderError, Id};
+use crate::json::{reader, Id, IndexedJson, JsonReaderError, Value};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Party {
@@ -106,7 +106,8 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonRe
     let name = reader::pointer_as(&json, &"/Descriptor/CustomName".into())?;
     let blueprint = reader::pointer_as(&json, &"/Descriptor/Blueprint".into())?;
     let experience = reader::pointer_as(&json, &"/Descriptor/Progression/Experience".into())?;
-    let mythic_experience = reader::pointer_as(&json, &"/Descriptor/Progression/MythicExperience".into())?;
+    let mythic_experience =
+        reader::pointer_as(&json, &"/Descriptor/Progression/MythicExperience".into())?;
 
     Ok(Character {
         id,
@@ -167,7 +168,7 @@ pub struct Recruit {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct KingdomResources {
     #[serde(alias = "$id")]
-    id: Id,
+    pub id: Id,
     #[serde(alias = "m_Finances")]
     pub finances: u64,
     #[serde(alias = "m_Basics")]

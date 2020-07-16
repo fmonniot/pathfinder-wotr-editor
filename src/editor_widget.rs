@@ -1,11 +1,13 @@
 use crate::character_view::{self, CharacterView};
 use crate::data::{Party, Player};
-use crate::json::Id;
+use crate::json::{Id, JsonPatch, JsonReaderError};
+use crate::loader::{SavingSaveGame, SavingStep};
 use crate::player_widget::{self, PlayerWidget};
 use iced::{
     button, Align, Button, Column, Command, Container, Element, Font, HorizontalAlignment, Length,
-    Row, Text, VerticalAlignment,
+    Row, Subscription, Text, VerticalAlignment,
 };
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
@@ -16,32 +18,49 @@ enum Msg {
     SwitchCharacter(Id),
     CharacterMessage(character_view::Msg),
     Player(player_widget::Message),
+    SaveChangesDone,
+    SavingChange(SavingStep),
 }
 
 pub struct EditorWidget {
+    archive_path: PathBuf,
     party: Party,
     pane_selector: PaneSelector,
     character_selector: CharacterSelector,
     active_character: CharacterView,
     player_widget: PlayerWidget,
+    saving: Option<crate::loader::SubReceiver>,
 }
 
 impl EditorWidget {
-    pub fn new(party: Party, player: Player) -> EditorWidget {
+    pub fn new(archive_path: PathBuf, party: Party, player: Player) -> EditorWidget {
         let character_selector = CharacterSelector::new(&party.characters);
         let active_character = CharacterView::new(&party.characters.first().unwrap());
 
         EditorWidget {
+            archive_path,
             pane_selector: PaneSelector::new(),
             character_selector,
             party,
             active_character,
             player_widget: PlayerWidget::new(&player),
+            saving: None,
         }
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
+        log::debug!("Message received: {:?}", message);
         match message {
+            Message(Msg::ChangeActivePane(Pane::Save)) => {
+                let patches = self
+                    .generate_patches()
+                    .expect("Can't generate patches. Contact maintainer with json files");
+
+                let (saving, receiver) = SavingSaveGame::new(patches, self.archive_path.clone());
+                self.saving = Some(receiver);
+
+                Command::perform(saving.save(), |_| Message(Msg::SaveChangesDone))
+            }
             Message(Msg::ChangeActivePane(new_pane)) => {
                 self.pane_selector.active = new_pane;
                 Command::none()
@@ -66,6 +85,11 @@ impl EditorWidget {
                 .player_widget
                 .update(msg)
                 .map(|msg| Message(Msg::Player(msg))),
+            Message(Msg::SavingChange(_)) => Command::none(),
+            Message(Msg::SaveChangesDone) => {
+                log::debug!("done");
+                Command::none()
+            }
         }
     }
 
@@ -89,7 +113,24 @@ impl EditorWidget {
                         .map(|msg| Message(Msg::Player(msg))),
                 )
                 .into(),
+
+            Pane::Save => {
+                unreachable!("Save is a hack for the time being and should not be reached")
+            }
         }
+    }
+
+    pub fn subscription(&self) -> Subscription<Message> {
+        match &self.saving {
+            Some(s) => {
+                iced::Subscription::from_recipe(s.clone()).map(|s| Message(Msg::SavingChange(s)))
+            }
+            None => Subscription::none(),
+        }
+    }
+
+    pub fn generate_patches(&self) -> Result<Vec<JsonPatch>, JsonReaderError> {
+        self.player_widget.patches()
     }
 }
 
@@ -97,12 +138,14 @@ impl EditorWidget {
 enum Pane {
     Party,
     Crusade,
+    Save,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 struct PaneSelector {
     party_button: button::State,
     crusade_button: button::State,
+    save_button: button::State,
     active: Pane,
 }
 
@@ -111,6 +154,7 @@ impl PaneSelector {
         PaneSelector {
             party_button: button::State::new(),
             crusade_button: button::State::new(),
+            save_button: button::State::new(),
             active: Pane::Party,
         }
     }
@@ -120,6 +164,7 @@ impl PaneSelector {
             let label = match pane {
                 Pane::Party => "Party",
                 Pane::Crusade => "Crusade",
+                Pane::Save => "Save",
             };
 
             let is_active = &pane == active;
@@ -145,7 +190,8 @@ impl PaneSelector {
         let layout = Column::new()
             .align_items(Align::Start)
             .push(item(Pane::Party, &mut self.party_button, &self.active))
-            .push(item(Pane::Crusade, &mut self.crusade_button, &self.active));
+            .push(item(Pane::Crusade, &mut self.crusade_button, &self.active))
+            .push(item(Pane::Save, &mut self.save_button, &self.active));
 
         Container::new(layout)
             .height(Length::Fill)

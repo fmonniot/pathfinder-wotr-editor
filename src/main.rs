@@ -16,7 +16,12 @@ mod player_widget;
 use editor_widget::EditorWidget;
 use loader::{Loader, LoaderError, LoadingStep};
 
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 pub fn main() {
+    env_logger::init();
+    log::debug!("Running with version {}", VERSION);
+
     Main::run(Settings::default())
 }
 
@@ -79,11 +84,9 @@ impl Application for Main {
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             MainMessage::OpenFileDialog => {
-                println!("open file dialog");
                 Command::perform(dialog::open_file(), MainMessage::FileChosen)
             }
             MainMessage::FileChosen(Ok(path)) => {
-                println!("Let's open {:?}", path);
                 *self = Main::Loading(Box::new(LoadingState {
                     loader: Loader::new(path),
                     current_step: LoadingStep::Initialized,
@@ -101,7 +104,11 @@ impl Application for Main {
             MainMessage::LoadProgressed(step) => match self {
                 Main::Loading(ref mut state) => match step {
                     LoadingStep::Done(done) => {
-                        *self = Main::Loaded(Box::new(EditorWidget::new(done.party, done.player)));
+                        *self = Main::Loaded(Box::new(EditorWidget::new(
+                            done.archive_path,
+                            done.party,
+                            done.player,
+                        )));
                         Command::none()
                     }
                     _ => {
@@ -113,9 +120,10 @@ impl Application for Main {
             },
             MainMessage::EditorMessage(msg) => {
                 if let Main::Loaded(ref mut state) = self {
-                    state.update(msg);
+                    state.update(msg).map(Self::Message::EditorMessage)
+                } else {
+                    Command::none()
                 }
-                Command::none()
             }
         }
     }
@@ -166,10 +174,9 @@ impl Application for Main {
 
     fn subscription(&self) -> Subscription<Self::Message> {
         match self {
-            Main::Loading(state) => {
-                let l = state.loader.clone();
-                iced::Subscription::from_recipe(l).map(Self::Message::LoadProgressed)
-            }
+            Main::Loading(state) => iced::Subscription::from_recipe(state.loader.clone())
+                .map(Self::Message::LoadProgressed),
+            Main::Loaded(state) => state.subscription().map(Self::Message::EditorMessage),
             _ => Subscription::none(),
         }
     }
