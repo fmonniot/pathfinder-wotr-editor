@@ -10,11 +10,11 @@ mod dialog;
 mod editor_widget;
 mod json;
 mod labelled_input_number;
-mod loader;
 mod player_widget;
+mod save;
 
 use editor_widget::EditorWidget;
-use loader::{Loader, LoaderError, LoadingStep};
+use save::{LoadingStep, SaveError, SaveLoader};
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -26,9 +26,9 @@ pub fn main() {
 }
 
 struct LoadingState {
-    loader: Loader,
+    loader: SaveLoader,
     current_step: LoadingStep,
-    failed: Option<LoaderError>,
+    failed: Option<SaveError>,
     // TODO Add progress bar
 }
 
@@ -65,7 +65,9 @@ impl Application for Main {
 
         // Hack to speed up development, should probably be behind a flag (open via cli)
         let component = Main::Loading(Box::new(LoadingState {
-            loader: Loader::new("samples/Manual_17____27_Gozran__IV__4710___11_43_08.zks".into()),
+            loader: SaveLoader::new(
+                "samples/Manual_17____27_Gozran__IV__4710___11_43_08.zks".into(),
+            ),
             current_step: LoadingStep::Initialized,
             failed: None,
         }));
@@ -88,7 +90,7 @@ impl Application for Main {
             }
             MainMessage::FileChosen(Ok(path)) => {
                 *self = Main::Loading(Box::new(LoadingState {
-                    loader: Loader::new(path),
+                    loader: SaveLoader::new(path),
                     current_step: LoadingStep::Initialized,
                     failed: None,
                 }));
