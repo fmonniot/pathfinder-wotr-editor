@@ -16,8 +16,7 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-      - name: Cache Rust dependencies
-        uses: actions/cache@v2
+      - uses: actions/cache@v2
         with:
           path: |
             target
@@ -63,8 +62,7 @@ jobs:
           toolchain: stable
           override: true
       - run: rustup component add clippy
-      - name: Cache Rust dependencies
-        uses: actions/cache@v2
+      - uses: actions/cache@v2
         with:
           path: |
             target
