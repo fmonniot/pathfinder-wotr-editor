@@ -56,6 +56,7 @@ impl IndexedJson {
     }
 
     /// Given an id, get the associated pointer for its JSON value
+    #[allow(dead_code)]
     pub fn pointer_for(&self, id: Id) -> Result<JsonPointer, JsonReaderError> {
         self.index
             .get(&id)
@@ -110,6 +111,23 @@ impl IndexedJson {
 
                 Ok(())
             }
+            JsonPatch::IdPointed {
+                id,
+                pointer,
+                new_value,
+            } => {
+                // Clone the pointer to release the immutable reference to self
+                let id_pointer = self.index.get(&id).unwrap().clone(); // TODO Error management
+
+                let value = self
+                    .json
+                    .pointer_mut(&format!("{}:{}", id_pointer.0, pointer.0))
+                    .unwrap();
+
+                *value = new_value.clone();
+
+                Ok(())
+            }
         }
     }
 
@@ -128,11 +146,17 @@ pub enum JsonPatch {
         pointer: JsonPointer,
         new_value: Value,
     },
+    IdPointed {
+        id: Id,
+        pointer: JsonPointer, // point relatively to the targeted Id
+        new_value: Value,
+    },
 }
 
 impl JsonPatch {
     // Can only work with pointer, not with $id
     // When working with $id, we need an object (which would include the $id field, although we can it ourselves)
+    #[allow(dead_code)]
     pub fn u64(pointer: JsonPointer, value: u64) -> JsonPatch {
         JsonPatch::Pointer {
             pointer,
@@ -140,6 +164,16 @@ impl JsonPatch {
         }
     }
 
+    pub fn id_at_pointer(id: Id, pointer: JsonPointer, new_value: Value) -> JsonPatch {
+        JsonPatch::IdPointed {
+            id,
+            pointer,
+            new_value,
+        }
+    }
+
+    // Not sure if I want to keep the Result here or at the application site
+    #[allow(dead_code)]
     pub fn by_id(id: Id, json: Value) -> Result<JsonPatch, JsonReaderError> {
         let mut json = match json {
             Value::Object(map) => Ok(map),

@@ -1,6 +1,6 @@
 use crate::data::{KingdomResources, Player};
 use crate::editor_widget::style;
-use crate::json::{Id, JsonPatch, JsonReaderError};
+use crate::json::JsonPatch;
 use crate::labelled_input_number::LabelledInputNumber;
 use iced::{Column, Command, Container, Element, Length, Row, Text};
 use std::fmt::Display;
@@ -58,7 +58,12 @@ pub struct PlayerWidget {
 impl PlayerWidget {
     pub fn new(player: &Player) -> PlayerWidget {
         PlayerWidget {
-            money: LabelledInputNumber::new(Field::Money, player.money),
+            money: LabelledInputNumber::new(
+                Field::Money,
+                player.money,
+                player.id.clone(),
+                "/Money".into(),
+            ),
             resources: KingdomResourcesWidget::new(&player.resources),
             resources_per_turn: KingdomResourcesWidget::new(&player.resources_per_turn),
         }
@@ -115,18 +120,18 @@ impl PlayerWidget {
         Command::none()
     }
 
-    pub fn patches(&self) -> Result<Vec<JsonPatch>, JsonReaderError> {
+    pub fn patches(&self) -> Vec<JsonPatch> {
         let mut patches = vec![];
 
-        patches.push(self.resources.patch()?);
-        patches.push(self.resources_per_turn.patch()?);
+        patches.push(self.money.change());
+        patches.append(&mut self.resources.patches());
+        patches.append(&mut self.resources_per_turn.patches());
 
-        Ok(patches)
+        patches
     }
 }
 
 struct KingdomResourcesWidget {
-    id: Id,
     finances: LabelledInputNumber<KingdomResourcesField>,
     basics: LabelledInputNumber<KingdomResourcesField>,
     favors: LabelledInputNumber<KingdomResourcesField>,
@@ -136,11 +141,30 @@ struct KingdomResourcesWidget {
 impl KingdomResourcesWidget {
     fn new(resources: &KingdomResources) -> KingdomResourcesWidget {
         KingdomResourcesWidget {
-            id: resources.id.clone(),
-            finances: LabelledInputNumber::new(KingdomResourcesField::Finances, resources.finances),
-            basics: LabelledInputNumber::new(KingdomResourcesField::Basics, resources.basics),
-            favors: LabelledInputNumber::new(KingdomResourcesField::Favors, resources.favors),
-            mana: LabelledInputNumber::new(KingdomResourcesField::Mana, resources.mana),
+            finances: LabelledInputNumber::new(
+                KingdomResourcesField::Finances,
+                resources.finances,
+                resources.id.clone(),
+                "m_Finances".into(),
+            ),
+            basics: LabelledInputNumber::new(
+                KingdomResourcesField::Basics,
+                resources.basics,
+                resources.id.clone(),
+                "m_Basics".into(),
+            ),
+            favors: LabelledInputNumber::new(
+                KingdomResourcesField::Favors,
+                resources.favors,
+                resources.id.clone(),
+                "m_Favors".into(),
+            ),
+            mana: LabelledInputNumber::new(
+                KingdomResourcesField::Mana,
+                resources.mana,
+                resources.id.clone(),
+                "m_Mana".into(),
+            ),
         }
     }
 
@@ -163,27 +187,12 @@ impl KingdomResourcesWidget {
             .into()
     }
 
-    fn patch(&self) -> Result<JsonPatch, JsonReaderError> {
-        let mut object = serde_json::Map::new();
-
-        object.insert(
-            "finances".to_string(),
-            serde_json::to_value(self.finances.value).unwrap(),
-        );
-        object.insert(
-            "basics".to_string(),
-            serde_json::to_value(self.basics.value).unwrap(),
-        );
-        object.insert(
-            "favors".to_string(),
-            serde_json::to_value(self.favors.value).unwrap(),
-        );
-        object.insert(
-            "mana".to_string(),
-            serde_json::to_value(self.mana.value).unwrap(),
-        );
-
-        let json = serde_json::Value::Object(object);
-        JsonPatch::by_id(self.id.clone(), json)
+    fn patches(&self) -> Vec<JsonPatch> {
+        vec![
+            self.finances.change(),
+            self.basics.change(),
+            self.favors.change(),
+            self.mana.change(),
+        ]
     }
 }

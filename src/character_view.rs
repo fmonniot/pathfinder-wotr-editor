@@ -1,6 +1,7 @@
 // TODO Rename this module to character_widget (and its main type to CharacterWidget)
 
 use crate::data::Character;
+use crate::json::JsonPatch;
 use crate::labelled_input_number::LabelledInputNumber;
 use iced::{Align, Column, Command, Container, Element, Length, Row, Text};
 
@@ -133,11 +134,26 @@ impl Field {
             Field::MythicExperience => None,
         };
 
-        let value = match stat_key {
-            Some(key) => character.find_stat(key).unwrap().base_value,
+        let (id, ptr, value) = match stat_key {
+            Some(key) => {
+                let stat = character.find_stat(key).unwrap();
+
+                let id = stat.id.clone();
+                let ptr = "/m_BaseValue".into();
+
+                (id, ptr, stat.base_value)
+            }
             None => match self {
-                Field::Experience => character.experience,
-                Field::MythicExperience => character.mythic_experience,
+                Field::Experience => (
+                    character.id.clone(),
+                    "/Descriptor/Progression/Experience".into(),
+                    character.experience,
+                ),
+                Field::MythicExperience => (
+                    character.id.clone(),
+                    "/Descriptor/Progression/MythicExperience".into(),
+                    character.mythic_experience,
+                ),
                 _ => panic!(
                     "A field ({:?}) was not matched when building its view, please report",
                     self
@@ -145,7 +161,7 @@ impl Field {
             },
         };
 
-        LabelledInputNumber::new(self, value)
+        LabelledInputNumber::new(self, value, id, ptr)
     }
 }
 
@@ -307,6 +323,42 @@ impl CharacterView {
             }
         };
         Command::none()
+    }
+
+    pub fn patches(&self) -> Vec<JsonPatch> {
+        let mut patches = Vec::with_capacity(28);
+
+        patches.push(self.strength.change());
+        patches.push(self.dexterity.change());
+        patches.push(self.constitution.change());
+        patches.push(self.intelligence.change());
+        patches.push(self.wisdom.change());
+        patches.push(self.charisma.change());
+        patches.push(self.attack_bonus.change());
+        patches.push(self.cmb.change());
+        patches.push(self.cmd.change());
+        patches.push(self.ac.change());
+        patches.push(self.bab.change());
+        patches.push(self.hp.change());
+        patches.push(self.initiative.change());
+        patches.push(self.save_fortitude.change());
+        patches.push(self.save_reflex.change());
+        patches.push(self.save_will.change());
+        patches.push(self.athletics.change());
+        patches.push(self.mobility.change());
+        patches.push(self.thievery.change());
+        patches.push(self.stealth.change());
+        patches.push(self.arcana.change());
+        patches.push(self.world.change());
+        patches.push(self.nature.change());
+        patches.push(self.religion.change());
+        patches.push(self.perception.change());
+        patches.push(self.persuasion.change());
+        patches.push(self.magic_device.change());
+        patches.push(self.experience.change());
+        patches.push(self.mythic_experience.change());
+
+        patches
     }
 
     fn stat_view_for_field(&mut self, field: &Field) -> &mut LabelledInputNumber<Field> {

@@ -1,6 +1,6 @@
 use crate::character_view::{self, CharacterView};
 use crate::data::{Party, Player};
-use crate::json::{Id, JsonPatch, JsonReaderError};
+use crate::json::{Id, JsonPatch};
 use crate::player_widget::{self, PlayerWidget};
 use crate::save::{SavingSaveGame, SavingStep, SubReceiver};
 use iced::{
@@ -52,9 +52,7 @@ impl EditorWidget {
         log::debug!("Message received: {:?}", message);
         match message {
             Message(Msg::ChangeActivePane(Pane::Save)) => {
-                let patches = self
-                    .generate_patches()
-                    .expect("Can't generate patches. Contact maintainer with json files");
+                let patches = self.generate_patches();
 
                 let (saving, receiver) = SavingSaveGame::new(patches, self.archive_path.clone());
                 self.saving = Some(receiver);
@@ -129,8 +127,13 @@ impl EditorWidget {
         }
     }
 
-    pub fn generate_patches(&self) -> Result<Vec<JsonPatch>, JsonReaderError> {
-        self.player_widget.patches()
+    pub fn generate_patches(&self) -> Vec<JsonPatch> {
+        let mut patches = vec![];
+
+        patches.append(&mut self.player_widget.patches());
+        patches.append(&mut self.active_character.patches());
+
+        patches
     }
 }
 

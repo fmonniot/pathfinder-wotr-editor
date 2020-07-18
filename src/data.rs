@@ -121,6 +121,7 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonRe
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Player {
+    pub id: Id,
     pub armies: Vec<Army>,
     pub money: u64,
     pub recruits: RecruitsManager,
@@ -213,12 +214,14 @@ pub fn read_player(index: &IndexedJson) -> Result<Player, JsonReaderError> {
         .cloned()
         .collect::<Vec<_>>();
 
+    let id = reader::pointer_as(&index.json, &"/$id".into())?; // Test that out
     let resources = reader::pointer_as(&index.json, &"/Kingdom/Resources".into())?;
     let resources_per_turn = reader::pointer_as(&index.json, &"/Kingdom/ResourcesPerTurn".into())?;
     let recruits = reader::pointer_as(&index.json, &"/Kingdom/RecruitsManager".into())?;
     let money = reader::pointer_as(&index.json, &"/Money".into())?;
 
     Ok(Player {
+        id,
         armies,
         money,
         recruits,

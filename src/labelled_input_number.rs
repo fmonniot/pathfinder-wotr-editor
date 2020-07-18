@@ -1,17 +1,22 @@
 use crate::editor_widget::style;
+use crate::json::{Id, JsonPatch, JsonPointer};
 use iced::{text_input, Element, Length, Row, Text, TextInput};
 use std::fmt::Display;
 
-pub struct LabelledInputNumber<Id> {
-    pub id: Id,
+pub struct LabelledInputNumber<D> {
+    id: Id,
+    ptr: JsonPointer,
+    pub discriminator: D,
     pub value: u64,
     text_input: text_input::State,
 }
 
-impl<Id: 'static + Clone + Display> LabelledInputNumber<Id> {
-    pub fn new(id: Id, value: u64) -> LabelledInputNumber<Id> {
+impl<D: 'static + Clone + Display> LabelledInputNumber<D> {
+    pub fn new(discriminator: D, value: u64, id: Id, ptr: JsonPointer) -> LabelledInputNumber<D> {
         LabelledInputNumber {
             id,
+            ptr,
+            discriminator,
             value,
             text_input: text_input::State::new(),
         }
@@ -19,21 +24,21 @@ impl<Id: 'static + Clone + Display> LabelledInputNumber<Id> {
 
     pub fn view<'a, Msg, F>(&'a mut self, make_message: F) -> Element<'a, Msg>
     where
-        F: 'static + Fn(Id, String) -> Msg,
+        F: 'static + Fn(D, String) -> Msg,
         Msg: 'a + Clone,
     {
-        let label = format!("{}", self.id);
-        let entity_id = self.id.clone();
+        let label = format!("{}", self.discriminator);
+        let discriminator = self.discriminator.clone();
 
         let input = TextInput::new(
             &mut self.text_input,
             &label,
             &self.value.to_string(),
             move |value| {
-                // Not sure why just moving the view's entity_id is not enough, but given how
+                // Not sure why just moving the view's discriminator is not enough, but given how
                 // cheap a Field is I can leave with that clone.
-                let entity_id = entity_id.clone();
-                make_message(entity_id, value)
+                let discriminator = discriminator.clone();
+                make_message(discriminator, value)
             },
         )
         .style(style::MainPane);
@@ -43,5 +48,13 @@ impl<Id: 'static + Clone + Display> LabelledInputNumber<Id> {
             .push(Text::new(format!("{}: ", label)))
             .push(input)
             .into()
+    }
+
+    pub fn change(&self) -> JsonPatch {
+        JsonPatch::id_at_pointer(
+            self.id.clone(),
+            self.ptr.clone(),
+            serde_json::to_value(self.value).unwrap(),
+        )
     }
 }
