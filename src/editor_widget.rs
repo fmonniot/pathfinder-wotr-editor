@@ -1,6 +1,6 @@
 use crate::character_view::{self, CharacterView};
 use crate::data::{Party, Player};
-use crate::json::{Id, JsonPatch};
+use crate::json::Id;
 use crate::player_widget::{self, PlayerWidget};
 use crate::save::{SavingSaveGame, SavingStep, SubReceiver};
 use iced::{
@@ -52,9 +52,12 @@ impl EditorWidget {
         log::debug!("Message received: {:?}", message);
         match message {
             Message(Msg::ChangeActivePane(Pane::Save)) => {
-                let patches = self.generate_patches();
-
-                let (saving, receiver) = SavingSaveGame::new(patches, self.archive_path.clone());
+                // TODO How does it work for multiple characters ? At the moment I'd say it doesn't work :(
+                let (saving, receiver) = SavingSaveGame::new(
+                    self.player_widget.patches(),
+                    self.active_character.patches(),
+                    self.archive_path.clone(),
+                );
                 self.saving = Some(receiver);
 
                 Command::perform(saving.save(), |_| Message(Msg::SaveChangesDone))
@@ -125,15 +128,6 @@ impl EditorWidget {
             }
             None => Subscription::none(),
         }
-    }
-
-    pub fn generate_patches(&self) -> Vec<JsonPatch> {
-        let mut patches = vec![];
-
-        patches.append(&mut self.player_widget.patches());
-        patches.append(&mut self.active_character.patches());
-
-        patches
     }
 }
 

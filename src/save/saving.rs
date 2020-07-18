@@ -22,18 +22,24 @@ pub enum SavingStep {
 }
 
 pub struct SavingSaveGame {
-    patches: Vec<JsonPatch>,
+    player_patches: Vec<JsonPatch>,
+    party_patches: Vec<JsonPatch>,
     archive_path: PathBuf,
     tx: Sender<SavingStep>,
 }
 
 impl SavingSaveGame {
-    pub fn new(patches: Vec<JsonPatch>, archive_path: PathBuf) -> (SavingSaveGame, SubReceiver) {
+    pub fn new(
+        player_patches: Vec<JsonPatch>,
+        party_patches: Vec<JsonPatch>,
+        archive_path: PathBuf,
+    ) -> (SavingSaveGame, SubReceiver) {
         let (tx, rx) = async_channel::bounded(1);
 
         (
             SavingSaveGame {
-                patches,
+                player_patches,
+                party_patches,
                 archive_path,
                 tx,
             },
@@ -63,19 +69,29 @@ impl SavingSaveGame {
         };
 
         self.tx.send(SavingStep::ExtractingParty).await.unwrap();
-        // TODO
+        let (_, mut party_index) = match super::extract_party(&mut archive).await {
+            Ok(p) => p,
+            Err(err) => {
+                self.tx.send(SavingStep::Errored(err)).await.unwrap();
+                return;
+            }
+        };
 
         self.tx.send(SavingStep::ExtractingHeader).await.unwrap();
         // TODO
 
         self.tx.send(SavingStep::ApplyingPatches).await.unwrap();
-        for patch in &self.patches {
+        for patch in &self.player_patches {
             player_index.patch(patch).unwrap();
+        }
+        for patch in &self.party_patches {
+            party_index.patch(patch).unwrap();
         }
 
         self.tx.send(SavingStep::SerializingJson).await.unwrap();
         let player_bytes = player_index.bytes().unwrap();
-        // TODO party & header
+        let party_bytes = party_index.bytes().unwrap();
+        // TODO header
 
         let not_modified_files: Vec<_> = archive
             .file_names()
@@ -107,6 +123,11 @@ impl SavingSaveGame {
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
         zip.start_file("player.json", options).unwrap();
         zip.write_all(&player_bytes).unwrap();
+
+        let options =
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        zip.start_file("party.json", options).unwrap();
+        zip.write_all(&party_bytes).unwrap();
 
         self.tx.send(SavingStep::FinishingArchive).await.unwrap();
         zip.finish().unwrap();

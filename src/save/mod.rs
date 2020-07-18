@@ -43,7 +43,7 @@ impl From<zip::result::ZipError> for SaveError {
 
 type InMemoryArchive = zip::ZipArchive<std::io::Cursor<std::vec::Vec<u8>>>;
 
-async fn extract_party(archive: &mut InMemoryArchive) -> Result<Party, SaveError> {
+async fn extract_party(archive: &mut InMemoryArchive) -> Result<(Party, IndexedJson), SaveError> {
     let file = archive.by_name("party.json")?;
 
     let json =
@@ -54,7 +54,7 @@ async fn extract_party(archive: &mut InMemoryArchive) -> Result<Party, SaveError
     let party =
         data::read_party(&indexed_json).map_err(|err| SaveError::json_error("party.json", err))?;
 
-    Ok(party)
+    Ok((party, indexed_json))
 }
 
 async fn extract_player(archive: &mut InMemoryArchive) -> Result<(Player, IndexedJson), SaveError> {

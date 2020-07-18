@@ -128,7 +128,7 @@ impl LSM {
                 mut archive,
                 file_path,
             } => match super::extract_party(&mut archive).await {
-                Ok(party) => Some((
+                Ok((party, _)) => Some((
                     LoadingStep::ReadingPlayer,
                     ReadingPlayer {
                         archive,
