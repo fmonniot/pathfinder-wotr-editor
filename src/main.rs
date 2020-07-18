@@ -16,7 +16,7 @@ mod save;
 use editor_widget::EditorWidget;
 use save::{LoadingStep, SaveError, SaveLoader};
 
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn main() {
     env_logger::init();

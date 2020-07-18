@@ -106,7 +106,7 @@ impl SavingSaveGame {
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
         zip.start_file("player.json", options).unwrap();
-        zip.write(&player_bytes).unwrap();
+        zip.write_all(&player_bytes).unwrap();
 
         self.tx.send(SavingStep::FinishingArchive).await.unwrap();
         zip.finish().unwrap();

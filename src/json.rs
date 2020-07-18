@@ -60,7 +60,7 @@ impl IndexedJson {
     pub fn pointer_for(&self, id: Id) -> Result<JsonPointer, JsonReaderError> {
         self.index
             .get(&id)
-            .map(|s| s.clone())
+            .cloned()
             .ok_or_else(|| JsonReaderError::UnknownId(id))
     }
 
