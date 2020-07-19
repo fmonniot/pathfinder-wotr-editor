@@ -1,5 +1,6 @@
-use super::{InMemoryArchive, SaveError};
+use super::SaveError;
 use crate::data::{Party, Player};
+use async_channel::{Receiver, Sender};
 use std::hash::Hash;
 use std::path::PathBuf;
 
@@ -47,20 +48,72 @@ impl LoadingStep {
 #[derive(Debug, Clone)]
 pub struct SaveLoader {
     file_path: PathBuf,
+    tx: Sender<LoadingStep>,
 }
 
 impl SaveLoader {
-    pub fn new(file_path: PathBuf) -> SaveLoader {
-        SaveLoader { file_path }
+    pub fn new(file_path: PathBuf) -> (SaveLoader, LoadNotifications) {
+        let (tx, rx) = async_channel::bounded(1);
+
+        (SaveLoader { file_path, tx }, LoadNotifications(rx))
     }
 
-    pub fn file_path(&self) -> &PathBuf {
-        &self.file_path
+    // TODO Return Result<(), SaveError> instead of `unwrap()` everything
+    // TODO Don't return unit but LoadingDone (and remove LoadingStep::Done)
+    pub async fn load(self) {
+        self.tx.send(LoadingStep::ReadingFile).await.unwrap();
+        let mut archive = match super::load_archive(&self.file_path).await {
+            Ok(a) => a,
+            Err(err) => {
+                self.tx.send(LoadingStep::Error(err)).await.unwrap();
+                return;
+            }
+        };
+
+        self.tx.send(LoadingStep::ReadingParty).await.unwrap();
+        let (party, _) = match super::extract_party(&mut archive).await {
+            Ok(a) => a,
+            Err(err) => {
+                self.tx.send(LoadingStep::Error(err)).await.unwrap();
+                return;
+            }
+        };
+
+        self.tx.send(LoadingStep::ReadingPlayer).await.unwrap();
+        let (player, _) = match super::extract_player(&mut archive).await {
+            Ok(a) => a,
+            Err(err) => {
+                self.tx.send(LoadingStep::Error(err)).await.unwrap();
+                return;
+            }
+        };
+
+        /*
+        let header = match super::extract_header(&mut archive).await {
+            Ok(a) => a,
+            Err(err) => {
+                self.tx.send(LoadingStep::Error(err)).await.unwrap();
+                return;
+            }
+        };
+        */
+
+        self.tx
+            .send(LoadingStep::Done(Box::new(LoadingDone {
+                party,
+                player,
+                archive_path: self.file_path,
+            })))
+            .await
+            .unwrap();
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct LoadNotifications(Receiver<LoadingStep>);
+
 // Make sure iced can use our download stream
-impl<H, I> iced_native::subscription::Recipe<H, I> for SaveLoader
+impl<H, I> iced_native::subscription::Recipe<H, I> for LoadNotifications
 where
     H: std::hash::Hasher,
 {
@@ -68,92 +121,12 @@ where
 
     fn hash(&self, state: &mut H) {
         std::any::TypeId::of::<Self>().hash(state);
-        self.file_path.hash(state);
     }
 
     fn stream(
         self: Box<Self>,
         _input: futures::stream::BoxStream<'static, I>,
     ) -> futures::stream::BoxStream<'static, Self::Output> {
-        Box::pin(futures::stream::unfold(
-            Initializing {
-                file_path: self.file_path,
-            },
-            |state| async move { state.exec().await },
-        ))
-    }
-}
-
-// TODO Rewrite using the pattern above (channel for notification + async fn driving the read)
-enum LSM {
-    Initializing {
-        file_path: PathBuf,
-    },
-    ReadingFile {
-        file_path: PathBuf,
-    },
-    ReadingParty {
-        file_path: PathBuf,
-        archive: InMemoryArchive,
-    },
-    ReadingPlayer {
-        file_path: PathBuf,
-        archive: InMemoryArchive,
-        party: Party,
-    },
-    // This state is reached after completion, whether it's because of an error or a normal end.
-    Terminated,
-}
-
-use LSM::*;
-
-impl LSM {
-    async fn exec(self) -> Option<(LoadingStep, LSM)> {
-        match self {
-            Initializing { file_path } => {
-                Some((LoadingStep::ReadingFile, ReadingFile { file_path }))
-            }
-            ReadingFile { file_path } => {
-                let res = super::load_archive(&file_path).await;
-
-                match res {
-                    Ok(archive) => Some((
-                        LoadingStep::ReadingParty,
-                        ReadingParty { archive, file_path },
-                    )),
-                    Err(error) => Some((LoadingStep::Error(error), Terminated)),
-                }
-            }
-            ReadingParty {
-                mut archive,
-                file_path,
-            } => match super::extract_party(&mut archive).await {
-                Ok((party, _)) => Some((
-                    LoadingStep::ReadingPlayer,
-                    ReadingPlayer {
-                        archive,
-                        party,
-                        file_path,
-                    },
-                )),
-                Err(error) => Some((LoadingStep::Error(error), Terminated)),
-            },
-            ReadingPlayer {
-                mut archive,
-                party,
-                file_path,
-            } => match super::extract_player(&mut archive).await {
-                Ok((player, _)) => Some((
-                    LoadingStep::Done(Box::new(LoadingDone {
-                        party,
-                        player,
-                        archive_path: file_path,
-                    })),
-                    Terminated,
-                )),
-                Err(error) => Some((LoadingStep::Error(error), Terminated)),
-            },
-            Terminated => None,
-        }
+        Box::pin(self.0)
     }
 }

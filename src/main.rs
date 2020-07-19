@@ -14,7 +14,7 @@ mod player_widget;
 mod save;
 
 use editor_widget::EditorWidget;
-use save::{LoadingStep, SaveError, SaveLoader};
+use save::{LoadNotifications, LoadingStep, SaveError, SaveLoader};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -26,7 +26,8 @@ pub fn main() {
 }
 
 struct LoadingState {
-    loader: SaveLoader,
+    notifications: LoadNotifications,
+    file_path: PathBuf,
     current_step: LoadingStep,
     failed: Option<SaveError>,
     // TODO Add progress bar
@@ -62,23 +63,24 @@ impl Application for Main {
             open_failed: None
         };
         */
+        let file_path: PathBuf = "samples/Manual_17____27_Gozran__IV__4710___11_43_08.zks".into();
+        let (loader, notifications) = SaveLoader::new(file_path.clone());
 
         // Hack to speed up development, should probably be behind a flag (open via cli)
         let component = Main::Loading(Box::new(LoadingState {
-            loader: SaveLoader::new(
-                "samples/Manual_17____27_Gozran__IV__4710___11_43_08.zks".into(),
-            ),
+            notifications,
+            file_path,
             current_step: LoadingStep::Initialized,
             failed: None,
         }));
 
-        (component, Command::none())
+        (component, Command::perform(loader.load(), |_| todo!()))
     }
 
     fn title(&self) -> String {
         match self {
             Main::Loader { .. } => "Pathfinder WotR Editor".to_string(),
-            Main::Loading(state) => format!("Loading file {:?}", state.loader.file_path()),
+            Main::Loading(state) => format!("Loading file {:?}", state.file_path),
             Main::Loaded { .. } => "Pathfinder WotR Editor".to_string(),
         }
     }
@@ -88,13 +90,16 @@ impl Application for Main {
             MainMessage::OpenFileDialog => {
                 Command::perform(dialog::open_file(), MainMessage::FileChosen)
             }
-            MainMessage::FileChosen(Ok(path)) => {
+            MainMessage::FileChosen(Ok(file_path)) => {
+                let (loader, notifications) = SaveLoader::new(file_path.clone());
+
                 *self = Main::Loading(Box::new(LoadingState {
-                    loader: SaveLoader::new(path),
+                    notifications,
+                    file_path,
                     current_step: LoadingStep::Initialized,
                     failed: None,
                 }));
-                Command::none()
+                Command::perform(loader.load(), |_| todo!())
             }
             MainMessage::FileChosen(Err(error)) => {
                 *self = Main::Loader {
@@ -160,7 +165,7 @@ impl Application for Main {
                         .push(Text::new("Loading failed"))
                         .push(Text::new(format!("{:?}", error))),
                     None => Column::new()
-                        .push(Text::new(format!("Loading {:?}", state.loader.file_path())))
+                        .push(Text::new(format!("Loading {:?}", state.file_path)))
                         .push(Text::new(format!(
                             "Completion: {}/100",
                             state.current_step.completion_percentage()
@@ -176,7 +181,7 @@ impl Application for Main {
 
     fn subscription(&self) -> Subscription<Self::Message> {
         match self {
-            Main::Loading(state) => iced::Subscription::from_recipe(state.loader.clone())
+            Main::Loading(state) => iced::Subscription::from_recipe(state.notifications.clone())
                 .map(Self::Message::LoadProgressed),
             Main::Loaded(state) => state.subscription().map(Self::Message::EditorMessage),
             _ => Subscription::none(),

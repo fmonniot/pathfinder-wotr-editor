@@ -139,7 +139,7 @@ impl SavingSaveGame {
     }
 }
 
-// TODO Rename to SavingNotifications
+// TODO Rename to SaveNotifications
 #[derive(Clone, Debug)]
 pub struct SubReceiver(Receiver<SavingStep>);
 

@@ -5,7 +5,7 @@ use std::path::PathBuf;
 mod loading;
 mod saving;
 
-pub use loading::{LoadingStep, SaveLoader};
+pub use loading::{LoadNotifications, LoadingStep, SaveLoader};
 pub use saving::{SavingSaveGame, SavingStep, SubReceiver};
 // use save::{SaveLoader, SaveError, LoadingStep};
 
