@@ -1,4 +1,4 @@
-use crate::data::{self, Party, Player};
+use crate::data::{self, Party, Player, Header};
 use crate::json::{IndexedJson, JsonReaderError};
 use std::path::PathBuf;
 
@@ -69,6 +69,20 @@ async fn extract_player(archive: &mut InMemoryArchive) -> Result<(Player, Indexe
         .map_err(|err| SaveError::json_error("player.json", err))?;
 
     Ok((player, indexed_json))
+}
+
+async fn extract_header(archive: &mut InMemoryArchive) -> Result<(Header, IndexedJson), SaveError> {
+    let file = archive.by_name("header.json")?;
+
+    let json =
+        serde_json::from_reader(file).map_err(|err| SaveError::serde_error("header.json", err))?;
+
+    let indexed_json = IndexedJson::new(json);
+
+    let header = data::read_header(&indexed_json)
+        .map_err(|err| SaveError::json_error("header.json", err))?;
+
+    Ok((header, indexed_json))
 }
 
 async fn load_archive(path: &PathBuf) -> Result<InMemoryArchive, SaveError> {
