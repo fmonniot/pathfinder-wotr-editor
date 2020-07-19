@@ -229,3 +229,15 @@ pub fn read_player(index: &IndexedJson) -> Result<Player, JsonReaderError> {
         resources_per_turn,
     })
 }
+
+#[derive(Deserialize, Debug, PartialEq, Clone)]
+pub struct Header {
+    #[serde(alias = "Name")]
+    pub name: String,
+    #[serde(alias = "CompatibilityVersion")]
+    pub compatibility_version: u64,
+}
+
+pub fn read_header(index: &IndexedJson) -> Result<Header, JsonReaderError> {
+    Ok(serde_json::from_value(index.json.clone())?)
+}
