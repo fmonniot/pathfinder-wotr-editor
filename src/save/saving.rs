@@ -78,7 +78,13 @@ impl SavingSaveGame {
         };
 
         self.tx.send(SavingStep::ExtractingHeader).await.unwrap();
-        // TODO
+        let (header, mut header_index) = match super::extract_header(&mut archive).await {
+            Ok(p) => p,
+            Err(err) => {
+                self.tx.send(SavingStep::Errored(err)).await.unwrap();
+                return;
+            }
+        };
 
         self.tx.send(SavingStep::ApplyingPatches).await.unwrap();
         for patch in &self.player_patches {
@@ -87,11 +93,12 @@ impl SavingSaveGame {
         for patch in &self.party_patches {
             party_index.patch(patch).unwrap();
         }
+        header_index.patch(&JsonPatch::str("/Name".into(), format!("{} Edited", header.name))).unwrap();
 
         self.tx.send(SavingStep::SerializingJson).await.unwrap();
         let player_bytes = player_index.bytes().unwrap();
         let party_bytes = party_index.bytes().unwrap();
-        // TODO header
+        let header_bytes = header_index.bytes().unwrap();
 
         let not_modified_files: Vec<_> = archive
             .file_names()
@@ -128,6 +135,11 @@ impl SavingSaveGame {
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
         zip.start_file("party.json", options).unwrap();
         zip.write_all(&party_bytes).unwrap();
+
+        let options =
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        zip.start_file("header.json", options).unwrap();
+        zip.write_all(&header_bytes).unwrap();
 
         self.tx.send(SavingStep::FinishingArchive).await.unwrap();
         zip.finish().unwrap();

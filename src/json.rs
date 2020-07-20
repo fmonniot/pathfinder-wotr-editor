@@ -164,6 +164,13 @@ impl JsonPatch {
         }
     }
 
+    pub fn str(pointer: JsonPointer, value: &str) -> JsonPatch {
+        JsonPatch::Pointer {
+            pointer,
+            new_value: serde_json::to_value(value).unwrap()
+        }
+    }
+
     pub fn id_at_pointer(id: Id, pointer: JsonPointer, new_value: Value) -> JsonPatch {
         JsonPatch::IdPointed {
             id,
