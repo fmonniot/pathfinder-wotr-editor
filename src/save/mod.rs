@@ -1,4 +1,4 @@
-use crate::data::{self, Party, Player, Header};
+use crate::data::{self, Header, Party, Player};
 use crate::json::{IndexedJson, JsonReaderError};
 use std::path::PathBuf;
 

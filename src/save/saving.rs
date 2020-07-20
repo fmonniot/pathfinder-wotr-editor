@@ -93,7 +93,12 @@ impl SavingSaveGame {
         for patch in &self.party_patches {
             party_index.patch(patch).unwrap();
         }
-        header_index.patch(&JsonPatch::str("/Name".into(), format!("{} Edited", header.name))).unwrap();
+        header_index
+            .patch(&JsonPatch::string(
+                "/Name".into(),
+                format!("{} Edited", header.name),
+            ))
+            .unwrap();
 
         self.tx.send(SavingStep::SerializingJson).await.unwrap();
         let player_bytes = player_index.bytes().unwrap();

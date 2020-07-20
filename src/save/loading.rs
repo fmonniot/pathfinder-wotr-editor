@@ -1,5 +1,5 @@
 use super::SaveError;
-use crate::data::{Party, Player, Header};
+use crate::data::{Header, Party, Player};
 use async_channel::{Receiver, Sender};
 use std::hash::Hash;
 use std::path::PathBuf;

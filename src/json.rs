@@ -164,10 +164,10 @@ impl JsonPatch {
         }
     }
 
-    pub fn str(pointer: JsonPointer, value: &str) -> JsonPatch {
+    pub fn string(pointer: JsonPointer, value: String) -> JsonPatch {
         JsonPatch::Pointer {
             pointer,
-            new_value: serde_json::to_value(value).unwrap()
+            new_value: serde_json::to_value(value).unwrap(),
         }
     }
 
