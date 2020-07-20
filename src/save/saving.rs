@@ -111,8 +111,8 @@ impl SavingSaveGame {
             .map(str::to_string)
             .collect();
 
-        let buf: &mut Vec<u8> = &mut vec![];
-        let w = std::io::Cursor::new(buf);
+        let mut write_buffer: Vec<u8> = vec![];
+        let w = std::io::Cursor::new(&mut write_buffer);
         let mut zip = zip::ZipWriter::new(w);
 
         self.tx.send(SavingStep::WritingArchive).await.unwrap();
@@ -148,9 +148,16 @@ impl SavingSaveGame {
 
         self.tx.send(SavingStep::FinishingArchive).await.unwrap();
         zip.finish().unwrap();
+        drop(zip); // Release the borrow on the underlying buffer
 
         self.tx.send(SavingStep::WritingToDisk).await.unwrap();
-        // TODO
+        let mut new_file_path = self.archive_path.clone();
+        let new_file_name = new_file_path
+            .file_name()
+            .map(|name| format!("{} - Copy", name.to_string_lossy()))
+            .unwrap_or_else(|| "Unknown Save Name".to_string());
+        new_file_path.set_file_name(new_file_name);
+        tokio::fs::write(new_file_path, write_buffer).await.unwrap();
 
         // done, finally :)
     }
