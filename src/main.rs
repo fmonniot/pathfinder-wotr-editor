@@ -14,7 +14,7 @@ mod player_widget;
 mod save;
 
 use editor_widget::EditorWidget;
-use save::{LoadNotifications, LoadingStep, SaveError, SaveLoader};
+use save::{LoadNotifications, LoadingDone, LoadingStep, SaveError, SaveLoader};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -47,6 +47,7 @@ enum MainMessage {
     OpenFileDialog,
     FileChosen(Result<PathBuf, dialog::OpenError>),
     LoadProgressed(LoadingStep),
+    LoadDone(Box<Result<LoadingDone, SaveError>>),
     EditorMessage(editor_widget::Message),
 }
 
@@ -74,7 +75,7 @@ impl Application for Main {
             failed: None,
         }));
 
-        (component, Command::perform(loader.load(), |_| todo!()))
+        (component, Command::perform(loader.load(), |r| MainMessage::LoadDone(Box::new(r))))
     }
 
     fn title(&self) -> String {
@@ -99,7 +100,8 @@ impl Application for Main {
                     current_step: LoadingStep::Initialized,
                     failed: None,
                 }));
-                Command::perform(loader.load(), |_| todo!())
+
+                Command::perform(loader.load(), |r| MainMessage::LoadDone(Box::new(r)))
             }
             MainMessage::FileChosen(Err(error)) => {
                 *self = Main::Loader {
@@ -108,22 +110,27 @@ impl Application for Main {
                 };
                 Command::none()
             }
-            MainMessage::LoadProgressed(step) => match self {
-                Main::Loading(ref mut state) => match step {
-                    LoadingStep::Done(done) => {
-                        *self = Main::Loaded(Box::new(EditorWidget::new(
-                            done.archive_path,
-                            done.party,
-                            done.player,
-                        )));
-                        Command::none()
+            MainMessage::LoadProgressed(step) => {
+                if let Main::Loading(ref mut state) = self {
+                    state.current_step = step;
+                }
+                Command::none()
+            }
+            MainMessage::LoadDone(result) => match *result {
+                Ok(done) => {
+                    *self = Main::Loaded(Box::new(EditorWidget::new(
+                        done.archive_path,
+                        done.party,
+                        done.player,
+                    )));
+                    Command::none()
+                }
+                Err(error) => {
+                    if let Main::Loading(ref mut state) = self {
+                        state.failed = Some(error);
                     }
-                    _ => {
-                        state.current_step = step;
-                        Command::none()
-                    }
-                },
-                _ => Command::none(),
+                    Command::none()
+                }
             },
             MainMessage::EditorMessage(msg) => {
                 if let Main::Loaded(ref mut state) = self {

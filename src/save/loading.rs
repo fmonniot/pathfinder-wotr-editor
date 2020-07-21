@@ -11,8 +11,6 @@ pub enum LoadingStep {
     ReadingParty,
     ReadingPlayer,
     ReadingHeader,
-    Done(Box<LoadingDone>),
-    Error(SaveError),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -31,8 +29,6 @@ impl LoadingStep {
             LoadingStep::ReadingParty => 50,
             LoadingStep::ReadingPlayer => 67,
             LoadingStep::ReadingHeader => 84,
-            LoadingStep::Done { .. } => 100,
-            LoadingStep::Error(..) => 0,
         }
     }
 
@@ -43,8 +39,6 @@ impl LoadingStep {
             LoadingStep::ReadingParty => "Parsing the party information".to_string(),
             LoadingStep::ReadingPlayer => "Parsing the player information".to_string(),
             LoadingStep::ReadingHeader => "Parsing the save information".to_string(),
-            LoadingStep::Done { .. } => "All done !".to_string(),
-            LoadingStep::Error(error) => format!("Error: {:?}", error),
         }
     }
 }
@@ -64,43 +58,20 @@ impl SaveLoader {
 
     // TODO Return Result<(), SaveError> instead of `unwrap()` everything
     // TODO Don't return unit but LoadingDone (and remove LoadingStep::Done)
-    pub async fn load(self) {
+    pub async fn load(self) -> Result<LoadingDone, SaveError> {
         self.tx.send(LoadingStep::ReadingFile).await.unwrap();
-        let mut archive = match super::load_archive(&self.file_path).await {
-            Ok(a) => a,
-            Err(err) => {
-                self.tx.send(LoadingStep::Error(err)).await.unwrap();
-                return;
-            }
-        };
+        let mut archive = super::load_archive(&self.file_path).await?;
 
         self.tx.send(LoadingStep::ReadingParty).await.unwrap();
-        let (party, _) = match super::extract_party(&mut archive).await {
-            Ok(a) => a,
-            Err(err) => {
-                self.tx.send(LoadingStep::Error(err)).await.unwrap();
-                return;
-            }
-        };
+        let (party, _) = super::extract_party(&mut archive).await?;
 
         self.tx.send(LoadingStep::ReadingPlayer).await.unwrap();
-        let (player, _) = match super::extract_player(&mut archive).await {
-            Ok(a) => a,
-            Err(err) => {
-                self.tx.send(LoadingStep::Error(err)).await.unwrap();
-                return;
-            }
-        };
+        let (player, _) = super::extract_player(&mut archive).await?;
 
         self.tx.send(LoadingStep::ReadingHeader).await.unwrap();
-        let (header, _) = match super::extract_header(&mut archive).await {
-            Ok(a) => a,
-            Err(err) => {
-                self.tx.send(LoadingStep::Error(err)).await.unwrap();
-                return;
-            }
-        };
+        let (header, _) = super::extract_header(&mut archive).await?;
 
+        /*
         self.tx
             .send(LoadingStep::Done(Box::new(LoadingDone {
                 party,
@@ -110,6 +81,14 @@ impl SaveLoader {
             })))
             .await
             .unwrap();
+            */
+
+        Ok(LoadingDone {
+            party,
+            player,
+            header,
+            archive_path: self.file_path,
+        })
     }
 }
 
