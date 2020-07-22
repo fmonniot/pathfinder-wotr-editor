@@ -151,12 +151,7 @@ impl SavingSaveGame {
         drop(zip); // Release the borrow on the underlying buffer
 
         self.tx.send(SavingStep::WritingToDisk).await.unwrap();
-        let mut new_file_path = self.archive_path.clone();
-        let new_file_name = new_file_path
-            .file_name()
-            .map(|name| format!("{} - Copy", name.to_string_lossy()))
-            .unwrap_or_else(|| "Unknown Save Name".to_string());
-        new_file_path.set_file_name(new_file_name);
+        let new_file_path = copy_file_name(&self.archive_path);
         tokio::fs::write(new_file_path, write_buffer).await.unwrap();
 
         // done, finally :)
@@ -182,5 +177,33 @@ where
         _input: futures::stream::BoxStream<'static, I>,
     ) -> futures::stream::BoxStream<'static, Self::Output> {
         Box::pin(self.0)
+    }
+}
+
+fn copy_file_name(original: &PathBuf) -> PathBuf {
+    // We hardcode the file extension because it's more likely than not
+    // it won't be anything else. We could use `.extension()` if it turns
+    // out this assertion is wrong.
+    let new_file_name = original
+        .file_stem()
+        .map(|name| format!("{} - Copy.zks", name.to_string_lossy()))
+        .unwrap_or_else(|| "Unknown Save Name.zks".to_string());
+
+    original.with_file_name(new_file_name)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn copy_file_name_example() {
+        let path = "/tmp/Save Game.zks".into();
+        let actual = copy_file_name(&path);
+        let expected: PathBuf = "/tmp/Save Game - Copy.zks".into();
+
+        println!("{:?}: {:?}", path.extension(), path.file_name());
+
+        assert_eq!(actual, expected);
     }
 }

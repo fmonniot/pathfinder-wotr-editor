@@ -56,8 +56,7 @@ impl SaveLoader {
         (SaveLoader { file_path, tx }, LoadNotifications(rx))
     }
 
-    // TODO Return Result<(), SaveError> instead of `unwrap()` everything
-    // TODO Don't return unit but LoadingDone (and remove LoadingStep::Done)
+    // TODO Change the unwrap to inline within Result (SaveError will need another)
     pub async fn load(self) -> Result<LoadingDone, SaveError> {
         self.tx.send(LoadingStep::ReadingFile).await.unwrap();
         let mut archive = super::load_archive(&self.file_path).await?;

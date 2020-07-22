@@ -118,11 +118,13 @@ impl IndexedJson {
             } => {
                 // Clone the pointer to release the immutable reference to self
                 let id_pointer = self.index.get(&id).unwrap().clone(); // TODO Error management
+                let separator = if pointer.0.starts_with("/") { "" } else { "/" };
+                let real_pointer = format!("{}{}{}", id_pointer.0, separator, pointer.0);
 
                 let value = self
                     .json
-                    .pointer_mut(&format!("{}:{}", id_pointer.0, pointer.0))
-                    .unwrap();
+                    .pointer_mut(&real_pointer)
+                    .expect(&format!("IdPointed ({:?}:{:?}, resolved as {}) expected a value but none found", id, pointer, real_pointer));
 
                 *value = new_value.clone();
 
