@@ -47,44 +47,18 @@ impl SavingSaveGame {
         )
     }
 
-    // TODO Return Result<(), SaveError> instead of `unwrap()` everything
-    pub async fn save(self) {
+    pub async fn save(self) -> Result<(), SaveError> {
         self.tx.send(SavingStep::LoadingArchive).await.unwrap();
-        let archive = super::load_archive(&self.archive_path).await;
-        let mut archive = match archive {
-            Ok(a) => a,
-            Err(err) => {
-                self.tx.send(SavingStep::Errored(err)).await.unwrap();
-                return;
-            }
-        };
+        let mut archive = super::load_archive(&self.archive_path).await?;
 
         self.tx.send(SavingStep::ExtractingPlayer).await.unwrap();
-        let (_, mut player_index) = match super::extract_player(&mut archive).await {
-            Ok(p) => p,
-            Err(err) => {
-                self.tx.send(SavingStep::Errored(err)).await.unwrap();
-                return;
-            }
-        };
+        let (_, mut player_index) = super::extract_player(&mut archive).await?;
 
         self.tx.send(SavingStep::ExtractingParty).await.unwrap();
-        let (_, mut party_index) = match super::extract_party(&mut archive).await {
-            Ok(p) => p,
-            Err(err) => {
-                self.tx.send(SavingStep::Errored(err)).await.unwrap();
-                return;
-            }
-        };
+        let (_, mut party_index) = super::extract_party(&mut archive).await?;
 
         self.tx.send(SavingStep::ExtractingHeader).await.unwrap();
-        let (header, mut header_index) = match super::extract_header(&mut archive).await {
-            Ok(p) => p,
-            Err(err) => {
-                self.tx.send(SavingStep::Errored(err)).await.unwrap();
-                return;
-            }
-        };
+        let (header, mut header_index) = super::extract_header(&mut archive).await?;
 
         self.tx.send(SavingStep::ApplyingPatches).await.unwrap();
         for patch in &self.player_patches {
@@ -150,11 +124,14 @@ impl SavingSaveGame {
         zip.finish().unwrap();
         drop(zip); // Release the borrow on the underlying buffer
 
+        // TODO Will it work alright when the file already exist ?
+        // Should we prompt for confirmation ?
         self.tx.send(SavingStep::WritingToDisk).await.unwrap();
         let new_file_path = copy_file_name(&self.archive_path);
         tokio::fs::write(new_file_path, write_buffer).await.unwrap();
 
         // done, finally :)
+        Ok(())
     }
 }
 

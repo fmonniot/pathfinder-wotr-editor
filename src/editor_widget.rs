@@ -2,7 +2,7 @@ use crate::character_view::{self, CharacterView};
 use crate::data::{Party, Player};
 use crate::json::Id;
 use crate::player_widget::{self, PlayerWidget};
-use crate::save::{SavingSaveGame, SavingStep, SubReceiver};
+use crate::save::{SaveError, SavingSaveGame, SavingStep, SubReceiver};
 use iced::{
     button, Align, Button, Column, Command, Container, Element, Font, HorizontalAlignment, Length,
     Row, Subscription, Text, VerticalAlignment,
@@ -18,8 +18,8 @@ enum Msg {
     SwitchCharacter(Id),
     CharacterMessage(character_view::Msg),
     Player(player_widget::Message),
-    SaveChangesDone,
     SavingChange(SavingStep),
+    SavingResult(Box<Result<(), SaveError>>),
 }
 
 pub struct EditorWidget {
@@ -60,7 +60,9 @@ impl EditorWidget {
                 );
                 self.saving = Some(receiver);
 
-                Command::perform(saving.save(), |_| Message(Msg::SaveChangesDone))
+                Command::perform(saving.save(), |res| {
+                    Message(Msg::SavingResult(Box::new(res)))
+                })
             }
             Message(Msg::ChangeActivePane(new_pane)) => {
                 self.pane_selector.active = new_pane;
@@ -87,8 +89,11 @@ impl EditorWidget {
                 .update(msg)
                 .map(|msg| Message(Msg::Player(msg))),
             Message(Msg::SavingChange(_)) => Command::none(),
-            Message(Msg::SaveChangesDone) => {
-                log::debug!("done");
+            Message(Msg::SavingResult(res)) => {
+                match *res {
+                    Ok(()) => log::debug!("Save Game modified successfully"),
+                    Err(err) => log::error!("Saving save game failed: {:?}", err),
+                };
                 Command::none()
             }
         }
