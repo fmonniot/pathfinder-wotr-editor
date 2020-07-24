@@ -121,10 +121,10 @@ impl IndexedJson {
                 let separator = if pointer.0.starts_with("/") { "" } else { "/" };
                 let real_pointer = format!("{}{}{}", id_pointer.0, separator, pointer.0);
 
-                let value = self
-                    .json
-                    .pointer_mut(&real_pointer)
-                    .expect(&format!("IdPointed ({:?}:{:?}, resolved as {}) expected a value but none found", id, pointer, real_pointer));
+                let value = self.json.pointer_mut(&real_pointer).expect(&format!(
+                    "IdPointed ({:?}:{:?}, resolved as {}) expected a value but none found",
+                    id, pointer, real_pointer
+                ));
 
                 *value = new_value.clone();
 

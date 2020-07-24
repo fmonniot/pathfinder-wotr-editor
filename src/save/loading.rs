@@ -56,31 +56,18 @@ impl SaveLoader {
         (SaveLoader { file_path, tx }, LoadNotifications(rx))
     }
 
-    // TODO Change the unwrap to inline within Result (SaveError will need another)
     pub async fn load(self) -> Result<LoadingDone, SaveError> {
-        self.tx.send(LoadingStep::ReadingFile).await.unwrap();
+        self.tx.send(LoadingStep::ReadingFile).await?;
         let mut archive = super::load_archive(&self.file_path).await?;
 
-        self.tx.send(LoadingStep::ReadingParty).await.unwrap();
+        self.tx.send(LoadingStep::ReadingParty).await?;
         let (party, _) = super::extract_party(&mut archive).await?;
 
-        self.tx.send(LoadingStep::ReadingPlayer).await.unwrap();
+        self.tx.send(LoadingStep::ReadingPlayer).await?;
         let (player, _) = super::extract_player(&mut archive).await?;
 
-        self.tx.send(LoadingStep::ReadingHeader).await.unwrap();
+        self.tx.send(LoadingStep::ReadingHeader).await?;
         let (header, _) = super::extract_header(&mut archive).await?;
-
-        /*
-        self.tx
-            .send(LoadingStep::Done(Box::new(LoadingDone {
-                party,
-                player,
-                header,
-                archive_path: self.file_path,
-            })))
-            .await
-            .unwrap();
-            */
 
         Ok(LoadingDone {
             party,

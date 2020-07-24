@@ -5,7 +5,7 @@ use std::hash::Hash;
 use std::io::Write;
 use std::path::PathBuf;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum SavingStep {
     LoadingArchive,
     ExtractingPlayer,
@@ -17,8 +17,6 @@ pub enum SavingStep {
     WritingCustomFiles,
     FinishingArchive,
     WritingToDisk,
-
-    Errored(SaveError),
 }
 
 pub struct SavingSaveGame {
@@ -47,20 +45,21 @@ impl SavingSaveGame {
         )
     }
 
+    // TODO Inline remaining unwrap (or if expected, use .expect instead)
     pub async fn save(self) -> Result<(), SaveError> {
-        self.tx.send(SavingStep::LoadingArchive).await.unwrap();
+        self.tx.send(SavingStep::LoadingArchive).await?;
         let mut archive = super::load_archive(&self.archive_path).await?;
 
-        self.tx.send(SavingStep::ExtractingPlayer).await.unwrap();
+        self.tx.send(SavingStep::ExtractingPlayer).await?;
         let (_, mut player_index) = super::extract_player(&mut archive).await?;
 
-        self.tx.send(SavingStep::ExtractingParty).await.unwrap();
+        self.tx.send(SavingStep::ExtractingParty).await?;
         let (_, mut party_index) = super::extract_party(&mut archive).await?;
 
-        self.tx.send(SavingStep::ExtractingHeader).await.unwrap();
+        self.tx.send(SavingStep::ExtractingHeader).await?;
         let (header, mut header_index) = super::extract_header(&mut archive).await?;
 
-        self.tx.send(SavingStep::ApplyingPatches).await.unwrap();
+        self.tx.send(SavingStep::ApplyingPatches).await?;
         for patch in &self.player_patches {
             player_index.patch(patch).unwrap();
         }
@@ -74,7 +73,7 @@ impl SavingSaveGame {
             ))
             .unwrap();
 
-        self.tx.send(SavingStep::SerializingJson).await.unwrap();
+        self.tx.send(SavingStep::SerializingJson).await?;
         let player_bytes = player_index.bytes().unwrap();
         let party_bytes = party_index.bytes().unwrap();
         let header_bytes = header_index.bytes().unwrap();
@@ -89,7 +88,7 @@ impl SavingSaveGame {
         let w = std::io::Cursor::new(&mut write_buffer);
         let mut zip = zip::ZipWriter::new(w);
 
-        self.tx.send(SavingStep::WritingArchive).await.unwrap();
+        self.tx.send(SavingStep::WritingArchive).await?;
         for file in not_modified_files {
             let mut original = archive.by_name(&file).unwrap();
             let options = zip::write::FileOptions::default()
@@ -104,7 +103,7 @@ impl SavingSaveGame {
             std::io::copy(&mut original, &mut zip).unwrap();
         }
 
-        self.tx.send(SavingStep::WritingCustomFiles).await.unwrap();
+        self.tx.send(SavingStep::WritingCustomFiles).await?;
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
         zip.start_file("player.json", options).unwrap();
@@ -120,13 +119,13 @@ impl SavingSaveGame {
         zip.start_file("header.json", options).unwrap();
         zip.write_all(&header_bytes).unwrap();
 
-        self.tx.send(SavingStep::FinishingArchive).await.unwrap();
+        self.tx.send(SavingStep::FinishingArchive).await?;
         zip.finish().unwrap();
         drop(zip); // Release the borrow on the underlying buffer
 
         // TODO Will it work alright when the file already exist ?
         // Should we prompt for confirmation ?
-        self.tx.send(SavingStep::WritingToDisk).await.unwrap();
+        self.tx.send(SavingStep::WritingToDisk).await?;
         let new_file_path = copy_file_name(&self.archive_path);
         tokio::fs::write(new_file_path, write_buffer).await.unwrap();
 

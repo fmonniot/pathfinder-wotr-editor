@@ -1,5 +1,6 @@
 use crate::data::{self, Header, Party, Player};
 use crate::json::{IndexedJson, JsonReaderError};
+use async_channel::SendError;
 use std::path::PathBuf;
 
 mod loading;
@@ -15,6 +16,8 @@ pub enum SaveError {
     SerdeError(String, String),
     JsonError(String, String),
     ZipError(String),
+    SavingNotificationsError(SendError<SavingStep>), // TODO Needs a From
+    LoadingNotificationsError(SendError<LoadingStep>), // TODO that too
 }
 
 impl SaveError {
@@ -36,6 +39,18 @@ impl From<std::io::Error> for SaveError {
 impl From<zip::result::ZipError> for SaveError {
     fn from(e: zip::result::ZipError) -> Self {
         Self::ZipError(format!("{}", e))
+    }
+}
+
+impl From<SendError<SavingStep>> for SaveError {
+    fn from(e: SendError<SavingStep>) -> Self {
+        Self::SavingNotificationsError(e)
+    }
+}
+
+impl From<SendError<LoadingStep>> for SaveError {
+    fn from(e: SendError<LoadingStep>) -> Self {
+        Self::LoadingNotificationsError(e)
     }
 }
 

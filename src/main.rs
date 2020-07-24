@@ -75,7 +75,10 @@ impl Application for Main {
             failed: None,
         }));
 
-        (component, Command::perform(loader.load(), |r| MainMessage::LoadDone(Box::new(r))))
+        (
+            component,
+            Command::perform(loader.load(), |r| MainMessage::LoadDone(Box::new(r))),
+        )
     }
 
     fn title(&self) -> String {
