@@ -1,6 +1,4 @@
 /// Data model for the save game
-/// TODO Improve the pointer and conversion logic. At the moment we have a lot of repetition
-/// to manage errors.
 use serde::{Deserialize, Serialize};
 
 use crate::json::{reader, Id, IndexedJson, JsonReaderError, Value};
