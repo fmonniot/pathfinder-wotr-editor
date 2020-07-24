@@ -1,5 +1,5 @@
 use crate::data::{self, Header, Party, Player};
-use crate::json::{IndexedJson, JsonReaderError};
+use crate::json::{IndexedJson, JsonError};
 use async_channel::SendError;
 use std::path::PathBuf;
 
@@ -16,8 +16,8 @@ pub enum SaveError {
     SerdeError(String, String),
     JsonError(String, String),
     ZipError(String),
-    SavingNotificationsError(SendError<SavingStep>), // TODO Needs a From
-    LoadingNotificationsError(SendError<LoadingStep>), // TODO that too
+    SavingNotificationsError(SendError<SavingStep>),
+    LoadingNotificationsError(SendError<LoadingStep>),
 }
 
 impl SaveError {
@@ -25,7 +25,7 @@ impl SaveError {
         SaveError::SerdeError(file_name.to_string(), format!("{}", err))
     }
 
-    fn json_error(file_name: &str, err: JsonReaderError) -> SaveError {
+    fn json_error(file_name: &str, err: JsonError) -> SaveError {
         SaveError::JsonError(file_name.to_string(), format!("{:?}", err))
     }
 }

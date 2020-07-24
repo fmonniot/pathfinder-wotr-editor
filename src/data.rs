@@ -1,7 +1,7 @@
 /// Data model for the save game
 use serde::{Deserialize, Serialize};
 
-use crate::json::{reader, Id, IndexedJson, JsonReaderError, Value};
+use crate::json::{reader, Id, IndexedJson, JsonError, Value};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Party {
@@ -72,7 +72,7 @@ pub struct Stat {
     pub base_value: u64,
 }
 
-pub fn read_party(index: &IndexedJson) -> Result<Party, JsonReaderError> {
+pub fn read_party(index: &IndexedJson) -> Result<Party, JsonError> {
     let characters = reader::pointer_as_array(&index.json, &"/m_EntityData".into())?
         .iter()
         .filter(|json| {
@@ -83,12 +83,12 @@ pub fn read_party(index: &IndexedJson) -> Result<Party, JsonReaderError> {
                 .is_some()
         })
         .map(|json| read_character(&index, json))
-        .collect::<Result<Vec<_>, JsonReaderError>>()?;
+        .collect::<Result<Vec<_>, JsonError>>()?;
 
     Ok(Party { characters })
 }
 
-fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonReaderError> {
+fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonError> {
     let statistics = reader::pointer_as_object(&json, &"/Descriptor/Stats".into())?
         .iter()
         .filter(|(key, _)| key != &"$id")
@@ -98,7 +98,7 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonRe
 
             Ok(stat)
         })
-        .collect::<Result<Vec<_>, JsonReaderError>>()?;
+        .collect::<Result<Vec<_>, JsonError>>()?;
 
     let id = reader::pointer_as(&json, &"/$id".into())?;
     let name = reader::pointer_as(&json, &"/Descriptor/CustomName".into())?;
@@ -178,7 +178,7 @@ pub struct KingdomResources {
     pub mana: u64,
 }
 
-pub fn read_player(index: &IndexedJson) -> Result<Player, JsonReaderError> {
+pub fn read_player(index: &IndexedJson) -> Result<Player, JsonError> {
     let armies = reader::pointer_as_array(&index.json, &"/m_GlobalMaps".into())?
         .iter()
         .map(|json| {
@@ -204,9 +204,9 @@ pub fn read_player(index: &IndexedJson) -> Result<Player, JsonReaderError> {
                         squads,
                     })
                 })
-                .collect::<Result<Vec<_>, JsonReaderError>>()
+                .collect::<Result<Vec<_>, JsonError>>()
         })
-        .collect::<Result<Vec<_>, JsonReaderError>>()?
+        .collect::<Result<Vec<_>, JsonError>>()?
         .iter()
         .flatten()
         .cloned()
@@ -236,6 +236,6 @@ pub struct Header {
     pub compatibility_version: u64,
 }
 
-pub fn read_header(index: &IndexedJson) -> Result<Header, JsonReaderError> {
+pub fn read_header(index: &IndexedJson) -> Result<Header, JsonError> {
     Ok(serde_json::from_value(index.json.clone())?)
 }

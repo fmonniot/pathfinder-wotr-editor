@@ -24,7 +24,7 @@ impl From<String> for JsonPointer {
 pub struct Id(String);
 
 #[derive(Debug)]
-pub enum JsonReaderError {
+pub enum JsonError {
     ArrayExpected(JsonPointer, String),  // path and actual type
     ObjectExpected(JsonPointer, String), // path and actual type
     WrongType(String, String),           // when there is no path information ((actual, expected))
@@ -35,9 +35,9 @@ pub enum JsonReaderError {
     Deserialization(serde_json::Error),
 }
 
-impl From<serde_json::Error> for JsonReaderError {
+impl From<serde_json::Error> for JsonError {
     fn from(err: serde_json::Error) -> Self {
-        JsonReaderError::Deserialization(err)
+        JsonError::Deserialization(err)
     }
 }
 
@@ -57,11 +57,11 @@ impl IndexedJson {
 
     /// Given an id, get the associated pointer for its JSON value
     #[allow(dead_code)]
-    pub fn pointer_for(&self, id: Id) -> Result<JsonPointer, JsonReaderError> {
+    pub fn pointer_for(&self, id: Id) -> Result<JsonPointer, JsonError> {
         self.index
             .get(&id)
             .cloned()
-            .ok_or_else(|| JsonReaderError::UnknownId(id))
+            .ok_or_else(|| JsonError::UnknownId(id))
     }
 
     /// Get the value following a JSON pointer `path`. If the pointed node is a JSON
@@ -71,9 +71,9 @@ impl IndexedJson {
         &'a self,
         value: &'a Value,
         path: &JsonPointer,
-    ) -> Result<&'a Value, JsonReaderError> {
+    ) -> Result<&'a Value, JsonError> {
         let sta = value.as_object().ok_or_else(|| {
-            JsonReaderError::ObjectExpected(path.clone(), reader::json_type(value).to_string())
+            JsonError::ObjectExpected(path.clone(), reader::json_type(value).to_string())
         })?;
 
         match sta
@@ -85,13 +85,12 @@ impl IndexedJson {
                 .index
                 .get(&reference)
                 .and_then(|pointer| self.json.pointer(&pointer.0))
-                .ok_or_else(|| JsonReaderError::InvalidReference(path.clone(), reference)),
+                .ok_or_else(|| JsonError::InvalidReference(path.clone(), reference)),
             None => Ok(value),
         }
     }
 
-    // TODO Might need something else that Reader, or rename Reader to a more generic term
-    pub fn patch(&mut self, patch: &JsonPatch) -> Result<(), JsonReaderError> {
+    pub fn patch(&mut self, patch: &JsonPatch) -> Result<(), JsonError> {
         match patch {
             JsonPatch::Id { id, new_value } => {
                 // Clone the pointer to release the immutable reference to self
@@ -133,7 +132,7 @@ impl IndexedJson {
         }
     }
 
-    pub fn bytes(&self) -> Result<Vec<u8>, JsonReaderError> {
+    pub fn bytes(&self) -> Result<Vec<u8>, JsonError> {
         Ok(serde_json::to_vec(&self.json)?)
     }
 }
@@ -183,10 +182,10 @@ impl JsonPatch {
 
     // Not sure if I want to keep the Result here or at the application site
     #[allow(dead_code)]
-    pub fn by_id(id: Id, json: Value) -> Result<JsonPatch, JsonReaderError> {
+    pub fn by_id(id: Id, json: Value) -> Result<JsonPatch, JsonError> {
         let mut json = match json {
             Value::Object(map) => Ok(map),
-            _ => Err(JsonReaderError::WrongType(
+            _ => Err(JsonError::WrongType(
                 reader::json_type(&json).to_string(),
                 "Object".to_string(),
             )),
@@ -229,22 +228,22 @@ fn build_index(json: &Value, path: &str, index: &mut BTreeMap<Id, JsonPointer>) 
 }
 
 /// A module containing helper functions to read data from a [serde_json::Value]
-/// into a `Result<T, JsonReaderError>` container. This module use _pointer_
+/// into a `Result<T, JsonError>` container. This module use _pointer_
 /// exclusively as they produce nice error message and goes well with the
 /// (convoluted) JSON format of the save games.
 pub mod reader {
-    use super::{JsonPointer, JsonReaderError};
+    use super::{JsonError, JsonPointer};
     use serde::de::DeserializeOwned;
     use serde_json::Value;
 
     // In doc: Clone the JSON value before deserialization
-    pub fn pointer_as<T>(json: &Value, pointer: &JsonPointer) -> Result<T, JsonReaderError>
+    pub fn pointer_as<T>(json: &Value, pointer: &JsonPointer) -> Result<T, JsonError>
     where
         T: DeserializeOwned,
     {
         let json = json
             .pointer(&pointer.0)
-            .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.clone()))?;
+            .ok_or_else(|| JsonError::InvalidPointer(pointer.clone()))?;
 
         Ok(serde_json::from_value(json.clone())?)
     }
@@ -254,14 +253,13 @@ pub mod reader {
     pub fn pointer_as_array<'a>(
         json: &'a Value,
         pointer: &'_ JsonPointer,
-    ) -> Result<&'a Vec<Value>, JsonReaderError> {
+    ) -> Result<&'a Vec<Value>, JsonError> {
         let json = json
             .pointer(&pointer.0)
-            .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.clone()))?;
+            .ok_or_else(|| JsonError::InvalidPointer(pointer.clone()))?;
 
-        json.as_array().ok_or_else(|| {
-            JsonReaderError::ArrayExpected(pointer.clone(), json_type(json).to_string())
-        })
+        json.as_array()
+            .ok_or_else(|| JsonError::ArrayExpected(pointer.clone(), json_type(json).to_string()))
     }
 
     // Very similar to [pointer_as] but simplify type inference a lot at callsite
@@ -269,14 +267,13 @@ pub mod reader {
     pub fn pointer_as_object<'a>(
         json: &'a Value,
         pointer: &'_ JsonPointer,
-    ) -> Result<&'a serde_json::map::Map<String, Value>, JsonReaderError> {
+    ) -> Result<&'a serde_json::map::Map<String, Value>, JsonError> {
         let json = json
             .pointer(&pointer.0)
-            .ok_or_else(|| JsonReaderError::InvalidPointer(pointer.clone()))?;
+            .ok_or_else(|| JsonError::InvalidPointer(pointer.clone()))?;
 
-        json.as_object().ok_or_else(|| {
-            JsonReaderError::ObjectExpected(pointer.clone(), json_type(json).to_string())
-        })
+        json.as_object()
+            .ok_or_else(|| JsonError::ObjectExpected(pointer.clone(), json_type(json).to_string()))
     }
 
     pub(super) fn json_type(value: &Value) -> &'static str {
