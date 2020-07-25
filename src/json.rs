@@ -94,9 +94,16 @@ impl IndexedJson {
         match patch {
             JsonPatch::Id { id, new_value } => {
                 // Clone the pointer to release the immutable reference to self
-                let pointer = self.index.get(&id).unwrap().clone(); // TODO Error management
+                let pointer = self
+                    .index
+                    .get(&id)
+                    .cloned()
+                    .ok_or_else(|| JsonError::UnknownId(id.clone()))?;
 
-                let value = self.json.pointer_mut(&pointer.0).unwrap();
+                let value = self
+                    .json
+                    .pointer_mut(&pointer.0)
+                    .ok_or_else(|| JsonError::InvalidPointer(pointer.clone()))?;
 
                 // TODO Check the $id field is present in the new value
                 *value = Value::Object(new_value.clone());
@@ -116,7 +123,11 @@ impl IndexedJson {
                 new_value,
             } => {
                 // Clone the pointer to release the immutable reference to self
-                let id_pointer = self.index.get(&id).unwrap().clone(); // TODO Error management
+                let id_pointer = self
+                    .index
+                    .get(&id)
+                    .cloned()
+                    .ok_or_else(|| JsonError::UnknownId(id.clone()))?;
                 let separator = if pointer.0.starts_with('/') { "" } else { "/" };
                 let real_pointer = format!("{}{}{}", id_pointer.0, separator, pointer.0);
 
