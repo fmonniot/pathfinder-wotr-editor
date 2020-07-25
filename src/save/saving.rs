@@ -31,7 +31,7 @@ impl SavingSaveGame {
         player_patches: Vec<JsonPatch>,
         party_patches: Vec<JsonPatch>,
         archive_path: PathBuf,
-    ) -> (SavingSaveGame, SubReceiver) {
+    ) -> (SavingSaveGame, SaveNotifications) {
         let (tx, rx) = async_channel::bounded(1);
 
         (
@@ -41,7 +41,7 @@ impl SavingSaveGame {
                 archive_path,
                 tx,
             },
-            SubReceiver(rx),
+            SaveNotifications(rx),
         )
     }
 
@@ -134,11 +134,10 @@ impl SavingSaveGame {
     }
 }
 
-// TODO Rename to SaveNotifications
 #[derive(Clone, Debug)]
-pub struct SubReceiver(Receiver<SavingStep>);
+pub struct SaveNotifications(Receiver<SavingStep>);
 
-impl<H, I> iced_native::subscription::Recipe<H, I> for SubReceiver
+impl<H, I> iced_native::subscription::Recipe<H, I> for SaveNotifications
 where
     H: std::hash::Hasher,
 {

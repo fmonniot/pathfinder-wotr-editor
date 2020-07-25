@@ -7,7 +7,7 @@ mod loading;
 mod saving;
 
 pub use loading::{LoadNotifications, LoadingDone, LoadingStep, SaveLoader};
-pub use saving::{SavingSaveGame, SavingStep, SubReceiver};
+pub use saving::{SaveNotifications, SavingSaveGame, SavingStep};
 // use save::{SaveLoader, SaveError, LoadingStep};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -110,7 +110,6 @@ async fn load_archive(path: &PathBuf) -> Result<InMemoryArchive, SaveError> {
     Ok(archive)
 }
 
-// TODO Check presente of player.json, party.json and header.json
 fn contains_required_file(archive: &InMemoryArchive) -> Result<(), SaveError> {
     let exists = |s: &str| {
         archive

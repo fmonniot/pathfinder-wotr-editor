@@ -2,7 +2,7 @@ use crate::character_view::{self, CharacterView};
 use crate::data::{Party, Player};
 use crate::json::Id;
 use crate::player_widget::{self, PlayerWidget};
-use crate::save::{SaveError, SavingSaveGame, SavingStep, SubReceiver};
+use crate::save::{SaveError, SaveNotifications, SavingSaveGame, SavingStep};
 use iced::{
     button, Align, Button, Column, Command, Container, Element, Font, HorizontalAlignment, Length,
     Row, Subscription, Text, VerticalAlignment,
@@ -29,7 +29,7 @@ pub struct EditorWidget {
     character_selector: CharacterSelector,
     active_character: CharacterView,
     player_widget: PlayerWidget,
-    saving: Option<SubReceiver>,
+    saving: Option<SaveNotifications>,
 }
 
 impl EditorWidget {
