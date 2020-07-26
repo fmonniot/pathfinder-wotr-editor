@@ -5,21 +5,20 @@ use crate::json::JsonPatch;
 use crate::labelled_input_number::LabelledInputNumber;
 use iced::{Align, Column, Command, Container, Element, Length, Row, Text};
 
-// TODO Invert Msg and Message, making Message the public type
 #[derive(Debug, Clone)]
-pub struct Msg(Message);
+pub struct Message(Msg);
 
 #[derive(Debug, Clone)]
-enum Message {
+enum Msg {
     StatisticModified {
         entity_id: Field,
         value: String, // TODO Add a way to find out which stat has been modified
     },
 }
 
-impl Message {
-    fn statistic_modified(field: Field, value: String) -> Msg {
-        Msg(Message::StatisticModified {
+impl Msg {
+    fn statistic_modified(field: Field, value: String) -> Message {
+        Message(Msg::StatisticModified {
             entity_id: field,
             value,
         })
@@ -250,52 +249,52 @@ impl CharacterView {
         }
     }
 
-    pub fn view(&mut self) -> Element<Msg> {
+    pub fn view(&mut self) -> Element<Message> {
         let main_stats = Row::new()
             .width(Length::Fill)
             .height(Length::from(50))
             .align_items(Align::Center)
             // Money is actually part of the player.json and not party.json.
             .push(Text::new("Money: 38747G").width(Length::FillPortion(1)))
-            .push(self.experience.view(Message::statistic_modified))
-            .push(self.mythic_experience.view(Message::statistic_modified));
+            .push(self.experience.view(Msg::statistic_modified))
+            .push(self.mythic_experience.view(Msg::statistic_modified));
 
         let abilities_stats = Column::new()
             .height(Length::Fill)
             .width(Length::FillPortion(1))
-            .push(self.strength.view(Message::statistic_modified))
-            .push(self.dexterity.view(Message::statistic_modified))
-            .push(self.constitution.view(Message::statistic_modified))
-            .push(self.intelligence.view(Message::statistic_modified))
-            .push(self.wisdom.view(Message::statistic_modified))
-            .push(self.charisma.view(Message::statistic_modified));
+            .push(self.strength.view(Msg::statistic_modified))
+            .push(self.dexterity.view(Msg::statistic_modified))
+            .push(self.constitution.view(Msg::statistic_modified))
+            .push(self.intelligence.view(Msg::statistic_modified))
+            .push(self.wisdom.view(Msg::statistic_modified))
+            .push(self.charisma.view(Msg::statistic_modified));
 
         let combat_stats = Column::new()
             .width(Length::FillPortion(1))
-            .push(self.attack_bonus.view(Message::statistic_modified))
-            .push(self.cmb.view(Message::statistic_modified))
-            .push(self.cmd.view(Message::statistic_modified))
-            .push(self.ac.view(Message::statistic_modified))
-            .push(self.bab.view(Message::statistic_modified))
-            .push(self.hp.view(Message::statistic_modified))
-            .push(self.initiative.view(Message::statistic_modified))
-            .push(self.save_fortitude.view(Message::statistic_modified))
-            .push(self.save_reflex.view(Message::statistic_modified))
-            .push(self.save_will.view(Message::statistic_modified));
+            .push(self.attack_bonus.view(Msg::statistic_modified))
+            .push(self.cmb.view(Msg::statistic_modified))
+            .push(self.cmd.view(Msg::statistic_modified))
+            .push(self.ac.view(Msg::statistic_modified))
+            .push(self.bab.view(Msg::statistic_modified))
+            .push(self.hp.view(Msg::statistic_modified))
+            .push(self.initiative.view(Msg::statistic_modified))
+            .push(self.save_fortitude.view(Msg::statistic_modified))
+            .push(self.save_reflex.view(Msg::statistic_modified))
+            .push(self.save_will.view(Msg::statistic_modified));
 
         let skills_stats = Column::new()
             .width(Length::FillPortion(1))
-            .push(self.athletics.view(Message::statistic_modified))
-            .push(self.mobility.view(Message::statistic_modified))
-            .push(self.thievery.view(Message::statistic_modified))
-            .push(self.stealth.view(Message::statistic_modified))
-            .push(self.arcana.view(Message::statistic_modified))
-            .push(self.world.view(Message::statistic_modified))
-            .push(self.nature.view(Message::statistic_modified))
-            .push(self.religion.view(Message::statistic_modified))
-            .push(self.perception.view(Message::statistic_modified))
-            .push(self.persuasion.view(Message::statistic_modified))
-            .push(self.magic_device.view(Message::statistic_modified));
+            .push(self.athletics.view(Msg::statistic_modified))
+            .push(self.mobility.view(Msg::statistic_modified))
+            .push(self.thievery.view(Msg::statistic_modified))
+            .push(self.stealth.view(Msg::statistic_modified))
+            .push(self.arcana.view(Msg::statistic_modified))
+            .push(self.world.view(Msg::statistic_modified))
+            .push(self.nature.view(Msg::statistic_modified))
+            .push(self.religion.view(Msg::statistic_modified))
+            .push(self.perception.view(Msg::statistic_modified))
+            .push(self.persuasion.view(Msg::statistic_modified))
+            .push(self.magic_device.view(Msg::statistic_modified));
 
         let statistics = Row::new()
             .spacing(25)
@@ -314,9 +313,9 @@ impl CharacterView {
         .into()
     }
 
-    pub fn update(&mut self, message: Msg) -> Command<Msg> {
+    pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Msg(Message::StatisticModified { entity_id, value }) => {
+            Message(Msg::StatisticModified { entity_id, value }) => {
                 if let Ok(n) = value.parse::<u64>() {
                     self.stat_view_for_field(&entity_id).value = n;
                 }

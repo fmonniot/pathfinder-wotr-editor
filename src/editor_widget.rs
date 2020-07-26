@@ -16,7 +16,7 @@ pub struct Message(Msg);
 enum Msg {
     ChangeActivePane(Pane),
     SwitchCharacter(Id),
-    CharacterMessage(character_view::Msg),
+    CharacterMessage(character_view::Message),
     Player(player_widget::Message),
     SavingChange(SavingStep),
     SavingResult(Box<Result<(), SaveError>>),
