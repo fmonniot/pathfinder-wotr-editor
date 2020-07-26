@@ -4,7 +4,7 @@ use iced::{
 };
 use std::path::PathBuf;
 
-mod character_view;
+mod character_widget;
 mod data;
 mod dialog;
 mod editor_widget;

@@ -1,5 +1,3 @@
-// TODO Rename this module to character_widget (and its main type to CharacterWidget)
-
 use crate::data::Character;
 use crate::json::JsonPatch;
 use crate::labelled_input_number::LabelledInputNumber;
@@ -177,7 +175,7 @@ impl Field {
   - "Speed",
   - "TemporaryHitPoints",
 */
-pub struct CharacterView {
+pub struct CharacterWidget {
     // Abilities
     strength: LabelledInputNumber<Field>,
     dexterity: LabelledInputNumber<Field>,
@@ -214,9 +212,9 @@ pub struct CharacterView {
     mythic_experience: LabelledInputNumber<Field>,
 }
 
-impl CharacterView {
-    pub fn new(character: &Character) -> CharacterView {
-        CharacterView {
+impl CharacterWidget {
+    pub fn new(character: &Character) -> CharacterWidget {
+        CharacterWidget {
             experience: Field::Experience.build_view(character),
             mythic_experience: Field::MythicExperience.build_view(character),
             strength: Field::Strength.build_view(character),

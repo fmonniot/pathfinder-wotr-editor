@@ -1,4 +1,4 @@
-use crate::character_view::{self, CharacterView};
+use crate::character_widget::{self, CharacterWidget};
 use crate::data::{Party, Player};
 use crate::json::Id;
 use crate::player_widget::{self, PlayerWidget};
@@ -16,7 +16,7 @@ pub struct Message(Msg);
 enum Msg {
     ChangeActivePane(Pane),
     SwitchCharacter(Id),
-    CharacterMessage(character_view::Message),
+    CharacterMessage(character_widget::Message),
     Player(player_widget::Message),
     SavingChange(SavingStep),
     SavingResult(Box<Result<(), SaveError>>),
@@ -27,7 +27,7 @@ pub struct EditorWidget {
     party: Party,
     pane_selector: PaneSelector,
     character_selector: CharacterSelector,
-    active_character: CharacterView,
+    active_character: CharacterWidget,
     player_widget: PlayerWidget,
     saving: Option<SaveNotifications>,
 }
@@ -35,7 +35,7 @@ pub struct EditorWidget {
 impl EditorWidget {
     pub fn new(archive_path: PathBuf, party: Party, player: Player) -> EditorWidget {
         let character_selector = CharacterSelector::new(&party.characters);
-        let active_character = CharacterView::new(&party.characters.first().unwrap());
+        let active_character = CharacterWidget::new(&party.characters.first().unwrap());
 
         EditorWidget {
             archive_path,
@@ -75,7 +75,7 @@ impl EditorWidget {
                     .iter()
                     .find(|c| c.id == active_character_id)
                     .unwrap();
-                self.active_character = CharacterView::new(character);
+                self.active_character = CharacterWidget::new(character);
                 self.character_selector.active_character_id = active_character_id;
 
                 Command::none()
