@@ -22,17 +22,21 @@ pub struct LoadingDone {
 }
 
 impl LoadingStep {
-    pub fn completion_percentage(&self) -> u8 {
+    pub fn step_number(&self) -> f32 {
         match self {
-            LoadingStep::Initialized => 0,
-            LoadingStep::ReadingFile => 33,
-            LoadingStep::ReadingParty => 50,
-            LoadingStep::ReadingPlayer => 67,
-            LoadingStep::ReadingHeader => 84,
+            LoadingStep::Initialized => 0.0,
+            LoadingStep::ReadingFile => 1.0,
+            LoadingStep::ReadingParty => 2.0,
+            LoadingStep::ReadingPlayer => 3.0,
+            LoadingStep::ReadingHeader => 5.0,
         }
     }
 
-    pub fn next_description(&self) -> String {
+    pub fn total_steps() -> f32 {
+        4.0
+    }
+
+    pub fn description(&self) -> String {
         match self {
             LoadingStep::Initialized => "Initialized".to_string(),
             LoadingStep::ReadingFile => "Reading file from disk".to_string(),

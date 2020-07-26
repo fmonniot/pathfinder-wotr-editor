@@ -1,6 +1,6 @@
 use iced::{
-    button, Align, Application, Button, Column, Command, Container, Element, Length, Settings,
-    Subscription, Text,
+    button, Align, Application, Button, Column, Command, Container, Element, Length, ProgressBar,
+    Settings, Subscription, Text,
 };
 use std::path::PathBuf;
 
@@ -30,7 +30,6 @@ struct LoadingState {
     file_path: PathBuf,
     current_step: LoadingStep,
     failed: Option<SaveError>,
-    // TODO Add progress bar
 }
 
 enum Main {
@@ -170,17 +169,18 @@ impl Application for Main {
                 layout.into()
             }
             Main::Loading(state) => {
+                // TODO Some layout is needed for the loading phase (and probably the errored one too)
                 let layout = match &state.failed {
                     Some(error) => Column::new()
                         .push(Text::new("Loading failed"))
                         .push(Text::new(format!("{:?}", error))),
                     None => Column::new()
                         .push(Text::new(format!("Loading {:?}", state.file_path)))
-                        .push(Text::new(format!(
-                            "Completion: {}/100",
-                            state.current_step.completion_percentage()
-                        )))
-                        .push(Text::new(state.current_step.next_description())),
+                        .push(ProgressBar::new(
+                            0.0..=LoadingStep::total_steps(),
+                            state.current_step.step_number(),
+                        ))
+                        .push(Text::new(state.current_step.description())),
                 };
 
                 Container::new(layout).into()
