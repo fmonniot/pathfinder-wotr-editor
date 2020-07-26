@@ -8,10 +8,7 @@ pub struct Message(Msg);
 
 #[derive(Debug, Clone)]
 enum Msg {
-    StatisticModified {
-        entity_id: Field,
-        value: String, // TODO Add a way to find out which stat has been modified
-    },
+    StatisticModified { entity_id: Field, value: String },
 }
 
 impl Msg {
