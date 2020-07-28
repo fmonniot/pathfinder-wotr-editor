@@ -110,6 +110,7 @@ async fn load_archive(path: &PathBuf) -> Result<InMemoryArchive, SaveError> {
     Ok(archive)
 }
 
+// TODO Maybe inline ?
 fn contains_required_file(archive: &InMemoryArchive) -> Result<(), SaveError> {
     let exists = |s: &str| {
         archive

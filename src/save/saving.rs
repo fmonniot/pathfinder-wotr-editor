@@ -1,4 +1,5 @@
 use super::SaveError;
+use crate::data::Header;
 use crate::json::JsonPatch;
 use async_channel::{Receiver, Sender};
 use std::hash::Hash;
@@ -58,6 +59,8 @@ impl SavingSaveGame {
 
         self.tx.send(SavingStep::ExtractingHeader).await?;
         let (header, mut header_index) = super::extract_header(&mut archive).await?;
+        let (new_save_name, new_file_path) =
+            find_appropriate_save_name(&self.archive_path, &header).await?;
 
         self.tx.send(SavingStep::ApplyingPatches).await?;
         for patch in &self.player_patches {
@@ -67,10 +70,7 @@ impl SavingSaveGame {
             party_index.patch(patch).unwrap();
         }
         header_index
-            .patch(&JsonPatch::string(
-                "/Name".into(),
-                format!("{} Edited", header.name),
-            ))
+            .patch(&JsonPatch::string("/Name".into(), new_save_name))
             .unwrap();
 
         self.tx.send(SavingStep::SerializingJson).await?;
@@ -123,10 +123,7 @@ impl SavingSaveGame {
         zip.finish().unwrap();
         drop(zip); // Release the borrow on the underlying buffer
 
-        // TODO Will it work alright when the file already exist ?
-        // Should we prompt for confirmation ?
         self.tx.send(SavingStep::WritingToDisk).await?;
-        let new_file_path = copy_file_name(&self.archive_path);
         tokio::fs::write(new_file_path, write_buffer).await.unwrap();
 
         // done, finally :)
@@ -155,30 +152,94 @@ where
     }
 }
 
-fn copy_file_name(original: &PathBuf) -> PathBuf {
-    // We hardcode the file extension because it's more likely than not
-    // it won't be anything else. We could use `.extension()` if it turns
-    // out this assertion is wrong.
-    let new_file_name = original
+async fn find_appropriate_save_name(
+    archive_path: &PathBuf,
+    header: &Header,
+) -> Result<(String, PathBuf), SaveError> {
+    // Let's iterate on copy number starting at one
+    // 1 is a special case where we don't include the number
+    // (i)   is define file name
+    // (ii)  check if file exists
+    //        if exists -> go to next number
+    //        if not -> next step
+    // (iii) Return not existing path and associated save game name
+    let base_file_name = archive_path
         .file_stem()
-        .map(|name| format!("{} - Copy.zks", name.to_string_lossy()))
-        .unwrap_or_else(|| "Unknown Save Name.zks".to_string());
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "Unknown Save Name".to_string());
+    let mut iteration = 1;
 
-    original.with_file_name(new_file_name)
+    while iteration < 10 {
+        // define path
+        let file_name = if iteration == 1 {
+            format!("{}__Copy.zks", base_file_name)
+        } else {
+            format!("{}__Copy{}.zks", base_file_name, iteration)
+        };
+        let path = archive_path.with_file_name(file_name);
+
+        if tokio::fs::metadata(&path).await.is_ok() {
+            // file exists, try next one
+            iteration += 1;
+            continue;
+        } else {
+            // file don't exist, let's use it
+
+            let save_name = if iteration == 1 {
+                format!("{} - Edited", header.name)
+            } else {
+                format!("{} - Edited {}", header.name, iteration)
+            };
+
+            return Ok((save_name, path));
+        }
+    }
+
+    Err(SaveError::IoError(
+        "Can't find a good file name in 10 iterations".to_string(),
+    ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::File;
+    use tempdir::TempDir;
 
-    #[test]
-    fn copy_file_name_example() {
-        let path = "/tmp/Save Game.zks".into();
-        let actual = copy_file_name(&path);
-        let expected: PathBuf = "/tmp/Save Game - Copy.zks".into();
+    #[tokio::test]
+    async fn find_save_name_no_file() {
+        let tmp_dir = TempDir::new("find_save_name_no_files").unwrap();
+        let file_path = tmp_dir.path().join("Save Game.zks");
+        let header = Header {
+            name: "Save Name".to_string(),
+            compatibility_version: 1,
+        };
 
-        println!("{:?}: {:?}", path.extension(), path.file_name());
+        let (a, b) = find_appropriate_save_name(&file_path, &header)
+            .await
+            .unwrap();
 
-        assert_eq!(actual, expected);
+        assert_eq!(a, "Save Name - Edited".to_string());
+        assert_eq!(b, tmp_dir.path().join("Save Game__Copy.zks"));
+    }
+
+    #[tokio::test]
+    async fn find_save_name_one_file() {
+        let tmp_dir = TempDir::new("find_save_name_one_file").unwrap();
+        let file_path = tmp_dir.path().join("Save Game__Copy.zks");
+        let mut tmp_file = File::create(&file_path).unwrap();
+        writeln!(tmp_file, "content doesn't matter").unwrap();
+
+        let header = Header {
+            name: "Save Name".to_string(),
+            compatibility_version: 1,
+        };
+
+        let (a, b) = find_appropriate_save_name(&tmp_dir.path().join("Save Game.zks"), &header)
+            .await
+            .unwrap();
+
+        assert_eq!(a, "Save Name - Edited 2".to_string());
+        assert_eq!(b, tmp_dir.path().join("Save Game__Copy2.zks"));
     }
 }
