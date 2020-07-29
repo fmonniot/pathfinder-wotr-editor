@@ -105,13 +105,7 @@ async fn load_archive(path: &PathBuf) -> Result<InMemoryArchive, SaveError> {
     let reader = std::io::Cursor::new(buf);
     let archive = zip::ZipArchive::new(reader)?;
 
-    contains_required_file(&archive)?;
-
-    Ok(archive)
-}
-
-// TODO Maybe inline ?
-fn contains_required_file(archive: &InMemoryArchive) -> Result<(), SaveError> {
+    // verify archive contains required files ahead of time
     let exists = |s: &str| {
         archive
             .file_names()
@@ -123,5 +117,5 @@ fn contains_required_file(archive: &InMemoryArchive) -> Result<(), SaveError> {
     exists("party.json")?;
     exists("player.json")?;
 
-    Ok(())
+    Ok(archive)
 }
