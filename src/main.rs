@@ -169,13 +169,17 @@ impl Application for Main {
                 layout.into()
             }
             Main::Loading(state) => {
-                // TODO Some layout is needed for the loading phase (and probably the errored one too)
                 let layout = match &state.failed {
                     Some(error) => Column::new()
                         .push(Text::new("Loading failed"))
                         .push(Text::new(format!("{:?}", error))),
                     None => Column::new()
-                        .push(Text::new(format!("Loading {:?}", state.file_path)))
+                        .push(Text::new(format!(
+                            "Loading {:?}",
+                            state.file_path.file_name().expect(
+                                "File name must be present, otherwise we couldn't be loading it"
+                            )
+                        )))
                         .push(ProgressBar::new(
                             0.0..=LoadingStep::total_steps(),
                             state.current_step.step_number(),
@@ -183,7 +187,16 @@ impl Application for Main {
                         .push(Text::new(state.current_step.description())),
                 };
 
-                Container::new(layout).into()
+                let content = Container::new(layout.spacing(8).align_items(Align::Center))
+                    .max_width(640)
+                    .max_height(480);
+
+                Container::new(content)
+                    .center_x()
+                    .center_y()
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .into()
             }
             Main::Loaded(editor) => editor.view().map(MainMessage::EditorMessage),
         }
