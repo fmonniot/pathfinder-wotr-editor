@@ -57,12 +57,14 @@ impl Application for Main {
 
     fn new(_flags: ()) -> (Self, Command<Self::Message>) {
         // Normal running condition
-        /*
+        // /*
         let component = Main::Loader {
             open_button_state: button::State::new(),
-            open_failed: None
+            open_failed: None,
         };
-        */
+        let command = Command::none();
+        // */
+        /*
         let file_path: PathBuf = "samples/Manual_17____27_Gozran__IV__4710___11_43_08.zks".into();
         let (loader, notifications) = SaveLoader::new(file_path.clone());
 
@@ -73,11 +75,10 @@ impl Application for Main {
             current_step: LoadingStep::Initialized,
             failed: None,
         }));
+        let command = Command::perform(loader.load(), |r| MainMessage::LoadDone(Box::new(r)));
+        */
 
-        (
-            component,
-            Command::perform(loader.load(), |r| MainMessage::LoadDone(Box::new(r))),
-        )
+        (component, command)
     }
 
     fn title(&self) -> String {
@@ -152,12 +153,19 @@ impl Application for Main {
             } => {
                 let mut layout = Column::new()
                     .align_items(Align::Center)
+                    .spacing(8)
                     .push(
-                        Text::new("Pathfinder Editor - Wrath of the Righteous Edition")
-                            .width(Length::Fill),
+                        Text::new("Pathfinder Editor")
+                            .size(60)
+                            .font(crate::editor_widget::CALIGHRAPHIC_FONT),
                     )
                     .push(
-                        Button::new(open_button_state, Text::new("Load a save file"))
+                        Text::new("Wrath of the Righteous Edition")
+                            .size(45)
+                            .font(crate::editor_widget::CALIGHRAPHIC_FONT),
+                    )
+                    .push(
+                        Button::new(open_button_state, Text::new("Load a save game"))
                             .on_press(MainMessage::OpenFileDialog)
                             .padding(10),
                     );
@@ -166,7 +174,14 @@ impl Application for Main {
                     layout = layout.push(Text::new(format!("Loading file failed: {:?}", error)));
                 };
 
-                layout.into()
+                let content = Container::new(layout).max_width(640).max_height(480);
+
+                Container::new(content)
+                    .center_x()
+                    .center_y()
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .into()
             }
             Main::Loading(state) => {
                 let layout = match &state.failed {

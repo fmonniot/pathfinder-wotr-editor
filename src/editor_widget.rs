@@ -264,8 +264,9 @@ impl CharacterSelector {
     }
 }
 
+// TODO Moves to main ?
 // Fonts (might need to move to style.rs if I create that file)
-const CALIGHRAPHIC_FONT: Font = Font::External {
+pub const CALIGHRAPHIC_FONT: Font = Font::External {
     name: "Caligraphic",
     bytes: include_bytes!("../fonts/beckett/BECKETT.TTF"),
 };
