@@ -1,5 +1,5 @@
 use crate::data::Character;
-use crate::json::JsonPatch;
+use crate::json::{Id, JsonPatch};
 use crate::labelled_input_number::LabelledInputNumber;
 use iced::{Align, Column, Command, Container, Element, Length, Row, Text};
 
@@ -173,6 +173,8 @@ impl Field {
   - "TemporaryHitPoints",
 */
 pub struct CharacterWidget {
+    pub id: Id,
+
     // Abilities
     strength: LabelledInputNumber<Field>,
     dexterity: LabelledInputNumber<Field>,
@@ -212,6 +214,7 @@ pub struct CharacterWidget {
 impl CharacterWidget {
     pub fn new(character: &Character) -> CharacterWidget {
         CharacterWidget {
+            id: character.id.clone(),
             experience: Field::Experience.build_view(character),
             mythic_experience: Field::MythicExperience.build_view(character),
             strength: Field::Strength.build_view(character),

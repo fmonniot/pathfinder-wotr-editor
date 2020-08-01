@@ -24,10 +24,10 @@ enum Msg {
 
 pub struct EditorWidget {
     archive_path: PathBuf,
-    party: Party,
     pane_selector: PaneSelector,
     character_selector: CharacterSelector,
-    active_character: CharacterWidget,
+    active_character: Id,
+    characters: Vec<CharacterWidget>,
     player_widget: PlayerWidget,
     saving: Option<SaveNotifications>,
 }
@@ -35,14 +35,15 @@ pub struct EditorWidget {
 impl EditorWidget {
     pub fn new(archive_path: PathBuf, party: Party, player: Player) -> EditorWidget {
         let character_selector = CharacterSelector::new(&party.characters);
-        let active_character = CharacterWidget::new(&party.characters.first().unwrap());
+        let active_character = party.characters.first().unwrap().id.clone();
+        let characters = party.characters.iter().map(CharacterWidget::new).collect();
 
         EditorWidget {
             archive_path,
             pane_selector: PaneSelector::new(),
             character_selector,
-            party,
             active_character,
+            characters,
             player_widget: PlayerWidget::new(&player),
             saving: None,
         }
@@ -52,10 +53,9 @@ impl EditorWidget {
         log::debug!("Message received: {:?}", message);
         match message {
             Message(Msg::ChangeActivePane(Pane::Save)) => {
-                // TODO How does it work for multiple characters ? At the moment I'd say it doesn't work :(
                 let (saving, receiver) = SavingSaveGame::new(
                     self.player_widget.patches(),
-                    self.active_character.patches(),
+                    self.characters.iter().flat_map(|c| c.patches()).collect(),
                     self.archive_path.clone(),
                 );
                 self.saving = Some(receiver);
@@ -69,19 +69,13 @@ impl EditorWidget {
                 Command::none()
             }
             Message(Msg::SwitchCharacter(active_character_id)) => {
-                let character = self
-                    .party
-                    .characters
-                    .iter()
-                    .find(|c| c.id == active_character_id)
-                    .unwrap();
-                self.active_character = CharacterWidget::new(character);
+                self.active_character = active_character_id.clone();
                 self.character_selector.active_character_id = active_character_id;
 
                 Command::none()
             }
             Message(Msg::CharacterMessage(msg)) => self
-                .active_character
+                .active_character_mut()
                 .update(msg)
                 .map(|msg| Message(Msg::CharacterMessage(msg))),
             Message(Msg::Player(msg)) => self
@@ -99,17 +93,33 @@ impl EditorWidget {
         }
     }
 
+    fn active_character_mut(&mut self) -> &mut CharacterWidget {
+        let a = self.active_character.clone();
+
+        self.characters.iter_mut().find(|c| c.id == a).unwrap()
+    }
+
     pub fn view(&mut self) -> Element<Message> {
         match self.pane_selector.active {
-            Pane::Party => Row::new()
-                .push(self.pane_selector.view())
-                .push(self.character_selector.view())
-                .push(
-                    self.active_character
-                        .view()
-                        .map(|msg| Message(Msg::CharacterMessage(msg))),
-                )
-                .into(),
+            Pane::Party => {
+                let a = self.active_character.clone();
+
+                // we unfortunately cannot use `active_character_mut` here because
+                // if we do we would borrow self multiple time (for some reason)
+                let character = self
+                    .characters
+                    .iter_mut()
+                    .find(|c| c.id == a)
+                    .unwrap()
+                    .view()
+                    .map(|msg| Message(Msg::CharacterMessage(msg)));
+
+                Row::new()
+                    .push(self.pane_selector.view())
+                    .push(self.character_selector.view())
+                    .push(character)
+                    .into()
+            }
 
             Pane::Crusade => Row::new()
                 .push(self.pane_selector.view())
