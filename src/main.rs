@@ -22,7 +22,9 @@ pub fn main() {
     env_logger::init();
     log::debug!("Running with version {}", VERSION);
 
-    Main::run(Settings::default())
+    let argument: Option<PathBuf> = std::env::args().nth(1).map(|s| s.into());
+
+    Main::run(Settings::with_flags(argument))
 }
 
 struct LoadingState {
@@ -53,30 +55,32 @@ enum MainMessage {
 impl Application for Main {
     type Executor = iced::executor::Default;
     type Message = MainMessage;
-    type Flags = ();
+    type Flags = Option<PathBuf>;
 
-    fn new(_flags: ()) -> (Self, Command<Self::Message>) {
-        // Normal running condition
-        // /*
-        let component = Main::Loader {
-            open_button_state: button::State::new(),
-            open_failed: None,
+    fn new(save_path: Self::Flags) -> (Self, Command<Self::Message>) {
+        let (component, command) = match save_path {
+            None => (
+                Main::Loader {
+                    open_button_state: button::State::new(),
+                    open_failed: None,
+                },
+                Command::none(),
+            ),
+            Some(file_path) => {
+                let (loader, notifications) = SaveLoader::new(file_path.clone());
+
+                let component = Main::Loading(Box::new(LoadingState {
+                    notifications,
+                    file_path,
+                    current_step: LoadingStep::Initialized,
+                    failed: None,
+                }));
+                let command =
+                    Command::perform(loader.load(), |r| MainMessage::LoadDone(Box::new(r)));
+
+                (component, command)
+            }
         };
-        let command = Command::none();
-        // */
-        /*
-        let file_path: PathBuf = "samples/Manual_17____27_Gozran__IV__4710___11_43_08.zks".into();
-        let (loader, notifications) = SaveLoader::new(file_path.clone());
-
-        // Hack to speed up development, should probably be behind a flag (open via cli)
-        let component = Main::Loading(Box::new(LoadingState {
-            notifications,
-            file_path,
-            current_step: LoadingStep::Initialized,
-            failed: None,
-        }));
-        let command = Command::perform(loader.load(), |r| MainMessage::LoadDone(Box::new(r)));
-        */
 
         (component, command)
     }
