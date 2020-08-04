@@ -1,5 +1,5 @@
-use crate::editor_widget::style;
 use crate::json::{Id, JsonPatch, JsonPointer};
+use crate::styles;
 use iced::{text_input, Element, Length, Row, Text, TextInput};
 use std::fmt::Display;
 
@@ -41,7 +41,7 @@ impl<D: 'static + Clone + Display> LabelledInputNumber<D> {
                 make_message(discriminator, value)
             },
         )
-        .style(style::MainPane);
+        .style(styles::MainPane);
 
         Row::new()
             .width(Length::FillPortion(1))

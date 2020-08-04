@@ -307,7 +307,7 @@ impl CharacterWidget {
                 .push(main_stats)
                 .push(statistics),
         )
-        .style(crate::editor_widget::style::MainPane)
+        .style(crate::styles::MainPane)
         .into()
     }
 

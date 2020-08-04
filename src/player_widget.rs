@@ -1,7 +1,7 @@
 use crate::data::{KingdomResources, Player};
-use crate::editor_widget::style;
 use crate::json::JsonPatch;
 use crate::labelled_input_number::LabelledInputNumber;
+use crate::styles;
 use iced::{Column, Command, Container, Element, Length, Row, Text};
 use std::fmt::Display;
 
@@ -87,7 +87,7 @@ impl PlayerWidget {
         Container::new(layout)
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(style::MainPane)
+            .style(styles::MainPane)
             .into()
     }
 
@@ -183,7 +183,7 @@ impl KingdomResourcesWidget {
 
         Container::new(layout)
             .width(Length::Fill)
-            .style(style::MainPane)
+            .style(styles::MainPane)
             .into()
     }
 

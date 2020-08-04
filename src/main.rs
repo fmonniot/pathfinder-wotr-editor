@@ -12,9 +12,11 @@ mod json;
 mod labelled_input_number;
 mod player_widget;
 mod save;
+mod styles;
 
 use editor_widget::EditorWidget;
 use save::{LoadNotifications, LoadingDone, LoadingStep, SaveError, SaveLoader};
+use styles::CALIGHRAPHIC_FONT;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -161,12 +163,12 @@ impl Application for Main {
                     .push(
                         Text::new("Pathfinder Editor")
                             .size(60)
-                            .font(crate::editor_widget::CALIGHRAPHIC_FONT),
+                            .font(CALIGHRAPHIC_FONT),
                     )
                     .push(
                         Text::new("Wrath of the Righteous Edition")
                             .size(45)
-                            .font(crate::editor_widget::CALIGHRAPHIC_FONT),
+                            .font(CALIGHRAPHIC_FONT),
                     )
                     .push(
                         Button::new(open_button_state, Text::new("Load a save game"))
