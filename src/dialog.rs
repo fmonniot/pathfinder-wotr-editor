@@ -1,11 +1,22 @@
 use std::path::{Path, PathBuf};
 
-// TODO Add good format/description and use that in the UI instead of Debug
 #[derive(Debug, Clone)]
 pub enum OpenError {
     AsyncError(String),
     NoneSelected,
     NotExists(PathBuf),
+}
+
+impl std::fmt::Display for OpenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OpenError::AsyncError(err) => write!(f, "Unknown error: {}", err),
+            OpenError::NoneSelected => write!(f, "No save game selected"),
+            OpenError::NotExists(path) => {
+                write!(f, "The selected file does not exists ({})", path.display())
+            }
+        }
+    }
 }
 
 pub async fn open_file() -> Result<PathBuf, OpenError> {

@@ -175,7 +175,7 @@ impl Application for Main {
                     );
 
                 if let Some(error) = open_failed {
-                    layout = layout.push(Text::new(format!("Loading file failed: {:?}", error)));
+                    layout = layout.push(Text::new(format!("Loading file failed: {}", error)));
                 };
 
                 let content = Container::new(layout).max_width(640).max_height(480);
