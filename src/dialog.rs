@@ -41,14 +41,13 @@ pub async fn open_file() -> Result<PathBuf, OpenError> {
     }
 }
 
-// TODO Change the path to use Wrath instead of KingMaker
 mod paths {
     use std::path::PathBuf;
 
     /*
-    a) Windows: %systemdrive%\users\%username%\AppData\LocalLow\Owlcat Games\Pathfinder Kingmaker\Saved Games
-    b) macOS: ~/Library/Application Support/unity.Owlcat Games.Pathfinder Kingmaker/Saved Games/
-    c) Linux: ~/.config/unity3d/Owlcat Games/Pathfinder Kingmaker/Saved Games/
+    a) Windows: %systemdrive%\users\%username%\AppData\LocalLow\Owlcat Games\Pathfinder Wrath Of The Righteous\Saved Games
+    b) macOS: ~/Library/Application Support/unity.Owlcat Games.Pathfinder Wrath Of The Righteous/Saved Games/
+    c) Linux: ~/.config/unity3d/Owlcat Games/Pathfinder Wrath Of The Righteous/Saved Games/
     */
     pub fn default_save_game_dir() -> Option<PathBuf> {
         os::save_game()
@@ -62,7 +61,7 @@ mod paths {
             // It would be better to have directly access to a data_locallow_dir() function
             // Unfortunately the library doesn't offer it, so instead we do a path join
             dirs::data_local_dir()
-                .map(|h| h.join("..\\LocalLow\\Owlcat Games\\Pathfinder Kingmaker\\Saved Games"))
+                .map(|h| h.join("..\\LocalLow\\Owlcat Games\\Pathfinder Wrath Of The Righteous\\Saved Games"))
         }
     }
     #[cfg(target_os = "windows")]
@@ -73,7 +72,7 @@ mod paths {
         use std::path::PathBuf;
 
         pub fn save_game() -> Option<PathBuf> {
-            dirs::home_dir().map(|h| h.join("Library/Application Support/unity.Owlcat Games.Pathfinder Kingmaker/Saved Games/"))
+            dirs::home_dir().map(|h| h.join("Library/Application Support/unity.Owlcat Games.Pathfinder Wrath Of The Righteous/Saved Games/"))
         }
     }
     #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -85,7 +84,7 @@ mod paths {
 
         pub fn save_game() -> Option<PathBuf> {
             dirs::config_dir()
-                .map(|h| h.join("unity3d/Owlcat Games/Pathfinder Kingmaker/Saved Games/"))
+                .map(|h| h.join("unity3d/Owlcat Games/Pathfinder Wrath Of The Righteous/Saved Games/"))
         }
     }
     #[cfg(any(target_os = "linux"))]
