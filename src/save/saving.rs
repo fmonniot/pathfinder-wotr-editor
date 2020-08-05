@@ -63,19 +63,29 @@ impl SavingSaveGame {
 
         self.tx.send(SavingStep::ApplyingPatches).await?;
         for patch in &self.player_patches {
-            player_index.patch(patch).map_err(|err| SaveError::json_error("player.json", err))?;
+            player_index
+                .patch(patch)
+                .map_err(|err| SaveError::json_error("player.json", err))?;
         }
         for patch in &self.party_patches {
-            party_index.patch(patch).map_err(|err| SaveError::json_error("party.json", err))?;
+            party_index
+                .patch(patch)
+                .map_err(|err| SaveError::json_error("party.json", err))?;
         }
         header_index
             .patch(&JsonPatch::string("/Name".into(), new_save_name))
             .map_err(|err| SaveError::json_error("header.json", err))?;
 
         self.tx.send(SavingStep::SerializingJson).await?;
-        let player_bytes = player_index.bytes().expect("player's JSON couldn't be serialized");
-        let party_bytes = party_index.bytes().expect("party's JSON couldn't be serialized");
-        let header_bytes = header_index.bytes().expect("header's JSON couldn't be serialized");
+        let player_bytes = player_index
+            .bytes()
+            .expect("player's JSON couldn't be serialized");
+        let party_bytes = party_index
+            .bytes()
+            .expect("party's JSON couldn't be serialized");
+        let header_bytes = header_index
+            .bytes()
+            .expect("header's JSON couldn't be serialized");
 
         let not_modified_files: Vec<_> = archive
             .file_names()
@@ -89,7 +99,9 @@ impl SavingSaveGame {
 
         self.tx.send(SavingStep::WritingArchive).await?;
         for file in not_modified_files {
-            let mut original = archive.by_name(&file).expect("Archive contained file by not really oO");
+            let mut original = archive
+                .by_name(&file)
+                .expect("Archive contained file by not really oO");
             let options = zip::write::FileOptions::default()
                 .compression_method(original.compression())
                 .last_modified_time(original.last_modified());
@@ -98,25 +110,32 @@ impl SavingSaveGame {
                 None => options,
             };
 
-            zip.start_file(original.name(), options).expect("Starting file");
+            zip.start_file(original.name(), options)
+                .expect("Starting file");
             std::io::copy(&mut original, &mut zip).expect("Copying original file to new archive");
         }
 
         self.tx.send(SavingStep::WritingCustomFiles).await?;
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
-        zip.start_file("player.json", options).expect("Starting file player.json");
-        zip.write_all(&player_bytes).expect("Writing player_bytes to archive");
+        zip.start_file("player.json", options)
+            .expect("Starting file player.json");
+        zip.write_all(&player_bytes)
+            .expect("Writing player_bytes to archive");
 
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
-        zip.start_file("party.json", options).expect("Starting file party.json");
-        zip.write_all(&party_bytes).expect("Writing party_bytes to archive");
+        zip.start_file("party.json", options)
+            .expect("Starting file party.json");
+        zip.write_all(&party_bytes)
+            .expect("Writing party_bytes to archive");
 
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
-        zip.start_file("header.json", options).expect("Starting file header.json");
-        zip.write_all(&header_bytes).expect("Writing header_bytes to archive");
+        zip.start_file("header.json", options)
+            .expect("Starting file header.json");
+        zip.write_all(&header_bytes)
+            .expect("Writing header_bytes to archive");
 
         self.tx.send(SavingStep::FinishingArchive).await?;
         zip.finish().expect("Finishing zip archive");
