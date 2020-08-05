@@ -46,7 +46,6 @@ impl SavingSaveGame {
         )
     }
 
-    // TODO Inline remaining unwrap (or if expected, use .expect instead)
     pub async fn save(self) -> Result<(), SaveError> {
         self.tx.send(SavingStep::LoadingArchive).await?;
         let mut archive = super::load_archive(&self.archive_path).await?;
@@ -64,19 +63,19 @@ impl SavingSaveGame {
 
         self.tx.send(SavingStep::ApplyingPatches).await?;
         for patch in &self.player_patches {
-            player_index.patch(patch).unwrap();
+            player_index.patch(patch).map_err(|err| SaveError::json_error("player.json", err))?;
         }
         for patch in &self.party_patches {
-            party_index.patch(patch).unwrap();
+            party_index.patch(patch).map_err(|err| SaveError::json_error("party.json", err))?;
         }
         header_index
             .patch(&JsonPatch::string("/Name".into(), new_save_name))
-            .unwrap();
+            .map_err(|err| SaveError::json_error("header.json", err))?;
 
         self.tx.send(SavingStep::SerializingJson).await?;
-        let player_bytes = player_index.bytes().unwrap();
-        let party_bytes = party_index.bytes().unwrap();
-        let header_bytes = header_index.bytes().unwrap();
+        let player_bytes = player_index.bytes().expect("player's JSON couldn't be serialized");
+        let party_bytes = party_index.bytes().expect("party's JSON couldn't be serialized");
+        let header_bytes = header_index.bytes().expect("header's JSON couldn't be serialized");
 
         let not_modified_files: Vec<_> = archive
             .file_names()
@@ -90,7 +89,7 @@ impl SavingSaveGame {
 
         self.tx.send(SavingStep::WritingArchive).await?;
         for file in not_modified_files {
-            let mut original = archive.by_name(&file).unwrap();
+            let mut original = archive.by_name(&file).expect("Archive contained file by not really oO");
             let options = zip::write::FileOptions::default()
                 .compression_method(original.compression())
                 .last_modified_time(original.last_modified());
@@ -99,32 +98,32 @@ impl SavingSaveGame {
                 None => options,
             };
 
-            zip.start_file(original.name(), options).unwrap();
-            std::io::copy(&mut original, &mut zip).unwrap();
+            zip.start_file(original.name(), options).expect("Starting file");
+            std::io::copy(&mut original, &mut zip).expect("Copying original file to new archive");
         }
 
         self.tx.send(SavingStep::WritingCustomFiles).await?;
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
-        zip.start_file("player.json", options).unwrap();
-        zip.write_all(&player_bytes).unwrap();
+        zip.start_file("player.json", options).expect("Starting file player.json");
+        zip.write_all(&player_bytes).expect("Writing player_bytes to archive");
 
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
-        zip.start_file("party.json", options).unwrap();
-        zip.write_all(&party_bytes).unwrap();
+        zip.start_file("party.json", options).expect("Starting file party.json");
+        zip.write_all(&party_bytes).expect("Writing party_bytes to archive");
 
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
-        zip.start_file("header.json", options).unwrap();
-        zip.write_all(&header_bytes).unwrap();
+        zip.start_file("header.json", options).expect("Starting file header.json");
+        zip.write_all(&header_bytes).expect("Writing header_bytes to archive");
 
         self.tx.send(SavingStep::FinishingArchive).await?;
-        zip.finish().unwrap();
+        zip.finish().expect("Finishing zip archive");
         drop(zip); // Release the borrow on the underlying buffer
 
         self.tx.send(SavingStep::WritingToDisk).await?;
-        tokio::fs::write(new_file_path, write_buffer).await.unwrap();
+        tokio::fs::write(new_file_path, write_buffer).await?;
 
         // done, finally :)
         Ok(())
