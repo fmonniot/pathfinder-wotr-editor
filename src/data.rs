@@ -54,8 +54,9 @@ impl Character {
             "096fc4a96d675bb45a0396bcaa7aa993" => Some("Daeran"),
             "8a6986e17799d7d4b90f0c158b31c5b9" => Some("Smilodon"), // Or pet in general ?
             "1cbbbb892f93c3d439f8417ad7cbb6aa" => Some("Sosiel"),
-            "f72bb7c48bb3e45458f866045448fb58" => None, // Unknown at the moment, let me progress in game. maybe.
-            _ => None,
+            "f72bb7c48bb3e45458f866045448fb58" => None, // Unknown at the moment, let me progress in game. The Queen maybe ?
+            "0d37024170b172346b3769df92a971f5" => Some("Regill"),
+            n => { println!("{}", n); None},
         };
 
         opt.map(str::to_string)
