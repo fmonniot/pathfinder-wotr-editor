@@ -1,6 +1,6 @@
 {
     "$id": "1",
-    "Name": "Crusader's Camp - 28 Gozran (IV) 4710 - 03:14:37",
+    "Name": "World - 28 Gozran (IV) 4710 - 03:14:41",
     "Description": null,
     "QuestWithSaveDescription": "cf9aed4093db6cc46ad3c7806d08b849",
     "PlayerCharacterName": "Kaylin",
@@ -10,8 +10,8 @@
     "IsAutoLevelupSave": false,
     "QuickSaveNumber": 0,
     "LoadedTimes": 0,
-    "Area": "7a25c101fe6f7aa46b192db13373d03b",
-    "AreaPart": "7a25c101fe6f7aa46b192db13373d03b",
+    "Area": "1fa85e9a735d3f146802b93499124723",
+    "AreaPart": "1fa85e9a735d3f146802b93499124723",
     "AreaNameOverride": null,
     "PartyPortraits": [
         {
@@ -45,9 +45,9 @@
             "m_Data": null
         }
     ],
-    "SystemSaveTime": "2020-08-04T19:20:26.6167449-07:00",
-    "GameSaveTime": "14.03:14:37.3050000",
-    "GameTotalTime": "10:19:35.9360000",
+    "SystemSaveTime": "2020-08-05T17:39:50.2034341-07:00",
+    "GameSaveTime": "14.03:14:41.7990000",
+    "GameTotalTime": "10:22:09.1460000",
     "Versions": [],
     "CompatibilityVersion": 1,
     "DLC": [],
