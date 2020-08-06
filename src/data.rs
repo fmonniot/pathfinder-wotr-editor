@@ -56,7 +56,7 @@ impl Character {
             "1cbbbb892f93c3d439f8417ad7cbb6aa" => Some("Sosiel"),
             "f72bb7c48bb3e45458f866045448fb58" => None, // Unknown at the moment, let me progress in game. The Queen maybe ?
             "0d37024170b172346b3769df92a971f5" => Some("Regill"),
-            n => None,
+            _ => None,
         };
 
         opt.map(str::to_string)
