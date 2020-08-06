@@ -71,8 +71,9 @@ mod paths {
         pub fn save_game() -> Option<PathBuf> {
             // It would be better to have directly access to a data_locallow_dir() function
             // Unfortunately the library doesn't offer it, so instead we do a path join
-            dirs::data_local_dir()
-                .map(|h| h.join("..\\LocalLow\\Owlcat Games\\Pathfinder Wrath Of The Righteous\\Saved Games"))
+            dirs::data_local_dir().map(|h| {
+                h.join("..\\LocalLow\\Owlcat Games\\Pathfinder Wrath Of The Righteous\\Saved Games")
+            })
         }
     }
     #[cfg(target_os = "windows")]
@@ -94,8 +95,9 @@ mod paths {
         use std::path::PathBuf;
 
         pub fn save_game() -> Option<PathBuf> {
-            dirs::config_dir()
-                .map(|h| h.join("unity3d/Owlcat Games/Pathfinder Wrath Of The Righteous/Saved Games/"))
+            dirs::config_dir().map(|h| {
+                h.join("unity3d/Owlcat Games/Pathfinder Wrath Of The Righteous/Saved Games/")
+            })
         }
     }
     #[cfg(any(target_os = "linux"))]
