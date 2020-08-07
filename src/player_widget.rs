@@ -107,11 +107,11 @@ impl PlayerWidget {
                         },
                         Field::ResourcesPerTurn(res) => match res {
                             KingdomResourcesField::Finances => {
-                                self.resources.finances.value = value
+                                self.resources_per_turn.finances.value = value
                             }
-                            KingdomResourcesField::Basics => self.resources.basics.value = value,
-                            KingdomResourcesField::Favors => self.resources.favors.value = value,
-                            KingdomResourcesField::Mana => self.resources.mana.value = value,
+                            KingdomResourcesField::Basics => self.resources_per_turn.basics.value = value,
+                            KingdomResourcesField::Favors => self.resources_per_turn.favors.value = value,
+                            KingdomResourcesField::Mana => self.resources_per_turn.mana.value = value,
                         },
                     }
                 }
