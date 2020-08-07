@@ -95,7 +95,7 @@ impl std::fmt::Display for Field {
 }
 
 impl Field {
-    fn build_view(self, character: &Character) -> LabelledInputNumber<Field> {
+    fn build_view(self, character: &Character) -> LabelledInputNumber<Field, u64> {
         let stat_key = match self {
             Field::Strength => Some("Strength"),
             Field::Dexterity => Some("Dexterity"),
@@ -176,39 +176,39 @@ pub struct CharacterWidget {
     pub id: Id,
 
     // Abilities
-    strength: LabelledInputNumber<Field>,
-    dexterity: LabelledInputNumber<Field>,
-    constitution: LabelledInputNumber<Field>,
-    intelligence: LabelledInputNumber<Field>,
-    wisdom: LabelledInputNumber<Field>,
-    charisma: LabelledInputNumber<Field>,
+    strength: LabelledInputNumber<Field, u64>,
+    dexterity: LabelledInputNumber<Field, u64>,
+    constitution: LabelledInputNumber<Field, u64>,
+    intelligence: LabelledInputNumber<Field, u64>,
+    wisdom: LabelledInputNumber<Field, u64>,
+    charisma: LabelledInputNumber<Field, u64>,
     // Combat stats
-    attack_bonus: LabelledInputNumber<Field>,
-    cmb: LabelledInputNumber<Field>,
-    cmd: LabelledInputNumber<Field>,
-    ac: LabelledInputNumber<Field>,
-    bab: LabelledInputNumber<Field>,
-    hp: LabelledInputNumber<Field>,
-    initiative: LabelledInputNumber<Field>,
+    attack_bonus: LabelledInputNumber<Field, u64>,
+    cmb: LabelledInputNumber<Field, u64>,
+    cmd: LabelledInputNumber<Field, u64>,
+    ac: LabelledInputNumber<Field, u64>,
+    bab: LabelledInputNumber<Field, u64>,
+    hp: LabelledInputNumber<Field, u64>,
+    initiative: LabelledInputNumber<Field, u64>,
     // Saves
-    save_fortitude: LabelledInputNumber<Field>,
-    save_reflex: LabelledInputNumber<Field>,
-    save_will: LabelledInputNumber<Field>,
+    save_fortitude: LabelledInputNumber<Field, u64>,
+    save_reflex: LabelledInputNumber<Field, u64>,
+    save_will: LabelledInputNumber<Field, u64>,
     // Skills
-    athletics: LabelledInputNumber<Field>,
-    mobility: LabelledInputNumber<Field>,
-    thievery: LabelledInputNumber<Field>,
-    stealth: LabelledInputNumber<Field>,
-    arcana: LabelledInputNumber<Field>,
-    world: LabelledInputNumber<Field>,
-    nature: LabelledInputNumber<Field>,
-    religion: LabelledInputNumber<Field>,
-    perception: LabelledInputNumber<Field>,
-    persuasion: LabelledInputNumber<Field>,
-    magic_device: LabelledInputNumber<Field>,
+    athletics: LabelledInputNumber<Field, u64>,
+    mobility: LabelledInputNumber<Field, u64>,
+    thievery: LabelledInputNumber<Field, u64>,
+    stealth: LabelledInputNumber<Field, u64>,
+    arcana: LabelledInputNumber<Field, u64>,
+    world: LabelledInputNumber<Field, u64>,
+    nature: LabelledInputNumber<Field, u64>,
+    religion: LabelledInputNumber<Field, u64>,
+    perception: LabelledInputNumber<Field, u64>,
+    persuasion: LabelledInputNumber<Field, u64>,
+    magic_device: LabelledInputNumber<Field, u64>,
     // Money & Experience should also goes here
-    experience: LabelledInputNumber<Field>,
-    mythic_experience: LabelledInputNumber<Field>,
+    experience: LabelledInputNumber<Field, u64>,
+    mythic_experience: LabelledInputNumber<Field, u64>,
 }
 
 impl CharacterWidget {
@@ -358,7 +358,7 @@ impl CharacterWidget {
         patches
     }
 
-    fn stat_view_for_field(&mut self, field: &Field) -> &mut LabelledInputNumber<Field> {
+    fn stat_view_for_field(&mut self, field: &Field) -> &mut LabelledInputNumber<Field, u64> {
         match field {
             Field::Strength => &mut self.strength,
             Field::Dexterity => &mut self.dexterity,

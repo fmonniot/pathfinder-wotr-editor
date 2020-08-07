@@ -50,7 +50,7 @@ impl Display for KingdomResourcesField {
 }
 
 pub struct PlayerWidget {
-    money: LabelledInputNumber<Field>,
+    money: LabelledInputNumber<Field, u64>,
     resources: KingdomResourcesWidget,
     resources_per_turn: KingdomResourcesWidget,
 }
@@ -132,10 +132,10 @@ impl PlayerWidget {
 }
 
 struct KingdomResourcesWidget {
-    finances: LabelledInputNumber<KingdomResourcesField>,
-    basics: LabelledInputNumber<KingdomResourcesField>,
-    favors: LabelledInputNumber<KingdomResourcesField>,
-    mana: LabelledInputNumber<KingdomResourcesField>,
+    finances: LabelledInputNumber<KingdomResourcesField, u64>,
+    basics: LabelledInputNumber<KingdomResourcesField, u64>,
+    favors: LabelledInputNumber<KingdomResourcesField, u64>,
+    mana: LabelledInputNumber<KingdomResourcesField, u64>,
 }
 
 impl KingdomResourcesWidget {

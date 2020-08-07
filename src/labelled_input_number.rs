@@ -1,18 +1,24 @@
 use crate::json::{Id, JsonPatch, JsonPointer};
 use crate::styles;
 use iced::{text_input, Element, Length, Row, Text, TextInput};
+use serde::Serialize;
 use std::fmt::Display;
+use std::string::ToString;
 
-pub struct LabelledInputNumber<D> {
+pub struct LabelledInputNumber<D, V> {
     id: Id,
     ptr: JsonPointer,
     pub discriminator: D,
-    pub value: u64,
+    pub value: V,
     text_input: text_input::State,
 }
 
-impl<D: 'static + Clone + Display> LabelledInputNumber<D> {
-    pub fn new(discriminator: D, value: u64, id: Id, ptr: JsonPointer) -> LabelledInputNumber<D> {
+impl<D, V> LabelledInputNumber<D, V>
+where
+    D: 'static + Clone + Display,
+    V: Copy + ToString + Serialize,
+{
+    pub fn new(discriminator: D, value: V, id: Id, ptr: JsonPointer) -> LabelledInputNumber<D, V> {
         LabelledInputNumber {
             id,
             ptr,
