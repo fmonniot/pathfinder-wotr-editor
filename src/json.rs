@@ -32,6 +32,8 @@ pub enum JsonError {
     InvalidReference(JsonPointer, Id), // path and $ref value
     InvalidPointer(JsonPointer),
     UnknownId(Id),
+
+    MissingId(JsonPointer), // when there is no $id in the new value (path)
     Deserialization(serde_json::Error),
 }
 
@@ -105,7 +107,10 @@ impl IndexedJson {
                     .pointer_mut(&pointer.0)
                     .ok_or_else(|| JsonError::InvalidPointer(pointer.clone()))?;
 
-                // TODO Check the $id field is present in the new value
+                if !new_value.contains_key("$id") {
+                    return Err(JsonError::MissingId(pointer));
+                }
+
                 *value = Value::Object(new_value.clone());
 
                 Ok(())
