@@ -131,20 +131,35 @@ pub struct Player {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Army {
-    id: Id,
-    experience: u64,
-    movement_points: f64,
-    squads: Vec<Squad>,
+    pub id: Id,
+    pub experience: u64,
+    pub movement_points: f64,
+    pub squads: Vec<Squad>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Squad {
     #[serde(alias = "$id")]
-    id: Id,
+    pub id: Id,
     #[serde(alias = "Unit")]
-    unit: String,
+    pub unit: String,
     #[serde(alias = "Count")]
-    count: u64,
+    pub count: u64,
+}
+
+impl Squad {
+    // TODO Find ids<->name for infantry, archer, paladin and hell knights
+    pub fn id_to_name(s: &str) -> Option<String> {
+        let opt = match s {
+            "29952620f253b844f93976469062cafc" => Some("A"),
+            "ef431508f92899343b39d582bcb32271" => Some("B"),
+            "0141cff36038444438d1ba6dcc2aee65" => Some("C"),
+            "afd136430fad4ef4f98ab52f0038a601" => Some("D"),
+            _ => None,
+        };
+
+        opt.map(str::to_string)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
