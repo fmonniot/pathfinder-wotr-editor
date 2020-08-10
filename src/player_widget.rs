@@ -150,8 +150,7 @@ impl PlayerWidget {
         patches.push(self.money.change());
         patches.append(&mut self.resources.patches());
         patches.append(&mut self.resources_per_turn.patches());
-
-        // TODO armies patches
+        patches.append(&mut self.armies.iter().flat_map(|a| a.patches()).collect());
 
         patches
     }
@@ -319,7 +318,13 @@ impl ArmyWidget {
     fn update(&mut self, field: ArmyField, value: String) {
     }
 
-    // TODO fn patches()
+    fn patches(&self) -> Vec<JsonPatch> {
+        let mut patches = vec![self.experience.change(), self.movement_points.change()];
+
+        patches.append(&mut self.squads.iter().map(|s| s.change()).collect());
+
+        patches
+    }
 }
 
 struct ArmyWidgetContainerStyle;
