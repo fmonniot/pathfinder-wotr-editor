@@ -316,6 +316,27 @@ impl ArmyWidget {
     }
 
     fn update(&mut self, field: ArmyField, value: String) {
+        match field {
+            ArmyField::Experience => {
+                if let Ok(value) = value.parse::<u64>() {
+                    self.experience.value = value;
+                }
+            }
+            ArmyField::MovementPoints => {
+                if let Ok(value) = value.parse::<f64>() {
+                    self.movement_points.value = value;
+                }
+            }
+            ArmyField::Squad(squad_id) => {
+                for mut squad in &mut self.squads {
+                    if squad.discriminator == ArmyField::Squad(squad_id.clone()) {
+                        if let Ok(value) = value.parse::<u64>() {
+                            squad.value = value;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fn patches(&self) -> Vec<JsonPatch> {
