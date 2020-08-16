@@ -2,7 +2,7 @@ use crate::data::{Army, KingdomResources, Player, Squad};
 use crate::json::{Id, JsonPatch};
 use crate::labelled_input_number::LabelledInputNumber;
 use crate::styles;
-use iced::{Column, Command, Container, Element, Length, Row, Text};
+use iced::{Column, Command, Container, Element, Length, Row, Space, Text};
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
@@ -74,7 +74,8 @@ impl PlayerWidget {
         }
     }
 
-    // TODO We are missing recruits and armies panels
+    // TODO We are missing recruits panels
+    // TODO We might need a scrollable widget to account for many army blocks
     pub fn view(&mut self) -> Element<Message> {
         let resources = Row::with_children(vec![
             self.resources.view("Resources", Field::Resources),
@@ -82,7 +83,7 @@ impl PlayerWidget {
                 .view("Resources/turn", Field::ResourcesPerTurn),
         ]);
 
-        let armies = Row::with_children(self.armies.iter_mut().map(|a| a.view()).collect());
+        let armies = two_columns_layout(self.armies.iter_mut().map(|a| a.view()));
 
         // TODO Make a dedicated function for title (and separator) with nicer style
         let layout = Column::new()
@@ -154,6 +155,38 @@ impl PlayerWidget {
 
         patches
     }
+}
+
+/// Organize `children` elements in a column containing two elements
+/// per row. On the event that children is odd, the latest element will
+/// take half the space of the layout, not the entire width.
+// Should this be moved to a module for generic layouts ?
+fn two_columns_layout<'a, Msg: 'a, I>(children: I) -> Element<'a, Msg>
+where
+    I: Iterator<Item = Element<'a, Msg>>,
+{
+    // TODO Make some optimization in the layout used based on the iterator size
+    // e.g. if one/two elements, remove the outer Column
+    // let (lower_bound, upper_bound) = children.size_hint(); // how many elements we have to layout
+
+    let mut columns = Column::new();
+
+    let mut c = children;
+    loop {
+        let first = c.next();
+        let second = c.next();
+
+        match first {
+            None => break,
+            Some(el1) => {
+                let el2 =
+                    second.unwrap_or_else(|| Space::new(Length::Fill, Length::from(1)).into());
+                columns = columns.push(Row::with_children(vec![el1, el2]))
+            }
+        }
+    }
+
+    columns.into()
 }
 
 struct KingdomResourcesWidget {
@@ -289,7 +322,8 @@ impl ArmyWidget {
         let id_for_xp = self.id.clone();
         let id_for_mp = self.id.clone();
         let common = Row::with_children(vec![
-            // TODO Do we have the name of the army ?
+            // We currently don't have an army name, so we should do like the game and use their order of
+            // apparition to number them. And monitor the game if that changes with further releases.
             self.experience
                 .view(move |d, v| Message(Msg::FieldUpdate(Field::Army(id_for_xp.clone(), d), v))),
             self.movement_points
