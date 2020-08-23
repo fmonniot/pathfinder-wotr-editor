@@ -8,19 +8,6 @@ pub struct Party {
     pub characters: Vec<Character>,
 }
 
-/* TODO Aligment
-   Aligment is found in `/Descriptor/Alignment/m_History/<last>/Position`:
-
-       "Position": {
-            "x": -4.28543032E-08,
-            "y": 1.0
-        }
-
-    `x` is describing the lawful/chaotic axis and `y` the good/evil one.
-    Needs to find out when the neutral switch happens but it looks like that
-    follow the disc-shape layout of the game (See samples/pfkm_alignment_wheels
-    for a visual representation)
-*/
 #[derive(Debug, Clone, PartialEq)]
 pub struct Character {
     pub id: Id,
@@ -126,7 +113,6 @@ pub struct Player {
     pub recruits: RecruitsManager,
     pub resources: KingdomResources,
     pub resources_per_turn: KingdomResources,
-    // TODO modifiers (rankup, claim, etc…)
 }
 
 #[derive(Debug, Clone, PartialEq)]
