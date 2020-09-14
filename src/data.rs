@@ -134,13 +134,12 @@ pub struct Squad {
 }
 
 impl Squad {
-    // TODO Find ids<->name for infantry, archer, paladin and hell knights
     pub fn id_to_name(s: &str) -> Option<String> {
         let opt = match s {
-            "29952620f253b844f93976469062cafc" => Some("A"),
-            "ef431508f92899343b39d582bcb32271" => Some("B"),
-            "0141cff36038444438d1ba6dcc2aee65" => Some("C"),
-            "afd136430fad4ef4f98ab52f0038a601" => Some("D"),
+            "29952620f253b844f93976469062cafc" => Some("Infantry"),
+            "ef431508f92899343b39d582bcb32271" => Some("Archers"),
+            "0141cff36038444438d1ba6dcc2aee65" => Some("Paladins"),
+            "afd136430fad4ef4f98ab52f0038a601" => Some("Hellknights"),
             _ => None,
         };
 
