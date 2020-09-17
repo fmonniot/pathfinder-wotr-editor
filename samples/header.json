@@ -1,55 +1,30 @@
 {
     "$id": "1",
-    "Name": "World - 28 Gozran (IV) 4710 - 03:14:41",
+    "Name": "Kenabres Square - 14 Gozran (IV) 4710 - 12:03:45",
     "Description": null,
-    "QuestWithSaveDescription": "cf9aed4093db6cc46ad3c7806d08b849",
+    "QuestWithSaveDescription": "55a534760bb7a204bbe0906ab68d7b72",
     "PlayerCharacterName": "Kaylin",
-    "GameId": "56b386e1-ccc1-499d-9cdf-04ac161b18ea",
+    "GameId": "29ae9cf4-e6c6-497c-bebd-530ee6a86088",
     "CampaignDLC": "None",
     "Type": "Manual",
     "IsAutoLevelupSave": false,
     "QuickSaveNumber": 0,
     "LoadedTimes": 0,
-    "Area": "1fa85e9a735d3f146802b93499124723",
-    "AreaPart": "1fa85e9a735d3f146802b93499124723",
+    "Area": "e31ab967a7accd543bdc420fda370e6d",
+    "AreaPart": "e31ab967a7accd543bdc420fda370e6d",
     "AreaNameOverride": null,
     "PartyPortraits": [
         {
             "$id": "2",
             "m_Blueprint": "4bb9e147a44d9be43ab4b16fa7d48383",
             "m_Data": null
-        },
-        {
-            "$id": "3",
-            "m_Blueprint": "b0e618847177061438388224ee11f0f9",
-            "m_Data": null
-        },
-        {
-            "$id": "4",
-            "m_Blueprint": "44954f73b0897d94b947142bb1244c87",
-            "m_Data": null
-        },
-        {
-            "$id": "5",
-            "m_Blueprint": "b9fea9f24838d43469948aa54088d600",
-            "m_Data": null
-        },
-        {
-            "$id": "6",
-            "m_Blueprint": "d9c58056a33b71a4e97fce958926b1c4",
-            "m_Data": null
-        },
-        {
-            "$id": "7",
-            "m_Blueprint": "0b3d046086ea25b4bad5d5306e6a7612",
-            "m_Data": null
         }
     ],
-    "SystemSaveTime": "2020-08-05T17:39:50.2034341-07:00",
-    "GameSaveTime": "14.03:14:41.7990000",
-    "GameTotalTime": "10:22:09.1460000",
+    "SystemSaveTime": "2020-09-17T15:38:45.7046402-07:00",
+    "GameSaveTime": "12:03:45.5930000",
+    "GameTotalTime": "00:07:03.0320000",
     "Versions": [],
     "CompatibilityVersion": 1,
     "DLC": [],
-    "EndlessDelveSeed": 1106909114
+    "EndlessDelveSeed": -1400207867
 }

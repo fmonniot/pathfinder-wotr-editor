@@ -53,8 +53,8 @@ impl Display for KingdomResourcesField {
 
 pub struct PlayerWidget {
     money: LabelledInputNumber<Field, u64>,
-    resources: KingdomResourcesWidget,
-    resources_per_turn: KingdomResourcesWidget,
+    resources: Option<KingdomResourcesWidget>,
+    resources_per_turn: Option<KingdomResourcesWidget>,
     armies: Vec<ArmyWidget>,
 }
 
@@ -68,8 +68,14 @@ impl PlayerWidget {
                 player.id.clone(),
                 "/Money".into(),
             ),
-            resources: KingdomResourcesWidget::new(&player.resources),
-            resources_per_turn: KingdomResourcesWidget::new(&player.resources_per_turn),
+            resources: player
+                .kingdom
+                .as_ref()
+                .map(|k| KingdomResourcesWidget::new(&k.resources)),
+            resources_per_turn: player
+                .kingdom
+                .as_ref()
+                .map(|k| KingdomResourcesWidget::new(&k.resources_per_turn)),
             armies,
         }
     }
@@ -77,11 +83,21 @@ impl PlayerWidget {
     // TODO We are missing recruits panels
     // TODO We might need a scrollable widget to account for many army blocks
     pub fn view(&mut self) -> Element<Message> {
-        let resources = Row::with_children(vec![
-            self.resources.view("Resources", Field::Resources),
-            self.resources_per_turn
-                .view("Resources/turn", Field::ResourcesPerTurn),
-        ]);
+        let mut resources = vec![];
+        match &mut self.resources {
+            Some(res) => {
+                let v = res.view("Resources", Field::Resources);
+                resources.push(v);
+            }
+            None => (),
+        };
+        match &mut self.resources_per_turn {
+            Some(res) => {
+                let v = res.view("Resources/turn", Field::ResourcesPerTurn);
+                resources.push(v);
+            }
+            None => (),
+        };
 
         let armies = two_columns_layout(self.armies.iter_mut().map(|a| a.view()));
 
@@ -92,7 +108,7 @@ impl PlayerWidget {
                     .view(|id, value| Message(Msg::FieldUpdate(id, value))),
             )
             .push(Text::new("Resources"))
-            .push(resources)
+            .push(Row::with_children(resources))
             .push(Text::new("Armies"))
             .push(armies);
 
@@ -103,34 +119,31 @@ impl PlayerWidget {
             .into()
     }
 
+    fn update_resource(
+        resources: &mut Option<KingdomResourcesWidget>,
+        field: &KingdomResourcesField,
+        value: u64,
+    ) {
+        resources.as_mut().map(|ref mut resources| match field {
+            KingdomResourcesField::Finances => resources.finances.value = value,
+            KingdomResourcesField::Basics => resources.basics.value = value,
+            KingdomResourcesField::Favors => resources.favors.value = value,
+            KingdomResourcesField::Mana => resources.mana.value = value,
+        });
+    }
+
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message(Msg::FieldUpdate(field, value)) => {
                 if let Ok(value) = value.parse::<u64>() {
                     match &field {
                         Field::Money => self.money.value = value,
-                        Field::Resources(res) => match res {
-                            KingdomResourcesField::Finances => {
-                                self.resources.finances.value = value
-                            }
-                            KingdomResourcesField::Basics => self.resources.basics.value = value,
-                            KingdomResourcesField::Favors => self.resources.favors.value = value,
-                            KingdomResourcesField::Mana => self.resources.mana.value = value,
-                        },
-                        Field::ResourcesPerTurn(res) => match res {
-                            KingdomResourcesField::Finances => {
-                                self.resources_per_turn.finances.value = value
-                            }
-                            KingdomResourcesField::Basics => {
-                                self.resources_per_turn.basics.value = value
-                            }
-                            KingdomResourcesField::Favors => {
-                                self.resources_per_turn.favors.value = value
-                            }
-                            KingdomResourcesField::Mana => {
-                                self.resources_per_turn.mana.value = value
-                            }
-                        },
+                        Field::Resources(res) => {
+                            PlayerWidget::update_resource(&mut self.resources, res, value)
+                        }
+                        Field::ResourcesPerTurn(res) => {
+                            PlayerWidget::update_resource(&mut self.resources_per_turn, res, value)
+                        }
                         _ => (),
                     }
                 };
@@ -149,8 +162,12 @@ impl PlayerWidget {
         let mut patches = vec![];
 
         patches.push(self.money.change());
-        patches.append(&mut self.resources.patches());
-        patches.append(&mut self.resources_per_turn.patches());
+        self.resources
+            .as_ref()
+            .map(|res| patches.append(&mut res.patches()));
+        self.resources_per_turn
+            .as_ref()
+            .map(|res| patches.append(&mut res.patches()));
         patches.append(&mut self.armies.iter().flat_map(|a| a.patches()).collect());
 
         patches

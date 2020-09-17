@@ -259,11 +259,16 @@ pub mod reader {
     where
         T: DeserializeOwned,
     {
+        Ok(serde_json::from_value(pointer_as_value(json, pointer)?)?)
+    }
+
+    // In doc: Clone the JSON value before deserialization
+    pub fn pointer_as_value(json: &Value, pointer: &JsonPointer) -> Result<Value, JsonError> {
         let json = json
             .pointer(&pointer.0)
             .ok_or_else(|| JsonError::InvalidPointer(pointer.clone()))?;
 
-        Ok(serde_json::from_value(json.clone())?)
+        Ok(json.clone())
     }
 
     // Very similar to [pointer_as] but simplify type inference a lot at callsite

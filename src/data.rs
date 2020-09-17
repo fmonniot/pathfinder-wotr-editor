@@ -1,3 +1,4 @@
+use log::debug;
 /// Data model for the save game
 use serde::{Deserialize, Serialize};
 
@@ -110,6 +111,11 @@ pub struct Player {
     pub id: Id,
     pub armies: Vec<Army>,
     pub money: u64,
+    pub kingdom: Option<Kingdom>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Kingdom {
     pub recruits: RecruitsManager,
     pub resources: KingdomResources,
     pub resources_per_turn: KingdomResources,
@@ -214,18 +220,31 @@ pub fn read_player(index: &IndexedJson) -> Result<Player, JsonError> {
         .collect::<Vec<_>>();
 
     let id = reader::pointer_as(&index.json, &"/$id".into())?; // Test that out
-    let resources = reader::pointer_as(&index.json, &"/Kingdom/Resources".into())?;
-    let resources_per_turn = reader::pointer_as(&index.json, &"/Kingdom/ResourcesPerTurn".into())?;
-    let recruits = reader::pointer_as(&index.json, &"/Kingdom/RecruitsManager".into())?;
     let money = reader::pointer_as(&index.json, &"/Money".into())?;
+
+    // Kingdom is actually optional
+    let kingdom = reader::pointer_as_value(&index.json, &"/Kingdom".into())
+        .ok()
+        .filter(|json| json.is_object())
+        .map::<Result<Kingdom, JsonError>, _>(|json| {
+            debug!("/Kingdom point to {:?}", json);
+            let resources = reader::pointer_as(&json, &"/Resources".into())?;
+            let resources_per_turn = reader::pointer_as(&json, &"/ResourcesPerTurn".into())?;
+            let recruits = reader::pointer_as(&json, &"/RecruitsManager".into())?;
+
+            Ok(Kingdom {
+                resources,
+                resources_per_turn,
+                recruits,
+            })
+        })
+        .transpose()?;
 
     Ok(Player {
         id,
         armies,
         money,
-        recruits,
-        resources,
-        resources_per_turn,
+        kingdom,
     })
 }
 
