@@ -124,12 +124,14 @@ impl PlayerWidget {
         field: &KingdomResourcesField,
         value: u64,
     ) {
-        resources.as_mut().map(|ref mut resources| match field {
-            KingdomResourcesField::Finances => resources.finances.value = value,
-            KingdomResourcesField::Basics => resources.basics.value = value,
-            KingdomResourcesField::Favors => resources.favors.value = value,
-            KingdomResourcesField::Mana => resources.mana.value = value,
-        });
+        if let Some(ref mut resources) = resources.as_mut() {
+            match field {
+                KingdomResourcesField::Finances => resources.finances.value = value,
+                KingdomResourcesField::Basics => resources.basics.value = value,
+                KingdomResourcesField::Favors => resources.favors.value = value,
+                KingdomResourcesField::Mana => resources.mana.value = value,
+            };
+        }
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -162,12 +164,12 @@ impl PlayerWidget {
         let mut patches = vec![];
 
         patches.push(self.money.change());
-        self.resources
-            .as_ref()
-            .map(|res| patches.append(&mut res.patches()));
-        self.resources_per_turn
-            .as_ref()
-            .map(|res| patches.append(&mut res.patches()));
+        if let Some(res) = self.resources.as_ref() {
+            patches.append(&mut res.patches());
+        };
+        if let Some(res) = self.resources_per_turn.as_ref() {
+            patches.append(&mut res.patches());
+        };
         patches.append(&mut self.armies.iter().flat_map(|a| a.patches()).collect());
 
         patches
