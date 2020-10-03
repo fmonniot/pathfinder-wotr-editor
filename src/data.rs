@@ -1,4 +1,4 @@
-use log::debug;
+use log::{debug, info};
 /// Data model for the save game
 use serde::{Deserialize, Serialize};
 
@@ -146,7 +146,10 @@ impl Squad {
             "ef431508f92899343b39d582bcb32271" => Some("Archers"),
             "0141cff36038444438d1ba6dcc2aee65" => Some("Paladins"),
             "afd136430fad4ef4f98ab52f0038a601" => Some("Hellknights"),
-            _ => None,
+            _ => {
+                info!("Unknown party member found: {}", s);
+                None
+            }
         };
 
         opt.map(str::to_string)
