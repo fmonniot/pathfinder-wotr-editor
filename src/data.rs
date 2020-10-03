@@ -44,7 +44,11 @@ impl Character {
             "1cbbbb892f93c3d439f8417ad7cbb6aa" => Some("Sosiel"),
             "f72bb7c48bb3e45458f866045448fb58" => None, // Unknown at the moment, let me progress in game. The Queen maybe ?
             "0d37024170b172346b3769df92a971f5" => Some("Regill"),
-            _ => None,
+            "ae766624c03058440a036de90a7f2009" => Some("Wenduag"),
+            _ => {
+                info!("Unknown party member found: {}", s);
+                None
+            }
         };
 
         opt.map(str::to_string)
@@ -147,7 +151,7 @@ impl Squad {
             "0141cff36038444438d1ba6dcc2aee65" => Some("Paladins"),
             "afd136430fad4ef4f98ab52f0038a601" => Some("Hellknights"),
             _ => {
-                info!("Unknown party member found: {}", s);
+                info!("Unknown squad type found: {}", s);
                 None
             }
         };
