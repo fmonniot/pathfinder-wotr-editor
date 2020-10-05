@@ -45,6 +45,7 @@ impl Character {
             "f72bb7c48bb3e45458f866045448fb58" => None, // Unknown at the moment, let me progress in game. The Queen maybe ?
             "0d37024170b172346b3769df92a971f5" => Some("Regill"),
             "ae766624c03058440a036de90a7f2009" => Some("Wenduag"),
+            "1b893f7cf2b150e4f8bc2b3c389ba71d" => Some("Nenio"),
             _ => {
                 info!("Unknown party member found: {}", s);
                 None
