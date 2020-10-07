@@ -1,7 +1,7 @@
 use crate::data::Character;
 use crate::json::{Id, JsonPatch};
 use crate::labelled_input_number::LabelledInputNumber;
-use iced::{Align, Column, Command, Container, Element, Length, Row, Text};
+use iced::{Align, Column, Command, Container, Element, Length, Row};
 
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
@@ -53,7 +53,7 @@ enum Field {
     Perception,
     Persuasion,
     UseMagicDevice,
-    // Money & Experience should also goes here
+    // Experience points
     Experience,
     MythicExperience,
 }
@@ -206,7 +206,7 @@ pub struct CharacterWidget {
     perception: LabelledInputNumber<Field, u64>,
     persuasion: LabelledInputNumber<Field, u64>,
     magic_device: LabelledInputNumber<Field, u64>,
-    // Money & Experience should also goes here
+    // Experience points
     experience: LabelledInputNumber<Field, u64>,
     mythic_experience: LabelledInputNumber<Field, u64>,
 }
@@ -252,8 +252,6 @@ impl CharacterWidget {
             .width(Length::Fill)
             .height(Length::from(50))
             .align_items(Align::Center)
-            // Money is actually part of the player.json and not party.json.
-            .push(Text::new("Money: 38747G").width(Length::FillPortion(1)))
             .push(self.experience.view(Msg::statistic_modified))
             .push(self.mythic_experience.view(Msg::statistic_modified));
 
