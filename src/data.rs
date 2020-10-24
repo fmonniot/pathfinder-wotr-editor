@@ -108,10 +108,11 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonEr
     let mythic_experience =
         reader::pointer_as(&json, &"/Descriptor/Progression/MythicExperience".into())?;
 
-    // TODO Using first history element here, do we need the last one ?
-    // Or event /Descriptor/Alignment/m_Vector/
-    let alignment =
-        reader::pointer_as(&json, &"/Descriptor/Alignment/m_History/0/Position".into())?;
+    // We use the latest alignment value for display purpose, but we will likely have
+    // to find the latest alignment change if we want to be able to modify it.
+    // TODO Test out in game what happens if we modify m_Vector only, does the history
+    // behaves as a CRDT or is it only for display on the UI ?
+    let alignment = reader::pointer_as(&json, &"/Descriptor/Alignment/m_Vector".into())?;
 
     Ok(Character {
         id,

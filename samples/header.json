@@ -1,30 +1,45 @@
 {
     "$id": "1",
-    "Name": "Kenabres Square - 14 Gozran (IV) 4710 - 12:03:45",
-    "Description": null,
-    "QuestWithSaveDescription": "55a534760bb7a204bbe0906ab68d7b72",
-    "PlayerCharacterName": "Kaylin",
-    "GameId": "29ae9cf4-e6c6-497c-bebd-530ee6a86088",
-    "CampaignDLC": "None",
-    "Type": "Manual",
-    "IsAutoLevelupSave": false,
-    "QuickSaveNumber": 0,
-    "LoadedTimes": 0,
-    "Area": "e31ab967a7accd543bdc420fda370e6d",
-    "AreaPart": "e31ab967a7accd543bdc420fda370e6d",
+    "Area": "089e897983fef564d9e15b46ff679d7e",
     "AreaNameOverride": null,
+    "AreaPart": "089e897983fef564d9e15b46ff679d7e",
+    "CampaignDLC": "None",
+    "CompatibilityVersion": 1,
+    "DLC": [],
+    "Description": null,
+    "EndlessDelveSeed": -1400207867,
+    "GameId": "29ae9cf4-e6c6-497c-bebd-530ee6a86088",
+    "GameSaveTime": "2.07:10:32.8890000",
+    "GameTotalTime": "04:24:05.7280000",
+    "IsAutoLevelupSave": false,
+    "LoadedTimes": 1,
+    "Name": "Defender's Heart - 16 Gozran (IV) 4710 - 07:10:32",
     "PartyPortraits": [
         {
             "$id": "2",
             "m_Blueprint": "4bb9e147a44d9be43ab4b16fa7d48383",
             "m_Data": null
+        },
+        {
+            "$id": "3",
+            "m_Blueprint": "44954f73b0897d94b947142bb1244c87",
+            "m_Data": null
+        },
+        {
+            "$id": "4",
+            "m_Blueprint": "d227d31233aa2494fba89cb715afbb87",
+            "m_Data": null
+        },
+        {
+            "$id": "5",
+            "m_Blueprint": "b9fea9f24838d43469948aa54088d600",
+            "m_Data": null
         }
     ],
-    "SystemSaveTime": "2020-09-17T15:38:45.7046402-07:00",
-    "GameSaveTime": "12:03:45.5930000",
-    "GameTotalTime": "00:07:03.0320000",
-    "Versions": [],
-    "CompatibilityVersion": 1,
-    "DLC": [],
-    "EndlessDelveSeed": -1400207867
+    "PlayerCharacterName": "Kaylin",
+    "QuestWithSaveDescription": "d4e99f71a43a75c4dbe27396bf015121",
+    "QuickSaveNumber": 0,
+    "SystemSaveTime": "2020-10-03T19:02:27.0197726-07:00",
+    "Type": "Manual",
+    "Versions": []
 }

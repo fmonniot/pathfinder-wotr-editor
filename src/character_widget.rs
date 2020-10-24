@@ -1,7 +1,8 @@
-use crate::data::{Alignment, Character};
+use crate::data::Character;
 use crate::json::{Id, JsonPatch};
 use crate::labelled_input_number::LabelledInputNumber;
-use iced::{canvas, Align, Canvas, Column, Command, Container, Element, Length, Row};
+use crate::widgets::AlignmentWidget;
+use iced::{Align, Column, Command, Container, Element, Length, Row};
 
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
@@ -210,8 +211,7 @@ pub struct CharacterWidget {
     experience: LabelledInputNumber<Field, u64>,
     mythic_experience: LabelledInputNumber<Field, u64>,
     // Alignment
-    alignment: Alignment,
-    alignment_wheel: canvas::layer::Cache<Alignment>,
+    alignment: AlignmentWidget,
 }
 
 impl CharacterWidget {
@@ -247,8 +247,7 @@ impl CharacterWidget {
             perception: Field::Perception.build_view(character),
             persuasion: Field::Persuasion.build_view(character),
             magic_device: Field::UseMagicDevice.build_view(character),
-            alignment: character.alignment.clone(),
-            alignment_wheel: Default::default(),
+            alignment: AlignmentWidget::new(character.alignment.clone(), false),
         }
     }
 
@@ -301,10 +300,7 @@ impl CharacterWidget {
             .push(combat_stats)
             .push(skills_stats);
 
-        let alignment_wheel = Canvas::new()
-            .width(Length::Units(200))
-            .height(Length::Units(200))
-            .push(self.alignment_wheel.with(&self.alignment));
+        let alignment_wheel = self.alignment.view();
 
         Container::new(
             Column::new()

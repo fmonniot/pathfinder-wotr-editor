@@ -1,41 +1,84 @@
 use crate::data::Alignment;
-use iced::{canvas, Color};
+use iced::canvas::{self, layer::Cache, path::Builder, Drawable, Frame, Path};
+use iced::{Canvas, Element, Length, Point};
 use log::debug;
+
+pub struct AlignmentWidget {
+    // data
+    alignment: Alignment,
+    back: Background,
+    // view state
+    position: Cache<Alignment>,
+    background: Cache<Background>,
+}
+
+impl AlignmentWidget {
+    pub fn new(alignment: Alignment, debug: bool) -> AlignmentWidget {
+        AlignmentWidget {
+            alignment,
+            back: Background(debug),
+            position: Default::default(),
+            background: Default::default(),
+        }
+    }
+
+    pub fn view<'a, Msg>(&'a mut self) -> Element<'a, Msg>
+    where
+        Msg: 'static,
+    {
+        let canvas = Canvas::new()
+            .width(Length::Units(200))
+            .height(Length::Units(200))
+            .push(self.background.with(&self.back))
+            .push(self.position.with(&self.alignment));
+
+        iced::Container::new(canvas).into()
+    }
+}
+
+#[derive(Debug)]
+struct Background(bool);
 
 /// Represent a character alignment on the Alignment Wheel
 ///
 /// Note that this part of the iced API will change considerably when upgrading
 /// from 0.1 to 0.2. As such, I tried to keep most of the draw content Layer or Drawable
 /// agnostic and only relying on Path and Frame primitive.
-impl canvas::Drawable for Alignment {
+impl Drawable for Alignment {
     fn draw(&self, frame: &mut canvas::Frame) {
-        use canvas::path::Builder;
-        use canvas::Path;
-        use iced::Point;
+        // Translate the frame such as (0, 0) in in the middle of it
+        let (_, radius) = prep_frame(frame);
 
-        let center = frame.center();
-        let radius = frame.width().min(frame.height()) / 2.0;
+        let pin_point = Point::new(self.x * radius, self.y * radius);
 
-        let inner_radius = radius / 3.0;
-        let outer_radius = (radius * 2.0) / 3.0;
+        // TODO Find how to do this without over drawing
+        frame.fill(&Path::circle(pin_point, 9.0), colors::pin_outer_border());
+        frame.fill(&Path::circle(pin_point, 8.0), colors::pin_outer_filling());
+        frame.fill(&Path::circle(pin_point, 7.0), colors::pin_outer_border());
+        frame.fill(&Path::circle(pin_point, 6.0), colors::pin_inner());
+    }
+}
+
+/// Draw the alignment wheel itself (background)
+impl Drawable for Background {
+    fn draw(&self, frame: &mut canvas::Frame) {
+        // Prepare the frame to be used in the correct coordinates
+        let (inner_radius, outer_radius) = prep_frame(frame);
 
         // True neutral inner circle
-        let neutral = Path::circle(center, inner_radius);
-        frame.fill(&neutral, color_neutral());
+        let neutral = Path::circle(Point::new(0.0, 0.0), inner_radius);
+        frame.fill(&neutral, colors::neutral());
 
         // Individual sections angles
         let angles = build_wheel_angles();
 
         // Brush for the separations
         let thin_stroke = canvas::Stroke {
-            width: radius / 100.0,
-            color: color_border(),
+            width: 2.0,
+            color: colors::border(),
             line_cap: canvas::LineCap::Round,
             ..canvas::Stroke::default()
         };
-
-        // Translate the frame to have the middle of it be coordinates (0, 0)
-        frame.translate(iced::Vector::new(radius, radius));
 
         // Paint each alignment section
         let mut index = 0;
@@ -43,9 +86,9 @@ impl canvas::Drawable for Alignment {
             let end_angle = start_angle + 45.0;
 
             let color = match index {
-                0..=2 => color_evil(),
-                4..=6 => color_good(),
-                _ => color_neutral(),
+                0..=2 => colors::evil(),
+                4..=6 => colors::good(),
+                _ => colors::neutral(),
             };
             index += 1;
 
@@ -83,15 +126,29 @@ impl canvas::Drawable for Alignment {
             frame.fill(&path, color);
 
             // Debug mode, label cell with its index
-            // TODO add a debug flag
-            frame.with_save(|frame| {
-                let x = (p1.x + p3.x) / 2.0;
-                let y = (p4.y + p2.y) / 2.0;
-                frame.translate(iced::Vector::new(x, y));
-                frame.fill_text(format!("{}", index));
-            });
+            if self.0 {
+                frame.with_save(|frame| {
+                    let x = (p1.x + p3.x) / 2.0;
+                    let y = (p4.y + p2.y) / 2.0;
+                    frame.translate(iced::Vector::new(x, y));
+                    frame.fill_text(format!("{}", index));
+                });
+            }
         }
     }
+}
+
+/// Center the frame (use -1:1 based coordinates) and return useful radiuses
+fn prep_frame(frame: &mut Frame) -> (f32, f32) {
+    let radius = frame.width().min(frame.height()) / 2.0;
+
+    let inner_radius = radius / 3.0;
+    let outer_radius = (radius * 2.0) / 3.0;
+
+    // Translate the frame to have the middle of it be coordinates (0, 0)
+    frame.translate(iced::Vector::new(radius, radius));
+
+    (inner_radius, outer_radius)
 }
 
 fn build_wheel_angles() -> [f32; 8] {
@@ -105,14 +162,46 @@ fn build_wheel_angles() -> [f32; 8] {
     angles
 }
 
-// #7a8d9e
-fn color_good() -> Color { Color::from_rgb8(0x77, 0x8b, 0x9d) }
+/// Provide the colors used by the alignment widget
+///
+/// The wheel itself:
+/// - Good: `#7a8d9e`
+/// - Neutral: `#8c8c8c`
+/// - Evil: `#a37974`
+/// - Border: `#5e595a`
+///
+/// And the pin:
+/// - pin inner: #373335 (20px wide)
+/// - pin outer filling: #a0976f (2px wide)
+/// - pin outer border: #736a52 (1px wide)
+mod colors {
+    use iced::Color;
 
-// #8c8c8c
-fn color_neutral() -> Color { Color::from_rgb8(0x8c, 0x8c, 0x8c) }
+    pub(super) fn good() -> Color {
+        Color::from_rgb8(0x77, 0x8b, 0x9d)
+    }
 
-// #a37974
-fn color_evil() -> Color { Color::from_rgb8(0xa3, 0x79, 0x74) }
+    pub(super) fn neutral() -> Color {
+        Color::from_rgb8(0x8c, 0x8c, 0x8c)
+    }
 
-// #5e595a
-fn color_border() -> Color { Color::from_rgb8(0x5e, 0x59, 0x6a) }
+    pub(super) fn evil() -> Color {
+        Color::from_rgb8(0xa3, 0x79, 0x74)
+    }
+
+    pub(super) fn border() -> Color {
+        Color::from_rgb8(0x5e, 0x59, 0x6a)
+    }
+
+    pub(super) fn pin_inner() -> Color {
+        Color::from_rgb8(0x37, 0x33, 0x35)
+    }
+
+    pub(super) fn pin_outer_filling() -> Color {
+        Color::from_rgb8(0xa0, 0x97, 0x6f)
+    }
+
+    pub(super) fn pin_outer_border() -> Color {
+        Color::from_rgb8(0x73, 0x6a, 0x52)
+    }
+}
