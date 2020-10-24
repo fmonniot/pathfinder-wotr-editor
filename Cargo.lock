@@ -646,7 +646,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "lyon_path",
+ "lyon_path 0.14.0",
  "memmap",
  "servo-fontconfig",
  "walkdir",
@@ -1107,6 +1107,7 @@ dependencies = [
  "iced_native",
  "iced_style",
  "log",
+ "lyon",
  "raw-window-handle",
  "wgpu",
  "wgpu_glyph",
@@ -1274,6 +1275,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "lyon"
+version = "0.15.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed142d912ddc611081d50acd84ce1b8612da909aa4cf369642ba92cf51f09b40"
+dependencies = [
+ "lyon_algorithms",
+ "lyon_tessellation",
+]
+
+[[package]]
+name = "lyon_algorithms"
+version = "0.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef5d79947342462427efed6f49b1361d700c0f5dad97a1bac96a5f84d2d1abb1"
+dependencies = [
+ "lyon_path 0.15.2",
+ "sid",
+]
+
+[[package]]
 name = "lyon_geom"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1285,12 +1306,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "lyon_geom"
+version = "0.15.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9962a2ba81382716b87d7d358493cb71844c1f9165ddad763cd9f4d3f5474df2"
+dependencies = [
+ "arrayvec 0.5.1",
+ "euclid 0.20.14",
+ "num-traits",
+]
+
+[[package]]
 name = "lyon_path"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0bcb57ac24a5428539e2c7c0592766d5933c937d703f430990c669c00de96862"
 dependencies = [
- "lyon_geom",
+ "lyon_geom 0.14.1",
+]
+
+[[package]]
+name = "lyon_path"
+version = "0.15.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c81a044414965c051b7b4785770820d23146480a2d8573cd825f03a00a5b8dd8"
+dependencies = [
+ "lyon_geom 0.15.3",
+]
+
+[[package]]
+name = "lyon_tessellation"
+version = "0.15.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "71c45e7eb8cf9cba513aa72efd59894f861a91acabc9a100caeb0fe6e6315b71"
+dependencies = [
+ "arrayvec 0.5.1",
+ "lyon_path 0.15.2",
+ "sid",
 ]
 
 [[package]]
@@ -2078,6 +2130,15 @@ checksum = "5a9e7e0f2bfae24d8a5b5a66c5b257a83c7412304311512a0c054cd5e619da11"
 dependencies = [
  "lazy_static",
  "libc",
+]
+
+[[package]]
+name = "sid"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd5ac56c121948b4879bba9e519852c211bcdd8f014efff766441deff0b91bdb"
+dependencies = [
+ "num-traits",
 ]
 
 [[package]]

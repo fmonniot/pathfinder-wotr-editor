@@ -1,7 +1,7 @@
-use crate::data::Character;
+use crate::data::{Alignment, Character};
 use crate::json::{Id, JsonPatch};
 use crate::labelled_input_number::LabelledInputNumber;
-use iced::{Align, Column, Command, Container, Element, Length, Row};
+use iced::{canvas, Align, Canvas, Column, Command, Container, Element, Length, Row};
 
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
@@ -209,6 +209,9 @@ pub struct CharacterWidget {
     // Experience points
     experience: LabelledInputNumber<Field, u64>,
     mythic_experience: LabelledInputNumber<Field, u64>,
+    // Alignment
+    alignment: Alignment,
+    alignment_wheel: canvas::layer::Cache<Alignment>,
 }
 
 impl CharacterWidget {
@@ -244,19 +247,19 @@ impl CharacterWidget {
             perception: Field::Perception.build_view(character),
             persuasion: Field::Persuasion.build_view(character),
             magic_device: Field::UseMagicDevice.build_view(character),
+            alignment: character.alignment.clone(),
+            alignment_wheel: Default::default(),
         }
     }
 
     pub fn view(&mut self) -> Element<Message> {
         let main_stats = Row::new()
             .width(Length::Fill)
-            .height(Length::from(50))
             .align_items(Align::Center)
             .push(self.experience.view(Msg::statistic_modified))
             .push(self.mythic_experience.view(Msg::statistic_modified));
 
         let abilities_stats = Column::new()
-            .height(Length::Fill)
             .width(Length::FillPortion(1))
             .push(self.strength.view(Msg::statistic_modified))
             .push(self.dexterity.view(Msg::statistic_modified))
@@ -298,12 +301,20 @@ impl CharacterWidget {
             .push(combat_stats)
             .push(skills_stats);
 
+        let alignment_wheel = Canvas::new()
+            .width(Length::Units(200))
+            .height(Length::Units(200))
+            .push(self.alignment_wheel.with(&self.alignment));
+
         Container::new(
             Column::new()
                 .width(Length::Fill)
+                .height(Length::Fill)
                 .padding(10)
                 .push(main_stats)
-                .push(statistics),
+                .push(statistics)
+                .push(alignment_wheel)
+                .push(iced::widget::Space::new(Length::Fill, Length::Fill)),
         )
         .style(crate::styles::MainPane)
         .into()

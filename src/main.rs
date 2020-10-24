@@ -13,6 +13,7 @@ mod labelled_input_number;
 mod player_widget;
 mod save;
 mod styles;
+mod widgets;
 
 use editor_widget::EditorWidget;
 use save::{LoadNotifications, LoadingDone, LoadingStep, SaveError, SaveLoader};
@@ -24,9 +25,13 @@ pub fn main() {
     env_logger::init();
     log::debug!("Running with version {}", VERSION);
 
-    let argument: Option<PathBuf> = std::env::args().nth(1).map(|s| s.into());
+    let flags: Option<PathBuf> = std::env::args().nth(1).map(|s| s.into());
 
-    Main::run(Settings::with_flags(argument))
+    Main::run(Settings {
+        flags,
+        antialiasing: true,
+        ..Settings::default()
+    })
 }
 
 struct LoadingState {

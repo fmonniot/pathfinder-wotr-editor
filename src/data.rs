@@ -17,6 +17,7 @@ pub struct Character {
     pub experience: u64,
     pub mythic_experience: u64,
     pub statistics: Vec<Stat>,
+    pub alignment: Alignment,
 }
 
 impl Character {
@@ -66,6 +67,12 @@ pub struct Stat {
     pub base_value: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Alignment {
+    pub x: f32,
+    pub y: f32,
+}
+
 pub fn read_party(index: &IndexedJson) -> Result<Party, JsonError> {
     let characters = reader::pointer_as_array(&index.json, &"/m_EntityData".into())?
         .iter()
@@ -101,6 +108,11 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonEr
     let mythic_experience =
         reader::pointer_as(&json, &"/Descriptor/Progression/MythicExperience".into())?;
 
+    // TODO Using first history element here, do we need the last one ?
+    // Or event /Descriptor/Alignment/m_Vector/
+    let alignment =
+        reader::pointer_as(&json, &"/Descriptor/Alignment/m_History/0/Position".into())?;
+
     Ok(Character {
         id,
         name,
@@ -108,6 +120,7 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonEr
         experience,
         mythic_experience,
         statistics,
+        alignment,
     })
 }
 
