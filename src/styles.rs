@@ -149,6 +149,17 @@ const HOVERED: Color = Color::from_rgb(
     0xC4 as f32 / 255.0,
 );
 
+pub struct DebugPane;
+
+impl container::StyleSheet for DebugPane {
+    fn style(&self) -> container::Style {
+        container::Style {
+            background: Some(Background::Color(Color::from_rgb8(0xDA, 0x70, 0xD6))),
+            ..container::Style::default()
+        }
+    }
+}
+
 pub struct MainPane;
 
 impl container::StyleSheet for MainPane {
