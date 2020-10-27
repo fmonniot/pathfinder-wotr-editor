@@ -22,7 +22,7 @@ impl AlignmentWidget {
         }
     }
 
-    pub fn view<'a, Msg>(&'a mut self) -> Element<'a, Msg>
+    pub fn view<Msg>(&mut self) -> Element<Msg>
     where
         Msg: 'static,
     {
@@ -81,8 +81,7 @@ impl Drawable for Background {
         };
 
         // Paint each alignment section
-        let mut index = 0;
-        for start_angle in &angles {
+        for (index, start_angle) in angles.iter().enumerate() {
             let end_angle = start_angle + 45.0;
 
             let color = match index {
@@ -90,7 +89,6 @@ impl Drawable for Background {
                 4..=6 => colors::good(),
                 _ => colors::neutral(),
             };
-            index += 1;
 
             debug!("angle: start = {}°, end = {}°", start_angle, end_angle);
 
