@@ -1,6 +1,6 @@
+use super::LabelledInputNumber;
 use crate::data::{Army, KingdomResources, Player, Squad};
 use crate::json::{Id, JsonPatch};
-use crate::labelled_input_number::LabelledInputNumber;
 use crate::styles;
 use iced::{Column, Command, Container, Element, Length, Row, Space, Text};
 use std::fmt::Display;

@@ -1,9 +1,8 @@
-use crate::character_widget::{self, CharacterWidget};
 use crate::data::{Party, Player};
 use crate::json::Id;
-use crate::player_widget::{self, PlayerWidget};
 use crate::save::{SaveError, SaveNotifications, SavingSaveGame, SavingStep};
 use crate::styles::{self, BOOKLETTER_1911, CALIGHRAPHIC_FONT};
+use crate::widgets::{CharacterMessage, CharacterWidget, PlayerMessage, PlayerWidget};
 use iced::{
     button, Align, Button, Column, Command, Container, Element, HorizontalAlignment, Length, Row,
     Subscription, Text, VerticalAlignment,
@@ -17,8 +16,8 @@ pub struct Message(Msg);
 enum Msg {
     ChangeActivePane(Pane),
     SwitchCharacter(Id),
-    CharacterMessage(character_widget::Message),
-    Player(player_widget::Message),
+    CharacterMessage(CharacterMessage),
+    Player(PlayerMessage),
     SavingChange(SavingStep),
     SavingResult(Box<Result<(), SaveError>>),
 }

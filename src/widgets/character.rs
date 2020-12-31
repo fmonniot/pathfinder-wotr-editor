@@ -1,6 +1,6 @@
+use super::LabelledInputNumber;
 use crate::data::Character;
 use crate::json::{Id, JsonPatch};
-use crate::labelled_input_number::LabelledInputNumber;
 use crate::widgets::AlignmentWidget;
 use iced::{Align, Column, Command, Container, Element, Length, Row};
 

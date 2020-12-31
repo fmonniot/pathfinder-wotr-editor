@@ -4,20 +4,16 @@ use iced::{
 };
 use std::path::PathBuf;
 
-mod character_widget;
 mod data;
 mod dialog;
-mod editor_widget;
 mod json;
-mod labelled_input_number;
-mod player_widget;
 mod save;
 mod styles;
 mod widgets;
 
-use editor_widget::EditorWidget;
 use save::{LoadNotifications, LoadingDone, LoadingStep, SaveError, SaveLoader};
 use styles::CALIGHRAPHIC_FONT;
+use widgets::{EditorMessage, EditorWidget};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -56,7 +52,7 @@ enum MainMessage {
     FileChosen(Result<PathBuf, dialog::OpenError>),
     LoadProgressed(LoadingStep),
     LoadDone(Box<Result<LoadingDone, SaveError>>),
-    EditorMessage(editor_widget::Message),
+    EditorMessage(EditorMessage),
 }
 
 impl Application for Main {

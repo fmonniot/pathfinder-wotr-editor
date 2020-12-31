@@ -5,7 +5,7 @@ use serde::Serialize;
 use std::fmt::Display;
 use std::string::ToString;
 
-pub struct LabelledInputNumber<D, V> {
+pub(super) struct LabelledInputNumber<D, V> {
     id: Id,
     ptr: JsonPointer,
     pub discriminator: D,
