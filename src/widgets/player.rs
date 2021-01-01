@@ -409,7 +409,7 @@ impl container::StyleSheet for ArmyWidgetContainerStyle {
     fn style(&self) -> container::Style {
         container::Style {
             border_color: Color::WHITE,
-            border_width: 1,
+            border_width: 1.,
             ..container::Style::default()
         }
     }

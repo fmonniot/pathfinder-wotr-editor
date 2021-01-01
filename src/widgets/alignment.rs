@@ -1,138 +1,135 @@
 use crate::data::Alignment;
-use iced::canvas::{self, layer::Cache, path::Builder, Drawable, Frame, Path};
-use iced::{Canvas, Element, Length, Point};
+use iced::canvas::{self, path::Builder, Cache, Canvas, Cursor, Frame, Geometry, Path, Program};
+use iced::{Element, Length, Point, Rectangle};
 use log::debug;
 
 pub struct AlignmentWidget {
     // data
     alignment: Alignment,
-    back: Background,
     // view state
-    position: Cache<Alignment>,
-    background: Cache<Background>,
+    pin_cache: Cache,
+    background: Cache,
+    debug_mode: bool,
 }
 
+#[derive(Debug, Clone)]
+pub enum Message {}
+
 impl AlignmentWidget {
-    pub fn new(alignment: Alignment, debug: bool) -> AlignmentWidget {
+    pub fn new(alignment: Alignment, debug_mode: bool) -> AlignmentWidget {
         AlignmentWidget {
             alignment,
-            back: Background(debug),
-            position: Default::default(),
+            pin_cache: Default::default(),
             background: Default::default(),
+            debug_mode,
         }
     }
 
-    pub fn view<Msg>(&mut self) -> Element<Msg>
-    where
-        Msg: 'static,
-    {
-        let canvas = Canvas::new()
+    pub fn view(&mut self) -> Element<Message> {
+        let canvas = Canvas::new(self)
             .width(Length::Units(200))
-            .height(Length::Units(200))
-            .push(self.background.with(&self.back))
-            .push(self.position.with(&self.alignment));
+            .height(Length::Units(200));
 
         iced::Container::new(canvas).into()
     }
 }
 
-#[derive(Debug)]
-struct Background(bool);
+impl<'a> Program<Message> for AlignmentWidget {
+    fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
+        // Represent a character alignment on the Alignment Wheel
+        //
+        // Note that this part of the iced API will change considerably when upgrading
+        // from 0.1 to 0.2. As such, I tried to keep most of the draw content Layer or Drawable
+        // agnostic and only relying on Path and Frame primitive.
+        let alignment = self.pin_cache.draw(bounds.size(), |frame| {
+            // Translate the frame such as (0, 0) in in the middle of it
+            let (_, radius) = prep_frame(frame);
 
-/// Represent a character alignment on the Alignment Wheel
-///
-/// Note that this part of the iced API will change considerably when upgrading
-/// from 0.1 to 0.2. As such, I tried to keep most of the draw content Layer or Drawable
-/// agnostic and only relying on Path and Frame primitive.
-impl Drawable for Alignment {
-    fn draw(&self, frame: &mut canvas::Frame) {
-        // Translate the frame such as (0, 0) in in the middle of it
-        let (_, radius) = prep_frame(frame);
+            let pin_point = Point::new(self.alignment.x * radius, self.alignment.y * radius);
 
-        let pin_point = Point::new(self.x * radius, self.y * radius);
+            // TODO Find how to do this without over drawing
+            frame.fill(&Path::circle(pin_point, 9.0), colors::pin_outer_border());
+            frame.fill(&Path::circle(pin_point, 8.0), colors::pin_outer_filling());
+            frame.fill(&Path::circle(pin_point, 7.0), colors::pin_outer_border());
+            frame.fill(&Path::circle(pin_point, 6.0), colors::pin_inner());
+        });
 
-        // TODO Find how to do this without over drawing
-        frame.fill(&Path::circle(pin_point, 9.0), colors::pin_outer_border());
-        frame.fill(&Path::circle(pin_point, 8.0), colors::pin_outer_filling());
-        frame.fill(&Path::circle(pin_point, 7.0), colors::pin_outer_border());
-        frame.fill(&Path::circle(pin_point, 6.0), colors::pin_inner());
-    }
-}
+        // Draw the alignment wheel itself (background)
+        let background = self.background.draw(bounds.size(), |frame| {
+            // Prepare the frame to be used in the correct coordinates
+            let (inner_radius, outer_radius) = prep_frame(frame);
 
-/// Draw the alignment wheel itself (background)
-impl Drawable for Background {
-    fn draw(&self, frame: &mut canvas::Frame) {
-        // Prepare the frame to be used in the correct coordinates
-        let (inner_radius, outer_radius) = prep_frame(frame);
+            // True neutral inner circle
+            let neutral = Path::circle(Point::new(0.0, 0.0), inner_radius);
+            frame.fill(&neutral, colors::neutral());
 
-        // True neutral inner circle
-        let neutral = Path::circle(Point::new(0.0, 0.0), inner_radius);
-        frame.fill(&neutral, colors::neutral());
+            // Individual sections angles
+            let angles = build_wheel_angles();
 
-        // Individual sections angles
-        let angles = build_wheel_angles();
-
-        // Brush for the separations
-        let thin_stroke = canvas::Stroke {
-            width: 2.0,
-            color: colors::border(),
-            line_cap: canvas::LineCap::Round,
-            ..canvas::Stroke::default()
-        };
-
-        // Paint each alignment section
-        for (index, start_angle) in angles.iter().enumerate() {
-            let end_angle = start_angle + 45.0;
-
-            let color = match index {
-                0..=2 => colors::evil(),
-                4..=6 => colors::good(),
-                _ => colors::neutral(),
+            // Brush for the separations
+            let thin_stroke = canvas::Stroke {
+                width: 2.0,
+                color: colors::border(),
+                line_cap: canvas::LineCap::Round,
+                ..canvas::Stroke::default()
             };
 
-            debug!("angle: start = {}°, end = {}°", start_angle, end_angle);
+            // Paint each alignment section
+            for (index, start_angle) in angles.iter().enumerate() {
+                let end_angle = start_angle + 45.0;
 
-            let x_s = start_angle.to_radians().cos();
-            let y_s = start_angle.to_radians().sin();
-            let x_e = end_angle.to_radians().cos();
-            let y_e = end_angle.to_radians().sin();
+                let color = match index {
+                    0..=2 => colors::evil(),
+                    4..=6 => colors::good(),
+                    _ => colors::neutral(),
+                };
 
-            // TODO Needs an ASCII drawing to position the 4 points
-            // Especially useful for the path Builder below
-            let p1 = Point::new(x_s * inner_radius, y_s * inner_radius);
-            let p2 = Point::new(x_s * outer_radius, y_s * outer_radius);
-            let p3 = Point::new(x_e * outer_radius, y_e * outer_radius);
-            let p4 = Point::new(x_e * inner_radius, y_e * inner_radius);
+                debug!("angle: start = {}°, end = {}°", start_angle, end_angle);
 
-            debug!("points = [{:?},{:?},{:?},{:?}]", p1, p2, p3, p4);
+                let x_s = start_angle.to_radians().cos();
+                let y_s = start_angle.to_radians().sin();
+                let x_e = end_angle.to_radians().cos();
+                let y_e = end_angle.to_radians().sin();
 
-            // arc_to draw in clockwise direction only. We shuffle the starting
-            // points to limit the number of instruction and make sure the fill
-            // will cover all surface without overdraw.
-            let mut builder = Builder::new();
-            builder.move_to(p3);
-            builder.arc_to(p3, p2, outer_radius);
-            builder.move_to(p3);
-            builder.line_to(p4);
-            builder.arc_to(p4, p1, inner_radius);
-            builder.line_to(p2);
+                // TODO Needs an ASCII drawing to position the 4 points
+                // Especially useful for the path Builder below
+                let p1 = Point::new(x_s * inner_radius, y_s * inner_radius);
+                let p2 = Point::new(x_s * outer_radius, y_s * outer_radius);
+                let p3 = Point::new(x_e * outer_radius, y_e * outer_radius);
+                let p4 = Point::new(x_e * inner_radius, y_e * inner_radius);
 
-            let path = builder.build();
+                debug!("points = [{:?},{:?},{:?},{:?}]", p1, p2, p3, p4);
 
-            // Make the lines and fill with the alignment color
-            frame.stroke(&path, thin_stroke);
-            frame.fill(&path, color);
+                // arc_to draw in clockwise direction only. We shuffle the starting
+                // points to limit the number of instruction and make sure the fill
+                // will cover all surface without overdraw.
+                let mut builder = Builder::new();
+                builder.move_to(p3);
+                builder.arc_to(p3, p2, outer_radius);
+                builder.move_to(p3);
+                builder.line_to(p4);
+                builder.arc_to(p4, p1, inner_radius);
+                builder.line_to(p2);
 
-            // Debug mode, label cell with its index
-            if self.0 {
-                frame.with_save(|frame| {
-                    let x = (p1.x + p3.x) / 2.0;
-                    let y = (p4.y + p2.y) / 2.0;
-                    frame.translate(iced::Vector::new(x, y));
-                    frame.fill_text(format!("{}", index));
-                });
+                let path = builder.build();
+
+                // Make the lines and fill with the alignment color
+                frame.stroke(&path, thin_stroke);
+                frame.fill(&path, color);
+
+                // Debug mode, label cell with its index
+                if self.debug_mode {
+                    frame.with_save(|frame| {
+                        let x = (p1.x + p3.x) / 2.0;
+                        let y = (p4.y + p2.y) / 2.0;
+                        frame.translate(iced::Vector::new(x, y));
+                        frame.fill_text(format!("{}", index));
+                    });
+                }
             }
-        }
+        });
+
+        vec![background, alignment]
     }
 }
 

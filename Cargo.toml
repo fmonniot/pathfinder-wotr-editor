@@ -7,12 +7,12 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-iced = { version = "0.1", features = ["tokio", "canvas"] }
-iced_native = { version = "0.2", features = [] }
+iced = { version = "0.2", features = ["tokio", "canvas"] }
+iced_native = { version = "0.3", features = [] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 tinyfiledialogs = "3.3"
-tokio = { version = "0.2", features = ["blocking", "fs", "rt-threaded", "macros"] }
+tokio = { version = "0.3", features = ["fs", "macros"] }
 dirs = "3.0"
 async-trait = "0.1"
 futures = "0.3"

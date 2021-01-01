@@ -1,4 +1,4 @@
-use super::LabelledInputNumber;
+use super::{alignment, LabelledInputNumber};
 use crate::data::Character;
 use crate::json::{Id, JsonPatch};
 use crate::widgets::AlignmentWidget;
@@ -10,6 +10,7 @@ pub struct Message(Msg);
 #[derive(Debug, Clone)]
 enum Msg {
     StatisticModified { entity_id: Field, value: String },
+    AlignmentWheel(alignment::Message),
 }
 
 impl Msg {
@@ -309,7 +310,7 @@ impl CharacterWidget {
                 .padding(10)
                 .push(main_stats)
                 .push(statistics)
-                .push(alignment_wheel)
+                .push(alignment_wheel.map(|m| Message(Msg::AlignmentWheel(m))))
                 .push(iced::widget::Space::new(Length::Fill, Length::Fill)),
         )
         .style(crate::styles::MainPane)
@@ -322,6 +323,9 @@ impl CharacterWidget {
                 if let Ok(n) = value.parse::<u64>() {
                     self.stat_view_for_field(&entity_id).value = n;
                 }
+            }
+            Message(Msg::AlignmentWheel(_m)) => {
+                // TODO Will be used when integrating drag & drop for the alignment pin
             }
         };
         Command::none()

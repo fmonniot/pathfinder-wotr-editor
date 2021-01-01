@@ -39,7 +39,7 @@ pub enum PaneSelectorButton {
 impl PaneSelectorButton {
     fn inactive(&self) -> button::Style {
         button::Style {
-            border_radius: 0,
+            border_radius: 0.,
             text_color: Color::from_rgb8(0xdd, 0xdd, 0xdd),
             ..button::Style::default()
         }
@@ -91,7 +91,7 @@ pub enum SecondaryMenuItem {
 impl SecondaryMenuItem {
     fn inactive(&self) -> button::Style {
         button::Style {
-            border_radius: 0,
+            border_radius: 0.,
             text_color: Color::from_rgb8(0x87, 0x90, 0x9c),
             ..button::Style::default()
         }
@@ -177,7 +177,7 @@ impl radio::StyleSheet for MainPane {
         radio::Style {
             background: Background::Color(SURFACE),
             dot_color: ACTIVE,
-            border_width: 1,
+            border_width: 1.,
             border_color: ACTIVE,
         }
     }
@@ -194,15 +194,15 @@ impl text_input::StyleSheet for MainPane {
     fn active(&self) -> text_input::Style {
         text_input::Style {
             background: Background::Color(SURFACE),
-            border_radius: 2,
-            border_width: 0,
+            border_radius: 2.,
+            border_width: 0.,
             border_color: Color::TRANSPARENT,
         }
     }
 
     fn focused(&self) -> text_input::Style {
         text_input::Style {
-            border_width: 1,
+            border_width: 1.,
             border_color: ACCENT,
             ..self.active()
         }
@@ -210,7 +210,7 @@ impl text_input::StyleSheet for MainPane {
 
     fn hovered(&self) -> text_input::Style {
         text_input::Style {
-            border_width: 1,
+            border_width: 1.,
             border_color: Color { a: 0.3, ..ACCENT },
             ..self.focused()
         }
@@ -233,7 +233,7 @@ impl button::StyleSheet for MainPane {
     fn active(&self) -> button::Style {
         button::Style {
             background: Some(Background::Color(ACTIVE)),
-            border_radius: 3,
+            border_radius: 3.,
             text_color: Color::WHITE,
             ..button::Style::default()
         }
@@ -249,7 +249,7 @@ impl button::StyleSheet for MainPane {
 
     fn pressed(&self) -> button::Style {
         button::Style {
-            border_width: 1,
+            border_width: 1.,
             border_color: Color::WHITE,
             ..self.hovered()
         }
@@ -261,7 +261,7 @@ impl progress_bar::StyleSheet for MainPane {
         progress_bar::Style {
             background: Background::Color(SURFACE),
             bar: Background::Color(ACTIVE),
-            border_radius: 10,
+            border_radius: 10.,
         }
     }
 }

@@ -28,6 +28,7 @@ pub fn main() {
         antialiasing: true,
         ..Settings::default()
     })
+    .expect("UI runloop couldn't be started")
 }
 
 struct LoadingState {
