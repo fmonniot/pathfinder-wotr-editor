@@ -60,10 +60,7 @@ impl IndexedJson {
     /// Given an id, get the associated pointer for its JSON value
     #[allow(dead_code)]
     pub fn pointer_for(&self, id: Id) -> Result<JsonPointer, JsonError> {
-        self.index
-            .get(&id)
-            .cloned()
-            .ok_or_else(|| JsonError::UnknownId(id))
+        self.index.get(&id).cloned().ok_or(JsonError::UnknownId(id))
     }
 
     /// Get the value following a JSON pointer `path`. If the pointed node is a JSON
