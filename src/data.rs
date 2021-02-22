@@ -143,7 +143,6 @@ pub struct Kingdom {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Army {
     pub id: Id,
-    pub experience: u64,
     pub movement_points: f64,
     pub squads: Vec<Squad>,
 }
@@ -199,8 +198,8 @@ pub struct KingdomResources {
     pub id: Id,
     #[serde(alias = "m_Finances")]
     pub finances: u64,
-    #[serde(alias = "m_Basics")]
-    pub basics: u64,
+    #[serde(alias = "m_Materials")]
+    pub materials: u64,
     #[serde(alias = "m_Favors")]
     pub favors: u64,
     #[serde(alias = "m_Mana")]
@@ -223,12 +222,10 @@ pub fn read_player(index: &IndexedJson) -> Result<Player, JsonError> {
                 .map(|json| {
                     let id = reader::pointer_as(&json, &"/$id".into())?;
                     let movement_points = reader::pointer_as(&json, &"/MovementPoints".into())?;
-                    let experience = reader::pointer_as(&json, &"/Data/Experience".into())?;
-                    let squads = reader::pointer_as(&json, &"/Data/Squads".into())?;
+                    let squads = reader::pointer_as(&json, &"/Data/m_Squads".into())?;
 
                     Ok(Army {
                         id,
-                        experience,
                         movement_points,
                         squads,
                     })

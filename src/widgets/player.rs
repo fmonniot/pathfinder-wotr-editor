@@ -35,7 +35,7 @@ impl Display for Field {
 #[derive(Debug, Clone)]
 enum KingdomResourcesField {
     Finances,
-    Basics,
+    Materials,
     Favors,
     Mana,
 }
@@ -44,7 +44,7 @@ impl Display for KingdomResourcesField {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             KingdomResourcesField::Finances => write!(f, "Finances"),
-            KingdomResourcesField::Basics => write!(f, "Basics"),
+            KingdomResourcesField::Materials => write!(f, "Materials"),
             KingdomResourcesField::Favors => write!(f, "Divine Favors"),
             KingdomResourcesField::Mana => write!(f, "Mana"),
         }
@@ -127,7 +127,7 @@ impl PlayerWidget {
         if let Some(ref mut resources) = resources.as_mut() {
             match field {
                 KingdomResourcesField::Finances => resources.finances.value = value,
-                KingdomResourcesField::Basics => resources.basics.value = value,
+                KingdomResourcesField::Materials => resources.materials.value = value,
                 KingdomResourcesField::Favors => resources.favors.value = value,
                 KingdomResourcesField::Mana => resources.mana.value = value,
             };
@@ -210,7 +210,7 @@ where
 
 struct KingdomResourcesWidget {
     finances: LabelledInputNumber<KingdomResourcesField, u64>,
-    basics: LabelledInputNumber<KingdomResourcesField, u64>,
+    materials: LabelledInputNumber<KingdomResourcesField, u64>,
     favors: LabelledInputNumber<KingdomResourcesField, u64>,
     mana: LabelledInputNumber<KingdomResourcesField, u64>,
 }
@@ -224,11 +224,11 @@ impl KingdomResourcesWidget {
                 resources.id.clone(),
                 "m_Finances".into(),
             ),
-            basics: LabelledInputNumber::new(
-                KingdomResourcesField::Basics,
-                resources.basics,
+            materials: LabelledInputNumber::new(
+                KingdomResourcesField::Materials,
+                resources.materials,
                 resources.id.clone(),
-                "m_Basics".into(),
+                "m_Materials".into(),
             ),
             favors: LabelledInputNumber::new(
                 KingdomResourcesField::Favors,
@@ -254,7 +254,7 @@ impl KingdomResourcesWidget {
         let layout = Column::new()
             .push(Text::new(title))
             .push(self.finances.view(update.clone()))
-            .push(self.basics.view(update.clone()))
+            .push(self.materials.view(update.clone()))
             .push(self.favors.view(update.clone()))
             .push(self.mana.view(update));
 
@@ -267,7 +267,7 @@ impl KingdomResourcesWidget {
     fn patches(&self) -> Vec<JsonPatch> {
         vec![
             self.finances.change(),
-            self.basics.change(),
+            self.materials.change(),
             self.favors.change(),
             self.mana.change(),
         ]
@@ -276,7 +276,6 @@ impl KingdomResourcesWidget {
 
 #[derive(Debug, Clone, PartialEq)]
 enum ArmyField {
-    Experience,
     MovementPoints,
     Squad(String), // unit id
 }
@@ -284,7 +283,6 @@ enum ArmyField {
 impl Display for ArmyField {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ArmyField::Experience => write!(f, "Experience"),
             ArmyField::MovementPoints => write!(f, "Movement Points"),
             ArmyField::Squad(unit) => match Squad::id_to_name(&unit) {
                 Some(named) => write!(f, "{}", named),
@@ -296,7 +294,6 @@ impl Display for ArmyField {
 
 struct ArmyWidget {
     id: Id,
-    experience: LabelledInputNumber<ArmyField, u64>,
     movement_points: LabelledInputNumber<ArmyField, f64>,
     squads: Vec<LabelledInputNumber<ArmyField, u64>>,
 }
@@ -311,7 +308,7 @@ impl ArmyWidget {
                     ArmyField::Squad(squad.unit.clone()),
                     squad.count,
                     squad.id.clone(),
-                    "count".into(),
+                    "Count".into(),
                 )
             })
             .collect();
@@ -319,17 +316,11 @@ impl ArmyWidget {
         ArmyWidget {
             id: army.id.clone(),
             squads,
-            experience: LabelledInputNumber::new(
-                ArmyField::Experience,
-                army.experience,
-                army.id.clone(),
-                "experience".into(),
-            ),
             movement_points: LabelledInputNumber::new(
                 ArmyField::MovementPoints,
                 army.movement_points,
                 army.id.clone(),
-                "movement_points".into(),
+                "MovementPoints".into(),
             ),
         }
     }
@@ -338,13 +329,10 @@ impl ArmyWidget {
         // I don't know of a cleaner pattern to share the same immutable variable with multiple closures.
         // I feel there should be a simpler pattern than having multiple named variable but that will have
         // to do for now.
-        let id_for_xp = self.id.clone();
         let id_for_mp = self.id.clone();
         let common = Row::with_children(vec![
             // We currently don't have an army name, so we should do like the game and use their order of
             // apparition to number them. And monitor the game if that changes with further releases.
-            self.experience
-                .view(move |d, v| Message(Msg::FieldUpdate(Field::Army(id_for_xp.clone(), d), v))),
             self.movement_points
                 .view(move |d, v| Message(Msg::FieldUpdate(Field::Army(id_for_mp.clone(), d), v))),
         ]);
@@ -370,11 +358,6 @@ impl ArmyWidget {
 
     fn update(&mut self, field: ArmyField, value: String) {
         match field {
-            ArmyField::Experience => {
-                if let Ok(value) = value.parse::<u64>() {
-                    self.experience.value = value;
-                }
-            }
             ArmyField::MovementPoints => {
                 if let Ok(value) = value.parse::<f64>() {
                     self.movement_points.value = value;
@@ -393,7 +376,7 @@ impl ArmyWidget {
     }
 
     fn patches(&self) -> Vec<JsonPatch> {
-        let mut patches = vec![self.experience.change(), self.movement_points.change()];
+        let mut patches = vec![self.movement_points.change()];
 
         patches.append(&mut self.squads.iter().map(|s| s.change()).collect());
 
