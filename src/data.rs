@@ -160,10 +160,10 @@ pub struct Squad {
 impl Squad {
     pub fn id_to_name(s: &str) -> Option<String> {
         let opt = match s {
-            "29952620f253b844f93976469062cafc" => Some("Infantry"),
-            "ef431508f92899343b39d582bcb32271" => Some("Archers"),
-            "0141cff36038444438d1ba6dcc2aee65" => Some("Paladins"),
-            "afd136430fad4ef4f98ab52f0038a601" => Some("Hellknights"),
+            "34800b32867af5e4f9cdcb328470be16" => Some("Footmen"),
+            "adee0dc84ed3f254fa5da3c90d1e8e3c" => Some("Archers"),
+            "ff408898eb9e8694cb849869d1dbfa05" => Some("Clerics"),
+            "61e12d43771a40241ac05471a60ddb38" => Some("Hellknights"),
             _ => {
                 info!("Unknown squad type found: {}", s);
                 None
