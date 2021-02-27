@@ -4,6 +4,7 @@ use crate::json::{Id, JsonPatch};
 use crate::styles;
 use iced::{Column, Command, Container, Element, Length, Row, Space, Text};
 use std::fmt::Display;
+use log::debug;
 
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
@@ -151,6 +152,7 @@ impl PlayerWidget {
                 };
 
                 if let Field::Army(id, res) = field {
+                    debug!("Finding army to update (id={:?}, field={:?})", id, res);
                     if let Some(army) = self.armies.iter_mut().find(|a| a.id == id) {
                         army.update(res, value);
                     };
@@ -277,14 +279,14 @@ impl KingdomResourcesWidget {
 #[derive(Debug, Clone, PartialEq)]
 enum ArmyField {
     MovementPoints,
-    Squad(String), // unit id
+    Squad(String, Id), // (Unit, $id)
 }
 
 impl Display for ArmyField {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ArmyField::MovementPoints => write!(f, "Movement Points"),
-            ArmyField::Squad(unit) => match Squad::id_to_name(&unit) {
+            ArmyField::Squad(unit, _) => match Squad::id_to_name(&unit) {
                 Some(named) => write!(f, "{}", named),
                 None => write!(f, "{}", unit),
             },
@@ -305,7 +307,7 @@ impl ArmyWidget {
             .iter()
             .map(|squad| {
                 LabelledInputNumber::new(
-                    ArmyField::Squad(squad.unit.clone()),
+                    ArmyField::Squad(squad.unit.clone(), squad.id.clone()),
                     squad.count,
                     squad.id.clone(),
                     "Count".into(),
@@ -357,15 +359,22 @@ impl ArmyWidget {
     }
 
     fn update(&mut self, field: ArmyField, value: String) {
+        debug!("ArmyWidget.update(field = {:?}, value = {})", field, value);
         match field {
             ArmyField::MovementPoints => {
                 if let Ok(value) = value.parse::<f64>() {
                     self.movement_points.value = value;
                 }
             }
-            ArmyField::Squad(squad_id) => {
+            // TODO Fix this
+            // ArmyField::Squad currently contains the unit_id (incorrectly named squad_id)
+            // We need to use its $id instead. We can also use this $id to generate the patch.
+            // Unit should be kept to be able to display the correct name.
+            ArmyField::Squad(unit_id, squad_id) => {
                 for mut squad in &mut self.squads {
-                    if squad.discriminator == ArmyField::Squad(squad_id.clone()) {
+                    let expected = ArmyField::Squad(unit_id.clone(), squad_id.clone());
+                    debug!("Finding correct squad. discriminator={:?}, looking for '{:?}'", squad.discriminator, expected);
+                    if squad.discriminator == expected {
                         if let Ok(value) = value.parse::<u64>() {
                             squad.value = value;
                         }
