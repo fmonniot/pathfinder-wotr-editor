@@ -3,8 +3,8 @@ use crate::data::{Army, KingdomResources, Player, Squad};
 use crate::json::{Id, JsonPatch};
 use crate::styles;
 use iced::{Column, Command, Container, Element, Length, Row, Space, Text};
-use std::fmt::Display;
 use log::debug;
+use std::fmt::Display;
 
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
@@ -373,7 +373,10 @@ impl ArmyWidget {
             ArmyField::Squad(unit_id, squad_id) => {
                 for mut squad in &mut self.squads {
                     let expected = ArmyField::Squad(unit_id.clone(), squad_id.clone());
-                    debug!("Finding correct squad. discriminator={:?}, looking for '{:?}'", squad.discriminator, expected);
+                    debug!(
+                        "Finding correct squad. discriminator={:?}, looking for '{:?}'",
+                        squad.discriminator, expected
+                    );
                     if squad.discriminator == expected {
                         if let Ok(value) = value.parse::<u64>() {
                             squad.value = value;
