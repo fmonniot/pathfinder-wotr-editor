@@ -1,6 +1,6 @@
 use iced::{
-    button, Align, Application, Button, Column, Command, Container, Element, Length, ProgressBar,
-    Settings, Subscription, Text,
+    button, Align, Application, Button, Clipboard, Column, Command, Container, Element, Length,
+    ProgressBar, Settings, Subscription, Text,
 };
 use std::path::PathBuf;
 
@@ -97,7 +97,11 @@ impl Application for Main {
         }
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+    fn update(
+        &mut self,
+        message: Self::Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<Self::Message> {
         match message {
             MainMessage::OpenFileDialog => {
                 Command::perform(dialog::open_file(), MainMessage::FileChosen)
