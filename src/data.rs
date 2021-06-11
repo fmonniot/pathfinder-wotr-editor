@@ -202,8 +202,10 @@ pub struct KingdomResources {
     pub materials: u64,
     #[serde(alias = "m_Favors")]
     pub favors: u64,
+    /*
     #[serde(alias = "m_Mana")]
     pub mana: u64,
+    */
 }
 
 pub fn read_player(index: &IndexedJson) -> Result<Player, JsonError> {
@@ -246,7 +248,7 @@ pub fn read_player(index: &IndexedJson) -> Result<Player, JsonError> {
         .ok()
         .filter(|json| json.is_object())
         .map::<Result<Kingdom, JsonError>, _>(|json| {
-            debug!("/Kingdom point to {:?}", json);
+            //debug!("/Kingdom point to {:?}", json);
             let resources = reader::pointer_as(&json, &"/Resources".into())?;
             let resources_per_turn = reader::pointer_as(&json, &"/ResourcesPerTurn".into())?;
             let recruits = reader::pointer_as(&json, &"/RecruitsManager".into())?;

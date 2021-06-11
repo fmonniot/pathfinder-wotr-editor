@@ -1,7 +1,7 @@
 use crate::data::Alignment;
 use iced::canvas::{self, path::Builder, Cache, Canvas, Cursor, Frame, Geometry, Path, Program};
 use iced::{Element, Length, Point, Rectangle};
-use log::debug;
+use log::{debug,trace};
 
 pub struct AlignmentWidget {
     // data
@@ -84,7 +84,7 @@ impl<'a> Program<Message> for AlignmentWidget {
                     _ => colors::neutral(),
                 };
 
-                debug!("angle: start = {}°, end = {}°", start_angle, end_angle);
+                trace!("angle: start = {}°, end = {}°", start_angle, end_angle);
 
                 let x_s = start_angle.to_radians().cos();
                 let y_s = start_angle.to_radians().sin();
@@ -98,7 +98,7 @@ impl<'a> Program<Message> for AlignmentWidget {
                 let p3 = Point::new(x_e * outer_radius, y_e * outer_radius);
                 let p4 = Point::new(x_e * inner_radius, y_e * inner_radius);
 
-                debug!("points = [{:?},{:?},{:?},{:?}]", p1, p2, p3, p4);
+                trace!("points = [{:?},{:?},{:?},{:?}]", p1, p2, p3, p4);
 
                 // arc_to draw in clockwise direction only. We shuffle the starting
                 // points to limit the number of instruction and make sure the fill
