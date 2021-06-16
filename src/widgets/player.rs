@@ -260,7 +260,7 @@ impl KingdomResourcesWidget {
             .push(self.finances.view(update.clone()))
             .push(self.materials.view(update.clone()))
             .push(self.favors.view(update.clone()));
-           // .push(self.mana.view(update));
+        // .push(self.mana.view(update));
 
         Container::new(layout)
             .width(Length::Fill)

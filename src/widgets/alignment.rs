@@ -1,7 +1,7 @@
 use crate::data::Alignment;
 use iced::canvas::{self, path::Builder, Cache, Canvas, Cursor, Frame, Geometry, Path, Program};
 use iced::{Element, Length, Point, Rectangle};
-use log::{debug,trace};
+use log::{debug, trace};
 
 pub struct AlignmentWidget {
     // data
