@@ -38,7 +38,6 @@ enum KingdomResourcesField {
     Finances,
     Materials,
     Favors,
-    //Mana,
 }
 
 impl Display for KingdomResourcesField {
@@ -47,7 +46,6 @@ impl Display for KingdomResourcesField {
             KingdomResourcesField::Finances => write!(f, "Finances"),
             KingdomResourcesField::Materials => write!(f, "Materials"),
             KingdomResourcesField::Favors => write!(f, "Divine Favors"),
-            //KingdomResourcesField::Mana => write!(f, "Mana"),
         }
     }
 }
@@ -130,7 +128,6 @@ impl PlayerWidget {
                 KingdomResourcesField::Finances => resources.finances.value = value,
                 KingdomResourcesField::Materials => resources.materials.value = value,
                 KingdomResourcesField::Favors => resources.favors.value = value,
-                //KingdomResourcesField::Mana => resources.mana.value = value,
             };
         }
     }
@@ -214,7 +211,6 @@ struct KingdomResourcesWidget {
     finances: LabelledInputNumber<KingdomResourcesField, u64>,
     materials: LabelledInputNumber<KingdomResourcesField, u64>,
     favors: LabelledInputNumber<KingdomResourcesField, u64>,
-    //mana: LabelledInputNumber<KingdomResourcesField, u64>,
 }
 
 impl KingdomResourcesWidget {
@@ -238,14 +234,6 @@ impl KingdomResourcesWidget {
                 resources.id.clone(),
                 "m_Favors".into(),
             ),
-            /*
-            mana: LabelledInputNumber::new(
-                KingdomResourcesField::Mana,
-                resources.mana,
-                resources.id.clone(),
-                "m_Mana".into(),
-            ),
-            */
         }
     }
 
@@ -260,7 +248,6 @@ impl KingdomResourcesWidget {
             .push(self.finances.view(update.clone()))
             .push(self.materials.view(update.clone()))
             .push(self.favors.view(update.clone()));
-        // .push(self.mana.view(update));
 
         Container::new(layout)
             .width(Length::Fill)
@@ -273,7 +260,6 @@ impl KingdomResourcesWidget {
             self.finances.change(),
             self.materials.change(),
             self.favors.change(),
-            //self.mana.change(),
         ]
     }
 }
