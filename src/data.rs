@@ -1,5 +1,5 @@
-use log::{debug, info};
-/// Data model for the save game
+//! Data model for the save game
+use log::info;
 use serde::{Deserialize, Serialize};
 
 use crate::json::{reader, Id, IndexedJson, JsonError, Value};

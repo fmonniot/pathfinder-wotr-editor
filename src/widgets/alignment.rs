@@ -1,7 +1,7 @@
 use crate::data::Alignment;
 use iced::canvas::{self, path::Builder, Cache, Canvas, Cursor, Frame, Geometry, Path, Program};
 use iced::{Element, Length, Point, Rectangle};
-use log::{debug, trace};
+use log::trace;
 
 pub struct AlignmentWidget {
     // data
@@ -45,7 +45,7 @@ impl<'a> Program<Message> for AlignmentWidget {
             // Translate the frame such as (0, 0) in in the middle of it
             let (_, radius) = prep_frame(frame);
 
-            let pin_point = Point::new(self.alignment.x * radius, self.alignment.y * radius);
+            let pin_point = Point::new(self.alignment.x * radius, -self.alignment.y * radius);
 
             // TODO Find how to do this without over drawing
             frame.fill(&Path::circle(pin_point, 9.0), colors::pin_outer_border());
