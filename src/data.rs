@@ -69,10 +69,34 @@ pub struct Stat {
     pub base_value: Option<u64>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Alignment {
     pub x: f32,
     pub y: f32,
+}
+
+impl<'de> Deserialize<'de> for Alignment {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let s = <String>::deserialize(deserializer)?;
+
+        let split: Vec<_> = s.split("|").collect();
+
+        match split[..] {
+            [x, y] => {
+                let x = x.parse::<f32>().map_err(serde::de::Error::custom)?;
+                let y = y.parse::<f32>().map_err(serde::de::Error::custom)?;
+
+                Ok(Alignment { x, y })
+            }
+            _ => Err(serde::de::Error::custom(format!(
+                "invalid format: x|y expected but {} found",
+                s
+            ))),
+        }
+    }
 }
 
 pub fn read_party(index: &IndexedJson) -> Result<Party, JsonError> {
