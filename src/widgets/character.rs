@@ -41,7 +41,6 @@ enum Field {
     Wisdom,
     Charisma,
     // Combat stats
-    AttackBonus,
     CMB,
     CMD,
     ArmorClass,
@@ -78,7 +77,6 @@ impl std::fmt::Display for Field {
             Field::Intelligence => write!(f, "Intelligence"),
             Field::Wisdom => write!(f, "Wisdom"),
             Field::Charisma => write!(f, "Charisma"),
-            Field::AttackBonus => write!(f, "Attack Bonus"),
             Field::CMB => write!(f, "CMB"),
             Field::CMD => write!(f, "CMD"),
             Field::ArmorClass => write!(f, "Armor Class"),
@@ -114,7 +112,6 @@ impl Field {
             Field::Intelligence => Some("Intelligence"),
             Field::Wisdom => Some("Wisdom"),
             Field::Charisma => Some("Charisma"),
-            Field::AttackBonus => Some("AdditionalAttackBonus"),
             Field::CMB => Some("AdditionalCMB"),
             Field::CMD => Some("AdditionalCMD"),
             Field::ArmorClass => Some("AC"),
@@ -202,7 +199,6 @@ pub struct CharacterWidget {
     wisdom: LabelledInputNumber<Field, u64>,
     charisma: LabelledInputNumber<Field, u64>,
     // Combat stats
-    attack_bonus: LabelledInputNumber<Field, u64>,
     cmb: LabelledInputNumber<Field, u64>,
     cmd: LabelledInputNumber<Field, u64>,
     ac: LabelledInputNumber<Field, u64>,
@@ -244,7 +240,6 @@ impl CharacterWidget {
             intelligence: Field::Intelligence.build_view(character),
             wisdom: Field::Wisdom.build_view(character),
             charisma: Field::Charisma.build_view(character),
-            attack_bonus: Field::AttackBonus.build_view(character),
             cmb: Field::CMB.build_view(character),
             cmd: Field::CMD.build_view(character),
             ac: Field::ArmorClass.build_view(character),
@@ -287,7 +282,6 @@ impl CharacterWidget {
 
         let combat_stats = Column::new()
             .width(Length::FillPortion(1))
-            .push(self.attack_bonus.view(Msg::statistic_modified))
             .push(self.cmb.view(Msg::statistic_modified))
             .push(self.cmd.view(Msg::statistic_modified))
             .push(self.ac.view(Msg::statistic_modified))
@@ -358,7 +352,6 @@ impl CharacterWidget {
         patches.push(self.intelligence.change());
         patches.push(self.wisdom.change());
         patches.push(self.charisma.change());
-        patches.push(self.attack_bonus.change());
         patches.push(self.cmb.change());
         patches.push(self.cmd.change());
         patches.push(self.ac.change());
@@ -393,7 +386,6 @@ impl CharacterWidget {
             Field::Intelligence => &mut self.intelligence,
             Field::Wisdom => &mut self.wisdom,
             Field::Charisma => &mut self.charisma,
-            Field::AttackBonus => &mut self.attack_bonus,
             Field::CMB => &mut self.cmb,
             Field::CMD => &mut self.cmd,
             Field::ArmorClass => &mut self.ac,
