@@ -1,5 +1,5 @@
 //! Data model for the save game
-use log::info;
+use log::{info, trace};
 use serde::{Deserialize, Serialize};
 
 use crate::json::{reader, Id, IndexedJson, JsonError, Value};
@@ -66,7 +66,7 @@ pub struct Stat {
     #[serde(alias = "Type")]
     pub tpe: String,
     #[serde(alias = "m_BaseValue")]
-    pub base_value: u64,
+    pub base_value: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -96,7 +96,10 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonEr
         .iter()
         .filter(|(key, _)| key != &"$id")
         .map(|(key, value)| {
-            let value = index.dereference(value, &format!("/Descriptor/Stats/{}", key).into())?;
+            let path = format!("/Descriptor/Stats/{}", key).into();
+            let value = index.dereference(value, &path)?;
+
+            trace!("Looking at {} with value {:?}", path, value);
             let stat = serde_json::from_value(value.clone())?;
 
             Ok(stat)

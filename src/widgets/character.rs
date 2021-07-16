@@ -137,7 +137,12 @@ impl Field {
                 let id = stat.id.clone();
                 let ptr = "/m_BaseValue".into();
 
-                (id, ptr, stat.base_value)
+                let base_value = stat.base_value.expect(&format!(
+                    "The field {:?} didn't had a base value. id={:?}; stat={:?}",
+                    self, id, stat
+                ));
+
+                (id, ptr, base_value)
             }
             None => match self {
                 Field::Experience => (

@@ -20,6 +20,12 @@ impl From<String> for JsonPointer {
     }
 }
 
+impl std::fmt::Display for JsonPointer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize)]
 pub struct Id(String);
 
