@@ -3,6 +3,7 @@ use crate::data::Character;
 use crate::json::{Id, JsonPatch};
 use crate::widgets::AlignmentWidget;
 use iced::{Align, Column, Command, Container, Element, Length, Row};
+use log::debug;
 
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
@@ -143,10 +144,15 @@ impl Field {
                 let id = stat.id.clone();
                 let ptr = "/m_BaseValue".into();
 
-                let base_value = stat.base_value.expect(&format!(
-                    "The field {:?} didn't had a base value. id={:?}; stat={:?}",
-                    self, id, stat
-                ));
+                let base_value = if let Some(v) = stat.base_value {
+                    v
+                } else {
+                    debug!(
+                        "The field {:?} doesn't have a base value. id={:?}; stat={:?}",
+                        self, id, stat
+                    );
+                    0
+                };
 
                 LabelledInputNumber::new(self, base_value, id, ptr)
             }
