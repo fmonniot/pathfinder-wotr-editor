@@ -11,6 +11,7 @@ pub(super) struct LabelledInputNumber<D, V> {
     pub discriminator: D,
     pub value: V,
     text_input: text_input::State,
+    disabled: bool,
 }
 
 impl<D, V> LabelledInputNumber<D, V>
@@ -25,16 +26,34 @@ where
             discriminator,
             value,
             text_input: text_input::State::new(),
+            disabled: false,
+        }
+    }
+
+    pub fn disabled(
+        discriminator: D,
+        value: V,
+        id: Id,
+        ptr: JsonPointer,
+    ) -> LabelledInputNumber<D, V> {
+        LabelledInputNumber {
+            id,
+            ptr,
+            discriminator,
+            value,
+            text_input: text_input::State::new(),
+            disabled: true,
         }
     }
 
     pub fn view<'a, Msg, F>(&'a mut self, make_message: F) -> Element<'a, Msg>
     where
-        F: 'static + Fn(D, String) -> Msg,
+        F: 'static + Fn(D, String, bool) -> Msg,
         Msg: 'a + Clone,
     {
         let label = format!("{}", self.discriminator);
         let discriminator = self.discriminator.clone();
+        let disabled = self.disabled;
 
         let input = TextInput::new(
             &mut self.text_input,
@@ -42,9 +61,9 @@ where
             &self.value.to_string(),
             move |value| {
                 // Not sure why just moving the view's discriminator is not enough, but given how
-                // cheap a Field is I can leave with that clone.
+                // cheap a Field is I can live with that clone.
                 let discriminator = discriminator.clone();
-                make_message(discriminator, value)
+                make_message(discriminator, value, disabled)
             },
         )
         .style(styles::MainPane);

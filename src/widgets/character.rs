@@ -9,16 +9,25 @@ pub struct Message(Msg);
 
 #[derive(Debug, Clone)]
 enum Msg {
-    StatisticModified { entity_id: Field, value: String },
+    /// Emitted when a Msg is required but nothing should be done
+    Nothing,
+    StatisticModified {
+        entity_id: Field,
+        value: String,
+    },
     AlignmentWheel(alignment::Message),
 }
 
 impl Msg {
-    fn statistic_modified(field: Field, value: String) -> Message {
-        Message(Msg::StatisticModified {
-            entity_id: field,
-            value,
-        })
+    fn statistic_modified(field: Field, value: String, disabled: bool) -> Message {
+        if disabled {
+            Message(Msg::Nothing)
+        } else {
+            Message(Msg::StatisticModified {
+                entity_id: field,
+                value,
+            })
+        }
     }
 }
 
@@ -130,7 +139,7 @@ impl Field {
             Field::MythicExperience => None,
         };
 
-        let (id, ptr, value) = match stat_key {
+        match stat_key {
             Some(key) => {
                 let stat = character.find_stat(key).unwrap();
 
@@ -142,27 +151,30 @@ impl Field {
                     self, id, stat
                 ));
 
-                (id, ptr, base_value)
+                LabelledInputNumber::new(self, base_value, id, ptr)
             }
             None => match self {
-                Field::Experience => (
+                Field::Experience => LabelledInputNumber::new(
+                    self,
+                    character.experience,
                     character.id.clone(),
                     "/Descriptor/Progression/Experience".into(),
-                    character.experience,
                 ),
-                Field::MythicExperience => (
-                    character.id.clone(),
-                    "/Descriptor/Progression/MythicExperience".into(),
-                    character.mythic_experience,
-                ),
+                Field::MythicExperience => {
+                    let id = character.id.clone();
+                    let ptr = "/Descriptor/Progression/MythicExperience".into();
+                    if let Some(xp) = character.mythic_experience {
+                        LabelledInputNumber::new(self, xp, id, ptr)
+                    } else {
+                        LabelledInputNumber::disabled(self, 0, id, ptr)
+                    }
+                }
                 _ => panic!(
                     "A field ({:?}) was not matched when building its view, please report",
                     self
                 ),
             },
-        };
-
-        LabelledInputNumber::new(self, value, id, ptr)
+        }
     }
 }
 
@@ -324,6 +336,7 @@ impl CharacterWidget {
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
+            Message(Msg::Nothing) => (),
             Message(Msg::StatisticModified { entity_id, value }) => {
                 if let Ok(n) = value.parse::<u64>() {
                     self.stat_view_for_field(&entity_id).value = n;

@@ -1,5 +1,5 @@
 //! Data model for the save game
-use log::{info, trace};
+use log::{debug, info, trace};
 use serde::{Deserialize, Serialize};
 
 use crate::json::{reader, Id, IndexedJson, JsonError, Value};
@@ -15,7 +15,7 @@ pub struct Character {
     pub name: String,
     pub blueprint: String,
     pub experience: u64,
-    pub mythic_experience: u64,
+    pub mythic_experience: Option<u64>,
     pub statistics: Vec<Stat>,
     pub alignment: Alignment,
 }
@@ -111,7 +111,12 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonEr
     let blueprint = reader::pointer_as(&json, &"/Descriptor/Blueprint".into())?;
     let experience = reader::pointer_as(&json, &"/Descriptor/Progression/Experience".into())?;
     let mythic_experience =
-        reader::pointer_as(&json, &"/Descriptor/Progression/MythicExperience".into())?;
+        reader::pointer_as(&json, &"/Descriptor/Progression/MythicExperience".into());
+
+    // For now let's go with this solution. In the tutorial section that path doesn't exists
+    // (since update 0.8). Let's see how it behave once we have finished act one.
+    debug!("Read mythic experience with result {:?}", mythic_experience);
+    let mythic_experience = mythic_experience.ok();
 
     // We use the latest alignment value for display purpose, but we will likely have
     // to find the latest alignment change if we want to be able to modify it.

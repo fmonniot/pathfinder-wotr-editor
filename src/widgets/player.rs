@@ -104,7 +104,7 @@ impl PlayerWidget {
         let layout = Column::new()
             .push(
                 self.money
-                    .view(|id, value| Message(Msg::FieldUpdate(id, value))),
+                    .view(|id, value, _disabled| Message(Msg::FieldUpdate(id, value))),
             )
             .push(Text::new("Resources"))
             .push(Row::with_children(resources))
@@ -241,7 +241,7 @@ impl KingdomResourcesWidget {
     where
         F: 'static + Clone + Fn(KingdomResourcesField) -> Field,
     {
-        let update = move |id, value| Message(Msg::FieldUpdate(f(id), value));
+        let update = move |id, value, _disabled| Message(Msg::FieldUpdate(f(id), value));
 
         let layout = Column::new()
             .push(Text::new(title))
@@ -323,8 +323,9 @@ impl ArmyWidget {
         let common = Row::with_children(vec![
             // We currently don't have an army name, so we should do like the game and use their order of
             // apparition to number them. And monitor the game if that changes with further releases.
-            self.movement_points
-                .view(move |d, v| Message(Msg::FieldUpdate(Field::Army(id_for_mp.clone(), d), v))),
+            self.movement_points.view(move |d, v, _disabled| {
+                Message(Msg::FieldUpdate(Field::Army(id_for_mp.clone(), d), v))
+            }),
         ]);
 
         let mut layout = Column::new().push(common);
@@ -333,7 +334,7 @@ impl ArmyWidget {
         // A "squad" is basically the number of a given unit type in the army
         for squad in &mut self.squads {
             let id_for_squads = self.id.clone();
-            layout = layout.push(squad.view(move |d, v| {
+            layout = layout.push(squad.view(move |d, v, _disabled| {
                 Message(Msg::FieldUpdate(Field::Army(id_for_squads.clone(), d), v))
             }));
         }
