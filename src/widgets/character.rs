@@ -3,7 +3,6 @@ use crate::data::Character;
 use crate::json::{Id, JsonPatch};
 use crate::widgets::AlignmentWidget;
 use iced::{Align, Column, Command, Container, Element, Length, Row};
-use log::debug;
 
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
@@ -144,17 +143,11 @@ impl Field {
                 let id = stat.id.clone();
                 let ptr = "/m_BaseValue".into();
 
-                let base_value = if let Some(v) = stat.base_value {
-                    v
+                if let Some(base_value) = stat.base_value {
+                    LabelledInputNumber::new(self, base_value, id, ptr)
                 } else {
-                    debug!(
-                        "The field {:?} doesn't have a base value. id={:?}; stat={:?}",
-                        self, id, stat
-                    );
-                    0
-                };
-
-                LabelledInputNumber::new(self, base_value, id, ptr)
+                    LabelledInputNumber::disabled(self, 0, id, ptr)
+                }
             }
             None => match self {
                 Field::Experience => LabelledInputNumber::new(
@@ -166,6 +159,7 @@ impl Field {
                 Field::MythicExperience => {
                     let id = character.id.clone();
                     let ptr = "/Descriptor/Progression/MythicExperience".into();
+
                     if let Some(xp) = character.mythic_experience {
                         LabelledInputNumber::new(self, xp, id, ptr)
                     } else {
