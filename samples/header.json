@@ -1,45 +1,38 @@
 {
     "$id": "1",
-    "Area": "089e897983fef564d9e15b46ff679d7e",
+    "Area": "bad465e5404604346bdf71ef50b3299a",
     "AreaNameOverride": null,
-    "AreaPart": "089e897983fef564d9e15b46ff679d7e",
+    "AreaPart": "bad465e5404604346bdf71ef50b3299a",
     "CampaignDLC": "None",
     "CompatibilityVersion": 1,
     "DLC": [],
     "Description": null,
-    "EndlessDelveSeed": -1400207867,
-    "GameId": "29ae9cf4-e6c6-497c-bebd-530ee6a86088",
-    "GameSaveTime": "2.07:10:32.8890000",
-    "GameTotalTime": "04:24:05.7280000",
+    "EndlessDelveSeed": -740057400,
+    "GameId": "a130323b23ff45b99802741e723b54c8",
+    "GameSaveTime": "12:07:44.9940000",
+    "GameTotalTime": "00:18:28.3300000",
     "IsAutoLevelupSave": false,
-    "LoadedTimes": 1,
-    "Name": "Defender's Heart - 16 Gozran (IV) 4710 - 07:10:32",
+    "LoadedTimes": 0,
+    "Name": "Underground Caves of Kenabres -14 Gozran (IV) 4710 -12:07:44",
     "PartyPortraits": [
         {
             "$id": "2",
-            "m_Blueprint": "4bb9e147a44d9be43ab4b16fa7d48383",
-            "m_Data": null
-        },
-        {
-            "$id": "3",
-            "m_Blueprint": "44954f73b0897d94b947142bb1244c87",
-            "m_Data": null
+            "m_Blueprint": null,
+            "m_Data": {
+                "$id": "3",
+                "m_CustomPortraitId": "HE-FM-FM-F111"
+            }
         },
         {
             "$id": "4",
-            "m_Blueprint": "d227d31233aa2494fba89cb715afbb87",
-            "m_Data": null
-        },
-        {
-            "$id": "5",
-            "m_Blueprint": "b9fea9f24838d43469948aa54088d600",
+            "m_Blueprint": "0ebca33b0e5eb514aa75d9989a565f2f",
             "m_Data": null
         }
     ],
-    "PlayerCharacterName": "Kaylin",
-    "QuestWithSaveDescription": "d4e99f71a43a75c4dbe27396bf015121",
+    "PlayerCharacterName": "Ulya",
+    "QuestWithSaveDescription": "59ca88537b2839545aa5eba63e05fc79",
     "QuickSaveNumber": 0,
-    "SystemSaveTime": "2020-10-03T19:02:27.0197726-07:00",
+    "SystemSaveTime": "2021-07-16T16:01:00.0559954-07:00",
     "Type": "Manual",
     "Versions": []
 }
