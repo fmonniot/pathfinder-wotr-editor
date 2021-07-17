@@ -12,7 +12,7 @@ pub struct Party {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Character {
     pub id: Id,
-    pub name: String,
+    pub name: Option<String>,
     pub blueprint: String,
     pub experience: u64,
     pub mythic_experience: Option<u64>,
@@ -26,10 +26,10 @@ impl Character {
     }
 
     pub fn name(&self) -> String {
-        if self.name.is_empty() {
-            Character::blueprint_to_name(&self.blueprint).unwrap_or_else(|| self.blueprint.clone())
-        } else {
-            self.name.clone()
+        match &self.name {
+            Some(n) => n.clone(),
+            None => Character::blueprint_to_name(&self.blueprint)
+                .unwrap_or_else(|| self.blueprint.clone()),
         }
     }
 
@@ -131,7 +131,11 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonEr
         .collect::<Result<Vec<_>, JsonError>>()?;
 
     let id = reader::pointer_as(&json, &"/$id".into())?;
-    let name = reader::pointer_as(&json, &"/Descriptor/CustomName".into())?;
+    let name = (match reader::pointer_as(&json, &"/Descriptor/CustomName".into()) {
+        Ok(name) => Ok(Some(name)),
+        Err(JsonError::InvalidPointer(_)) => Ok(None),
+        Err(err) => Err(err),
+    })?;
     let blueprint = reader::pointer_as(&json, &"/Descriptor/Blueprint".into())?;
     let experience = reader::pointer_as(&json, &"/Descriptor/Progression/Experience".into())?;
     let mythic_experience =
