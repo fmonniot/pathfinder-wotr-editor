@@ -97,6 +97,7 @@ impl IndexedJson {
 
     pub fn patch(&mut self, patch: &JsonPatch) -> Result<(), JsonError> {
         match patch {
+            JsonPatch::None => Ok(()),
             JsonPatch::Id { id, new_value } => {
                 // Clone the pointer to release the immutable reference to self
                 let pointer = self
@@ -160,6 +161,7 @@ impl IndexedJson {
 
 #[derive(Debug)]
 pub enum JsonPatch {
+    None,
     Id {
         id: Id,
         new_value: serde_json::Map<String, Value>,

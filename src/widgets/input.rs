@@ -76,10 +76,14 @@ where
     }
 
     pub fn change(&self) -> JsonPatch {
-        JsonPatch::id_at_pointer(
-            self.id.clone(),
-            self.ptr.clone(),
-            serde_json::to_value(self.value).unwrap(),
-        )
+        if self.disabled {
+            JsonPatch::None
+        } else {
+            JsonPatch::id_at_pointer(
+                self.id.clone(),
+                self.ptr.clone(),
+                serde_json::to_value(self.value).unwrap(),
+            )
+        }
     }
 }
