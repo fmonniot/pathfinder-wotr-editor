@@ -45,7 +45,10 @@ impl<'a> Program<Message> for AlignmentWidget {
             // Translate the frame such as (0, 0) in in the middle of it
             let (_, radius) = prep_frame(frame);
 
-            let pin_point = Point::new(self.alignment.x * radius, -self.alignment.y * radius);
+            let pin_point = Point::new(
+                self.alignment.x / 100f32 * radius,
+                -self.alignment.y / 100f32 * radius,
+            );
 
             // TODO Find how to do this without over drawing
             frame.fill(&Path::circle(pin_point, 9.0), colors::pin_outer_border());

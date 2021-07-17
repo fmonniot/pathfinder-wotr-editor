@@ -71,7 +71,9 @@ pub struct Stat {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Alignment {
+    /// x axis is lawful/chaotic. Negative is lawful.
     pub x: f32,
+    /// y axis is good/evil. Negative is evil.
     pub y: f32,
 }
 
