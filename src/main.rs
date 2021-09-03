@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use iced::{
     button, Align, Application, Button, Clipboard, Column, Command, Container, Element, Length,
     ProgressBar, Settings, Subscription, Text,
