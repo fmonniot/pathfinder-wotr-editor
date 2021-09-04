@@ -3,13 +3,13 @@ use iced::Font;
 // Fonts (might need to move to style.rs if I create that file)
 pub const CALIGHRAPHIC_FONT: Font = Font::External {
     name: "Caligraphic",
-    bytes: include_bytes!("../fonts/beckett/BECKETT.TTF"),
+    bytes: include_bytes!("../assets/beckett/BECKETT.TTF"),
 };
 
 // Should probably be used by main pane widgets too
 pub const BOOKLETTER_1911: Font = Font::External {
     name: "Goudy_Bookletter_1911",
-    bytes: include_bytes!("../fonts/Goudy_Bookletter_1911/GoudyBookletter1911-Regular.ttf"),
+    bytes: include_bytes!("../assets/Goudy_Bookletter_1911/GoudyBookletter1911-Regular.ttf"),
 };
 
 use iced::{button, container, progress_bar, radio, text_input, Background, Color};
