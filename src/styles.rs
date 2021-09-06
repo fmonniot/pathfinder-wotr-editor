@@ -14,6 +14,24 @@ pub const BOOKLETTER_1911: Font = Font::External {
 
 use iced::{button, container, progress_bar, radio, text_input, Background, Color};
 
+const SELECTOR_SURFACE: Color = Color::from_rgb(
+    0x25 as f32 / 255.0,
+    0x27 as f32 / 255.0,
+    0x29 as f32 / 255.0,
+);
+
+const SELECTOR_BUTTON_ACTIVE: Color = Color::from_rgb(
+    0x2e as f32 / 255.0,
+    0x31 as f32 / 255.0,
+    0x36 as f32 / 255.0,
+);
+
+const SELECTOR_TEXT_MUTED: Color = Color::from_rgb(
+    0xdd as f32 / 255.0,
+    0xdd as f32 / 255.0,
+    0xdd as f32 / 255.0,
+);
+
 /// style marker for the widgets composing the left hand side menu structure.
 /// This part of the UI is basically a list of buttons which can be in two states:
 /// - inactive: a button is inactive when its pane isn't the one displayed or the user
@@ -25,8 +43,18 @@ pub struct PaneSelectorSurface;
 impl container::StyleSheet for PaneSelectorSurface {
     fn style(&self) -> container::Style {
         container::Style {
-            background: Some(Background::Color(Color::from_rgb8(0x25, 0x27, 0x29))),
+            background: Some(Background::Color(SELECTOR_SURFACE)),
             ..container::Style::default()
+        }
+    }
+}
+
+impl progress_bar::StyleSheet for PaneSelectorSurface {
+    fn style(&self) -> progress_bar::Style {
+        progress_bar::Style {
+            background: Background::Color(SELECTOR_SURFACE),
+            bar: Background::Color(SELECTOR_TEXT_MUTED),
+            border_radius: 0.,
         }
     }
 }
@@ -40,14 +68,14 @@ impl PaneSelectorButton {
     fn inactive(&self) -> button::Style {
         button::Style {
             border_radius: 0.,
-            text_color: Color::from_rgb8(0xdd, 0xdd, 0xdd),
+            text_color: SELECTOR_TEXT_MUTED,
             ..button::Style::default()
         }
     }
 
     fn selected(&self) -> button::Style {
         button::Style {
-            background: Some(Background::Color(Color::from_rgb8(0x2e, 0x31, 0x36))),
+            background: Some(Background::Color(SELECTOR_BUTTON_ACTIVE)),
             text_color: Color::WHITE,
             ..self.inactive()
         }

@@ -4,9 +4,10 @@ use crate::json::JsonPatch;
 use async_channel::{Receiver, Sender};
 use std::hash::Hash;
 use std::io::Write;
+use std::ops::RangeInclusive;
 use std::path::PathBuf;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Copy)]
 pub enum SavingStep {
     LoadingArchive,
     ExtractingPlayer,
@@ -18,6 +19,32 @@ pub enum SavingStep {
     WritingCustomFiles,
     FinishingArchive,
     WritingToDisk,
+}
+
+impl SavingStep {
+    /// The progress of the step in the overall save process
+    /// within the [steps_range()].
+    pub fn number(&self) -> f32 {
+        match self {
+            SavingStep::LoadingArchive => 0.0,
+            SavingStep::ExtractingPlayer => 1.0,
+            SavingStep::ExtractingParty => 2.0,
+            SavingStep::ExtractingHeader => 3.0,
+            SavingStep::ApplyingPatches => 4.0,
+            SavingStep::SerializingJson => 5.0,
+            SavingStep::WritingArchive => 6.0,
+            SavingStep::WritingCustomFiles => 7.0,
+            SavingStep::FinishingArchive => 8.0,
+            SavingStep::WritingToDisk => 9.0,
+        }
+    }
+
+    /// Range of steps to use with progress bar. The last step in the range
+    /// is not reachable as it's designed with the progress bar disappearing
+    /// when the last step is done.
+    pub fn steps_range() -> RangeInclusive<f32> {
+        0.0..=10.0
+    }
 }
 
 pub struct SavingSaveGame {

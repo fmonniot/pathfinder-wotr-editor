@@ -4,8 +4,8 @@ use crate::save::{SaveError, SaveNotifications, SavingSaveGame, SavingStep};
 use crate::styles::{self, BOOKLETTER_1911, CALIGHRAPHIC_FONT};
 use crate::widgets::{CharacterMessage, CharacterWidget, PlayerMessage, PlayerWidget};
 use iced::{
-    button, Align, Button, Column, Command, Container, Element, HorizontalAlignment, Length, Row,
-    Subscription, Text, VerticalAlignment,
+    button, Align, Button, Column, Command, Container, Element, HorizontalAlignment, Length,
+    ProgressBar, Row, Subscription, Text, VerticalAlignment,
 };
 use std::path::PathBuf;
 
@@ -30,6 +30,7 @@ pub struct EditorWidget {
     characters: Vec<CharacterWidget>,
     player_widget: PlayerWidget,
     saving: Option<SaveNotifications>,
+    save_progress: Option<SavingStep>,
 }
 
 impl EditorWidget {
@@ -46,6 +47,7 @@ impl EditorWidget {
             characters,
             player_widget: PlayerWidget::new(&player),
             saving: None,
+            save_progress: None,
         }
     }
 
@@ -82,12 +84,20 @@ impl EditorWidget {
                 .player_widget
                 .update(msg)
                 .map(|msg| Message(Msg::Player(msg))),
-            Message(Msg::SavingChange(_)) => Command::none(),
+            Message(Msg::SavingChange(step)) => {
+                self.save_progress = Some(step);
+                Command::none()
+            }
             Message(Msg::SavingResult(res)) => {
                 match *res {
                     Ok(()) => log::debug!("Save Game modified successfully"),
                     Err(err) => log::error!("Saving save game failed: {:?}", err),
                 };
+
+                // File saved (or failed to), reset the progress bar
+                self.save_progress = None;
+                self.saving = None;
+
                 Command::none()
             }
         }
@@ -115,14 +125,14 @@ impl EditorWidget {
                     .map(|msg| Message(Msg::CharacterMessage(msg)));
 
                 Row::new()
-                    .push(self.pane_selector.view())
+                    .push(self.pane_selector.view(self.save_progress))
                     .push(self.character_selector.view())
                     .push(character)
                     .into()
             }
 
             Pane::Crusade => Row::new()
-                .push(self.pane_selector.view())
+                .push(self.pane_selector.view(self.save_progress))
                 .push(
                     self.player_widget
                         .view()
@@ -171,7 +181,7 @@ impl PaneSelector {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&mut self, save_progress: Option<SavingStep>) -> Element<Message> {
         let item = |pane, state, active| {
             let label = match pane {
                 Pane::Party => "Party",
@@ -199,11 +209,20 @@ impl PaneSelector {
                 })
         };
 
-        let layout = Column::new()
+        let mut layout = Column::new()
             .align_items(Align::Start)
             .push(item(Pane::Party, &mut self.party_button, &self.active))
             .push(item(Pane::Crusade, &mut self.crusade_button, &self.active))
             .push(item(Pane::Save, &mut self.save_button, &self.active));
+
+        if let Some(step) = save_progress {
+            let bar = ProgressBar::new(SavingStep::steps_range(), step.number())
+                .width(Length::from(100))
+                .height(Length::from(10))
+                .style(styles::PaneSelectorSurface);
+
+            layout = layout.push(bar);
+        }
 
         Container::new(layout)
             .height(Length::Fill)
