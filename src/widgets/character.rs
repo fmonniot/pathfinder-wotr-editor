@@ -1,3 +1,4 @@
+use super::input::InputChange;
 use super::{alignment, LabelledInputNumber};
 use crate::data::Character;
 use crate::json::{Id, JsonPatch};
@@ -19,15 +20,11 @@ enum Msg {
 }
 
 impl Msg {
-    fn statistic_modified(field: Field, value: String, disabled: bool) -> Message {
-        if disabled {
-            Message(Msg::Nothing)
-        } else {
-            Message(Msg::StatisticModified {
-                entity_id: field,
-                value,
-            })
-        }
+    fn statistic_modified(change: InputChange<Field>) -> Message {
+        Message(change.map_or_else(
+            || Msg::Nothing,
+            |entity_id, value| Msg::StatisticModified { entity_id, value },
+        ))
     }
 }
 
@@ -268,43 +265,43 @@ impl CharacterWidget {
         let main_stats = Row::new()
             .width(Length::Fill)
             .align_items(Align::Center)
-            .push(self.experience.view(Msg::statistic_modified))
-            .push(self.mythic_experience.view(Msg::statistic_modified));
+            .push(self.experience.view().map(Msg::statistic_modified))
+            .push(self.mythic_experience.view().map(Msg::statistic_modified));
 
         let abilities_stats = Column::new()
             .width(Length::FillPortion(1))
-            .push(self.strength.view(Msg::statistic_modified))
-            .push(self.dexterity.view(Msg::statistic_modified))
-            .push(self.constitution.view(Msg::statistic_modified))
-            .push(self.intelligence.view(Msg::statistic_modified))
-            .push(self.wisdom.view(Msg::statistic_modified))
-            .push(self.charisma.view(Msg::statistic_modified));
+            .push(self.strength.view().map(Msg::statistic_modified))
+            .push(self.dexterity.view().map(Msg::statistic_modified))
+            .push(self.constitution.view().map(Msg::statistic_modified))
+            .push(self.intelligence.view().map(Msg::statistic_modified))
+            .push(self.wisdom.view().map(Msg::statistic_modified))
+            .push(self.charisma.view().map(Msg::statistic_modified));
 
         let combat_stats = Column::new()
             .width(Length::FillPortion(1))
-            .push(self.cmb.view(Msg::statistic_modified))
-            .push(self.cmd.view(Msg::statistic_modified))
-            .push(self.ac.view(Msg::statistic_modified))
-            .push(self.bab.view(Msg::statistic_modified))
-            .push(self.hp.view(Msg::statistic_modified))
-            .push(self.initiative.view(Msg::statistic_modified))
-            .push(self.save_fortitude.view(Msg::statistic_modified))
-            .push(self.save_reflex.view(Msg::statistic_modified))
-            .push(self.save_will.view(Msg::statistic_modified));
+            .push(self.cmb.view().map(Msg::statistic_modified))
+            .push(self.cmd.view().map(Msg::statistic_modified))
+            .push(self.ac.view().map(Msg::statistic_modified))
+            .push(self.bab.view().map(Msg::statistic_modified))
+            .push(self.hp.view().map(Msg::statistic_modified))
+            .push(self.initiative.view().map(Msg::statistic_modified))
+            .push(self.save_fortitude.view().map(Msg::statistic_modified))
+            .push(self.save_reflex.view().map(Msg::statistic_modified))
+            .push(self.save_will.view().map(Msg::statistic_modified));
 
         let skills_stats = Column::new()
             .width(Length::FillPortion(1))
-            .push(self.athletics.view(Msg::statistic_modified))
-            .push(self.mobility.view(Msg::statistic_modified))
-            .push(self.thievery.view(Msg::statistic_modified))
-            .push(self.stealth.view(Msg::statistic_modified))
-            .push(self.arcana.view(Msg::statistic_modified))
-            .push(self.world.view(Msg::statistic_modified))
-            .push(self.nature.view(Msg::statistic_modified))
-            .push(self.religion.view(Msg::statistic_modified))
-            .push(self.perception.view(Msg::statistic_modified))
-            .push(self.persuasion.view(Msg::statistic_modified))
-            .push(self.magic_device.view(Msg::statistic_modified));
+            .push(self.athletics.view().map(Msg::statistic_modified))
+            .push(self.mobility.view().map(Msg::statistic_modified))
+            .push(self.thievery.view().map(Msg::statistic_modified))
+            .push(self.stealth.view().map(Msg::statistic_modified))
+            .push(self.arcana.view().map(Msg::statistic_modified))
+            .push(self.world.view().map(Msg::statistic_modified))
+            .push(self.nature.view().map(Msg::statistic_modified))
+            .push(self.religion.view().map(Msg::statistic_modified))
+            .push(self.perception.view().map(Msg::statistic_modified))
+            .push(self.persuasion.view().map(Msg::statistic_modified))
+            .push(self.magic_device.view().map(Msg::statistic_modified));
 
         let statistics = Row::new()
             .spacing(25)

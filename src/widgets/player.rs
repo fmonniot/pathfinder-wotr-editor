@@ -1,3 +1,4 @@
+use super::input::InputChange;
 use super::LabelledInputNumber;
 use crate::data::{Army, KingdomResources, Player, Squad};
 use crate::json::{Id, JsonPatch};
@@ -12,6 +13,7 @@ pub struct Message(Msg);
 #[derive(Debug, Clone)]
 enum Msg {
     FieldUpdate(Field, String),
+    Nothing,
 }
 
 #[derive(Debug, Clone)]
@@ -104,7 +106,8 @@ impl PlayerWidget {
         let layout = Column::new()
             .push(
                 self.money
-                    .view(|id, value, _disabled| Message(Msg::FieldUpdate(id, value))),
+                    .view()
+                    .map(|change| Message(change.map_or_else(|| Msg::Nothing, Msg::FieldUpdate))),
             )
             .push(Text::new("Resources"))
             .push(Row::with_children(resources))
@@ -155,6 +158,7 @@ impl PlayerWidget {
                     };
                 }
             }
+            Message(Msg::Nothing) => (),
         }
         Command::none()
     }
@@ -241,13 +245,15 @@ impl KingdomResourcesWidget {
     where
         F: 'static + Clone + Fn(KingdomResourcesField) -> Field,
     {
-        let update = move |id, value, _disabled| Message(Msg::FieldUpdate(f(id), value));
+        let update = move |i: InputChange<KingdomResourcesField>| {
+            Message(i.map_or_else(|| Msg::Nothing, |id, value| Msg::FieldUpdate(f(id), value)))
+        };
 
         let layout = Column::new()
             .push(Text::new(title))
-            .push(self.finances.view(update.clone()))
-            .push(self.materials.view(update.clone()))
-            .push(self.favors.view(update.clone()));
+            .push(self.finances.view().map(update.clone()))
+            .push(self.materials.view().map(update.clone()))
+            .push(self.favors.view().map(update.clone()));
 
         Container::new(layout)
             .width(Length::Fill)
@@ -323,8 +329,11 @@ impl ArmyWidget {
         let common = Row::with_children(vec![
             // We currently don't have an army name, so we should do like the game and use their order of
             // apparition to number them. And monitor the game if that changes with further releases.
-            self.movement_points.view(move |d, v, _disabled| {
-                Message(Msg::FieldUpdate(Field::Army(id_for_mp.clone(), d), v))
+            self.movement_points.view().map(move |change| {
+                Message(change.map_or_else(
+                    || Msg::Nothing,
+                    |d, v| Msg::FieldUpdate(Field::Army(id_for_mp.clone(), d), v),
+                ))
             }),
         ]);
 
@@ -334,8 +343,12 @@ impl ArmyWidget {
         // A "squad" is basically the number of a given unit type in the army
         for squad in &mut self.squads {
             let id_for_squads = self.id.clone();
-            layout = layout.push(squad.view(move |d, v, _disabled| {
-                Message(Msg::FieldUpdate(Field::Army(id_for_squads.clone(), d), v))
+
+            layout = layout.push(squad.view().map(move |change| {
+                Message(change.map_or_else(
+                    || Msg::Nothing,
+                    |d, v| Msg::FieldUpdate(Field::Army(id_for_squads.clone(), d), v),
+                ))
             }));
         }
 

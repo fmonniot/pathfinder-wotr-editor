@@ -1,9 +1,29 @@
 use crate::json::{Id, JsonPatch, JsonPointer};
 use crate::styles;
-use iced::{text_input, Element, Length, Row, Text, TextInput};
+use iced::{text_input, Element, Length, Row, TextInput};
 use serde::Serialize;
 use std::fmt::Display;
 use std::string::ToString;
+
+#[derive(Debug, Clone)]
+pub(super) enum InputChange<D> {
+    Changed(D, String),
+    NoOp,
+}
+
+impl<D> InputChange<D> {
+    #[inline]
+    pub fn map_or_else<U, D2: FnOnce() -> U, F: FnOnce(D, String) -> U>(
+        self,
+        default: D2,
+        f: F,
+    ) -> U {
+        match self {
+            InputChange::Changed(d, v) => f(d, v),
+            InputChange::NoOp => default(),
+        }
+    }
+}
 
 pub(super) struct LabelledInputNumber<D, V> {
     id: Id,
@@ -11,6 +31,7 @@ pub(super) struct LabelledInputNumber<D, V> {
     pub discriminator: D,
     pub value: V,
     text_input: text_input::State,
+    label_input: text_input::State,
     disabled: bool,
 }
 
@@ -26,6 +47,7 @@ where
             discriminator,
             value,
             text_input: text_input::State::new(),
+            label_input: text_input::State::new(),
             disabled: false,
         }
     }
@@ -42,36 +64,45 @@ where
             discriminator,
             value,
             text_input: text_input::State::new(),
+            label_input: text_input::State::new(),
             disabled: true,
         }
     }
 
-    pub fn view<'a, Msg, F>(&'a mut self, make_message: F) -> Element<'a, Msg>
-    where
-        F: 'static + Fn(D, String, bool) -> Msg,
-        Msg: 'a + Clone,
-    {
-        let label = format!("{}", self.discriminator);
+    pub fn view(&mut self) -> Element<InputChange<D>> {
+        let label = self.discriminator.to_string();
         let discriminator = self.discriminator.clone();
         let disabled = self.disabled;
 
-        let input = TextInput::new(
+        let label_widget = TextInput::new(
+            &mut self.label_input,
+            &label,
+            &format!("{}:", label),
+            |_| InputChange::NoOp,
+        )
+        .size(16)
+        .style(styles::InputAsText)
+        .width(Length::FillPortion(2));
+
+        let input_widget = TextInput::new(
             &mut self.text_input,
             &label,
             &self.value.to_string(),
             move |value| {
-                // Not sure why just moving the view's discriminator is not enough, but given how
-                // cheap a Field is I can live with that clone.
-                let discriminator = discriminator.clone();
-                make_message(discriminator, value, disabled)
+                if disabled {
+                    InputChange::NoOp
+                } else {
+                    InputChange::Changed(discriminator.clone(), value)
+                }
             },
         )
-        .style(styles::MainPane);
+        .style(styles::MainPane)
+        .width(Length::FillPortion(1));
 
         Row::new()
             .width(Length::FillPortion(1))
-            .push(Text::new(format!("{}: ", label)))
-            .push(input)
+            .push(label_widget)
+            .push(input_widget)
             .into()
     }
 

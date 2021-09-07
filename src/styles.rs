@@ -153,7 +153,7 @@ impl button::StyleSheet for SecondaryMenuItem {
 }
 
 // Can't use from_rgb8 because the constructor needs to be const fn
-const SURFACE: Color = Color::from_rgb(
+const TEXTINPUT_SURFACE: Color = Color::from_rgb(
     0x40 as f32 / 255.0,
     0x44 as f32 / 255.0,
     0x4B as f32 / 255.0,
@@ -188,12 +188,18 @@ impl container::StyleSheet for DebugPane {
     }
 }
 
+const MAIN_SURFACE_BACKGROUND: Color = Color::from_rgb(
+    0x36 as f32 / 255.0,
+    0x39 as f32 / 255.0,
+    0x3F as f32 / 255.0,
+);
+
 pub struct MainPane;
 
 impl container::StyleSheet for MainPane {
     fn style(&self) -> container::Style {
         container::Style {
-            background: Some(Background::Color(Color::from_rgb8(0x36, 0x39, 0x3F))),
+            background: Some(Background::Color(MAIN_SURFACE_BACKGROUND)),
             text_color: Some(Color::WHITE),
             ..container::Style::default()
         }
@@ -203,7 +209,7 @@ impl container::StyleSheet for MainPane {
 impl radio::StyleSheet for MainPane {
     fn active(&self) -> radio::Style {
         radio::Style {
-            background: Background::Color(SURFACE),
+            background: Background::Color(TEXTINPUT_SURFACE),
             dot_color: ACTIVE,
             border_width: 1.,
             border_color: ACTIVE,
@@ -212,7 +218,10 @@ impl radio::StyleSheet for MainPane {
 
     fn hovered(&self) -> radio::Style {
         radio::Style {
-            background: Background::Color(Color { a: 0.5, ..SURFACE }),
+            background: Background::Color(Color {
+                a: 0.5,
+                ..TEXTINPUT_SURFACE
+            }),
             ..self.active()
         }
     }
@@ -221,7 +230,7 @@ impl radio::StyleSheet for MainPane {
 impl text_input::StyleSheet for MainPane {
     fn active(&self) -> text_input::Style {
         text_input::Style {
-            background: Background::Color(SURFACE),
+            background: Background::Color(TEXTINPUT_SURFACE),
             border_radius: 2.,
             border_width: 0.,
             border_color: Color::TRANSPARENT,
@@ -287,9 +296,42 @@ impl button::StyleSheet for MainPane {
 impl progress_bar::StyleSheet for MainPane {
     fn style(&self) -> progress_bar::Style {
         progress_bar::Style {
-            background: Background::Color(SURFACE),
+            background: Background::Color(TEXTINPUT_SURFACE),
             bar: Background::Color(ACTIVE),
             border_radius: 10.,
         }
+    }
+}
+
+/// A style that decorate a TextInput as a Text.
+///
+/// This is a workaround until iced support selection of Text directly.
+/// See https://github.com/hecrj/iced/issues/36
+pub struct InputAsText;
+
+impl text_input::StyleSheet for InputAsText {
+    fn active(&self) -> text_input::Style {
+        text_input::Style {
+            background: Background::Color(MAIN_SURFACE_BACKGROUND),
+            border_radius: 0.,
+            border_width: 0.,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+
+    fn focused(&self) -> text_input::Style {
+        self.active()
+    }
+
+    fn placeholder_color(&self) -> Color {
+        Color::from_rgb(0.4, 0.4, 0.4)
+    }
+
+    fn value_color(&self) -> Color {
+        Color::WHITE
+    }
+
+    fn selection_color(&self) -> Color {
+        self.value_color()
     }
 }
