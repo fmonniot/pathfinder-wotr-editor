@@ -1,6 +1,8 @@
 //! Data model for the save game
-use log::{debug, info, trace};
+use log::{debug, trace};
 use serde::{Deserialize, Serialize};
+
+mod names;
 
 use crate::json::{reader, Id, IndexedJson, JsonError, Value};
 
@@ -28,34 +30,10 @@ impl Character {
     pub fn name(&self) -> String {
         match &self.name {
             Some(n) => n.clone(),
-            None => Character::blueprint_to_name(&self.blueprint)
+            None => names::companion_as_string(&self.blueprint)
+                .map(str::to_string)
                 .unwrap_or_else(|| self.blueprint.clone()),
         }
-    }
-
-    fn blueprint_to_name(s: &str) -> Option<String> {
-        let opt = match s {
-            "397b090721c41044ea3220445300e1b8" => Some("Camellia"),
-            "54be53f0b35bf3c4592a97ae335fe765" => Some("Seelah"),
-            "cb29621d99b902e4da6f5d232352fbda" => Some("Laan"),
-            "766435873b1361c4287c351de194e5f9" => Some("Woljif"),
-            "2779754eecffd044fbd4842dba55312c" => Some("Ember"),
-            "096fc4a96d675bb45a0396bcaa7aa993" => Some("Daeran"),
-            "8a6986e17799d7d4b90f0c158b31c5b9" => Some("Smilodon"), // Seelah's pet for sure, maybe smilodon in general ?
-            "1cbbbb892f93c3d439f8417ad7cbb6aa" => Some("Sosiel"),
-            "f72bb7c48bb3e45458f866045448fb58" => None, // Unknown at the moment, let me progress in game. The Queen maybe ?
-            "0d37024170b172346b3769df92a971f5" => Some("Regill"),
-            "ae766624c03058440a036de90a7f2009" => Some("Wenduag"),
-            "1b893f7cf2b150e4f8bc2b3c389ba71d" => Some("Nenio"),
-            "a352873d37ec6c54c9fa8f6da3a6b3e1" => Some("Arueshalae"),
-            "32a037e97c3d5c54b85da8f639616c57" => Some("Aivu"),
-            _ => {
-                info!("Unknown party member found: {}", s);
-                None
-            }
-        };
-
-        opt.map(str::to_string)
     }
 }
 
@@ -198,23 +176,9 @@ pub struct Squad {
 }
 
 impl Squad {
-    pub fn id_to_name(s: &str) -> Option<String> {
-        let opt = match s {
-            "34800b32867af5e4f9cdcb328470be16" => Some("Footmen"),
-            "adee0dc84ed3f254fa5da3c90d1e8e3c" => Some("Archers"),
-            "ff408898eb9e8694cb849869d1dbfa05" => Some("Clerics"),
-            "61e12d43771a40241ac05471a60ddb38" => Some("Hellknights"),
-            "81eae30d5d2809b429c0f21d942f7207" => Some("Marksmen"),
-            "46c629fc950acbf4fb5535c6d2b8c055" => Some("Spearmen"),
-            "45743ca252f07b246a2f5107e5a05fae" => Some("Light Cavalry"),
-            "24ad1a10190de5c459a4521996dcec4b" => Some("Shield Bearers"),
-            _ => {
-                info!("Unknown squad type found: {}", s);
-                None
-            }
-        };
-
-        opt.map(str::to_string)
+    pub fn id_to_name(s: &str) -> Option<&'static str> {
+        // Forward to code generated part, which I don't want to expose
+        names::squad_as_string(s)
     }
 }
 
