@@ -23,14 +23,36 @@ pub fn main() {
     env_logger::init();
     log::debug!("Running with version {}", VERSION);
 
+    let window = icon_window_settings();
     let flags: Option<PathBuf> = std::env::args().nth(1).map(|s| s.into());
 
     Main::run(Settings {
+        window,
         flags,
         antialiasing: true,
         ..Settings::default()
     })
     .expect("UI runloop couldn't be started")
+}
+
+// No error handling as the app.ico file is injected at compile time.
+fn icon_window_settings() -> iced::window::Settings {
+    let bytes = std::io::Cursor::new(include_bytes!("../assets/app.ico"));
+    let icon_dir = ico::IconDir::read(bytes).unwrap();
+
+    let idx = icon_dir.entries().iter().find(|e| e.width() == 48);
+
+    if let Some(entry) = idx {
+        let img = entry.decode().unwrap().rgba_data().to_vec();
+        let icon = iced::window::Icon::from_rgba(img, 48, 48).unwrap();
+
+        iced::window::Settings {
+            icon: Some(icon),
+            ..iced::window::Settings::default()
+        }
+    } else {
+        iced::window::Settings::default()
+    }
 }
 
 struct LoadingState {
