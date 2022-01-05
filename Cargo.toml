@@ -12,7 +12,7 @@ iced = { version = "0.3", features = ["tokio", "canvas"] }
 iced_native = { version = "0.4", features = [] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
-tinyfiledialogs = "3.8"
+tinyfiledialogs = "3.9"
 tokio = { version = "1", features = ["fs", "macros"] }
 dirs = "4.0"
 async-trait = "0.1"
