@@ -4,8 +4,8 @@ use crate::save::{SaveError, SaveNotifications, SavingSaveGame, SavingStep};
 use crate::styles::{self, BOOKLETTER_1911, CALIGHRAPHIC_FONT};
 use crate::widgets::{CharacterMessage, CharacterWidget, PlayerMessage, PlayerWidget};
 use iced::{
-    button, Align, Button, Column, Command, Container, Element, HorizontalAlignment, Length,
-    ProgressBar, Row, Subscription, Text, VerticalAlignment,
+    button, alignment, Alignment, Button, Column, Command, Container, Element, Length,
+    ProgressBar, Row, Subscription, Text,
 };
 use std::path::PathBuf;
 
@@ -194,8 +194,8 @@ impl PaneSelector {
             let txt = Text::new(label)
                 .font(CALIGHRAPHIC_FONT)
                 .size(30)
-                .horizontal_alignment(HorizontalAlignment::Center)
-                .vertical_alignment(VerticalAlignment::Center);
+                .horizontal_alignment(alignment::Horizontal::Center)
+                .vertical_alignment(alignment::Vertical::Center);
 
             Button::new(state, txt)
                 .on_press(Message(Msg::ChangeActivePane(pane)))
@@ -210,7 +210,7 @@ impl PaneSelector {
         };
 
         let mut layout = Column::new()
-            .align_items(Align::Start)
+            .align_items(Alignment::Start)
             .push(item(Pane::Party, &mut self.party_button, &self.active))
             .push(item(Pane::Crusade, &mut self.crusade_button, &self.active))
             .push(item(Pane::Save, &mut self.save_button, &self.active));
@@ -260,8 +260,8 @@ impl CharacterSelector {
             let text = Text::new(name)
                 .font(BOOKLETTER_1911)
                 .size(30)
-                .vertical_alignment(VerticalAlignment::Center)
-                .horizontal_alignment(HorizontalAlignment::Left);
+                .vertical_alignment(alignment::Vertical::Center)
+                .horizontal_alignment(alignment::Horizontal::Left);
 
             let button = Button::new(state, text)
                 .on_press(Message(Msg::SwitchCharacter(id.clone())))

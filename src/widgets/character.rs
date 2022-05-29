@@ -3,7 +3,7 @@ use super::{alignment, LabelledInputNumber};
 use crate::data::Character;
 use crate::json::{Id, JsonPatch};
 use crate::widgets::AlignmentWidget;
-use iced::{Align, Column, Command, Container, Element, Length, Row};
+use iced::{Alignment, Column, Command, Container, Element, Length, Row};
 
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
@@ -264,7 +264,7 @@ impl CharacterWidget {
     pub fn view(&mut self) -> Element<Message> {
         let main_stats = Row::new()
             .width(Length::Fill)
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .push(self.experience.view().map(Msg::statistic_modified))
             .push(self.mythic_experience.view().map(Msg::statistic_modified));
 

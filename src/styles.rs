@@ -12,7 +12,7 @@ pub const BOOKLETTER_1911: Font = Font::External {
     bytes: include_bytes!("../assets/Goudy_Bookletter_1911/GoudyBookletter1911-Regular.ttf"),
 };
 
-use iced::{button, container, progress_bar, radio, text_input, Background, Color};
+use iced::{button, container, progress_bar, text_input, Background, Color};
 
 const SELECTOR_SURFACE: Color = Color::from_rgb(
     0x25 as f32 / 255.0,
@@ -202,27 +202,6 @@ impl container::StyleSheet for MainPane {
             background: Some(Background::Color(MAIN_SURFACE_BACKGROUND)),
             text_color: Some(Color::WHITE),
             ..container::Style::default()
-        }
-    }
-}
-
-impl radio::StyleSheet for MainPane {
-    fn active(&self) -> radio::Style {
-        radio::Style {
-            background: Background::Color(TEXTINPUT_SURFACE),
-            dot_color: ACTIVE,
-            border_width: 1.,
-            border_color: ACTIVE,
-        }
-    }
-
-    fn hovered(&self) -> radio::Style {
-        radio::Style {
-            background: Background::Color(Color {
-                a: 0.5,
-                ..TEXTINPUT_SURFACE
-            }),
-            ..self.active()
         }
     }
 }

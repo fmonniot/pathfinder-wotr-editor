@@ -1,7 +1,7 @@
 #![windows_subsystem = "windows"]
 
 use iced::{
-    button, Align, Application, Button, Clipboard, Column, Command, Container, Element, Length,
+    button, Alignment, Application, Button, Column, Command, Container, Element, Length,
     ProgressBar, Settings, Subscription, Text,
 };
 use std::path::PathBuf;
@@ -124,7 +124,6 @@ impl Application for Main {
     fn update(
         &mut self,
         message: Self::Message,
-        _clipboard: &mut Clipboard,
     ) -> Command<Self::Message> {
         match message {
             MainMessage::OpenFileDialog => {
@@ -188,7 +187,7 @@ impl Application for Main {
                 open_failed,
             } => {
                 let mut layout = Column::new()
-                    .align_items(Align::Center)
+                    .align_items(Alignment::Center)
                     .spacing(8)
                     .push(
                         Text::new("Pathfinder Editor")
@@ -238,7 +237,7 @@ impl Application for Main {
                         .push(Text::new(state.current_step.description())),
                 };
 
-                let content = Container::new(layout.spacing(8).align_items(Align::Center))
+                let content = Container::new(layout.spacing(8).align_items(Alignment::Center))
                     .max_width(640)
                     .max_height(480);
 
