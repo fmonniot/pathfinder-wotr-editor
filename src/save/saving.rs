@@ -5,7 +5,7 @@ use async_channel::{Receiver, Sender};
 use std::hash::Hash;
 use std::io::Write;
 use std::ops::RangeInclusive;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub enum SavingStep {
@@ -198,7 +198,7 @@ where
 }
 
 async fn find_appropriate_save_name(
-    archive_path: &PathBuf,
+    archive_path: &Path,
     header: &Header,
 ) -> Result<(String, PathBuf), SaveError> {
     // Let's iterate on copy number starting at one
@@ -240,7 +240,7 @@ async fn find_appropriate_save_name(
         }
     }
 
-    Err(SaveError::IoError(
+    Err(SaveError::Io(
         "Can't find a good file name in 10 iterations".to_string(),
     ))
 }

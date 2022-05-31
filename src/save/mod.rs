@@ -1,7 +1,7 @@
 use crate::data::{self, Header, Party, Player};
 use crate::json::{IndexedJson, JsonError};
 use async_channel::SendError;
-use std::path::PathBuf;
+use std::path::Path;
 
 mod loading;
 mod saving;
@@ -12,45 +12,45 @@ pub use saving::{SaveNotifications, SavingSaveGame, SavingStep};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SaveError {
-    IoError(String),
-    SerdeError(String, String),
-    JsonError(String, String),
-    ZipError(String),
-    SavingNotificationsError(SendError<SavingStep>),
-    LoadingNotificationsError(SendError<LoadingStep>),
+    Io(String),
+    Serde(String, String),
+    Json(String, String),
+    Zip(String),
+    SavingNotifications(SendError<SavingStep>),
+    LoadingNotifications(SendError<LoadingStep>),
 }
 
 impl SaveError {
     fn serde_error(file_name: &str, err: serde_json::Error) -> SaveError {
-        SaveError::SerdeError(file_name.to_string(), format!("{}", err))
+        SaveError::Serde(file_name.to_string(), format!("{}", err))
     }
 
     fn json_error(file_name: &str, err: JsonError) -> SaveError {
-        SaveError::JsonError(file_name.to_string(), format!("{:?}", err))
+        SaveError::Json(file_name.to_string(), format!("{:?}", err))
     }
 }
 
 impl From<std::io::Error> for SaveError {
     fn from(e: std::io::Error) -> Self {
-        Self::IoError(format!("{}", e))
+        Self::Io(format!("{}", e))
     }
 }
 
 impl From<zip::result::ZipError> for SaveError {
     fn from(e: zip::result::ZipError) -> Self {
-        Self::ZipError(format!("{}", e))
+        Self::Zip(format!("{}", e))
     }
 }
 
 impl From<SendError<SavingStep>> for SaveError {
     fn from(e: SendError<SavingStep>) -> Self {
-        Self::SavingNotificationsError(e)
+        Self::SavingNotifications(e)
     }
 }
 
 impl From<SendError<LoadingStep>> for SaveError {
     fn from(e: SendError<LoadingStep>) -> Self {
-        Self::LoadingNotificationsError(e)
+        Self::LoadingNotifications(e)
     }
 }
 
@@ -100,7 +100,7 @@ async fn extract_header(archive: &mut InMemoryArchive) -> Result<(Header, Indexe
     Ok((header, indexed_json))
 }
 
-async fn load_archive(path: &PathBuf) -> Result<InMemoryArchive, SaveError> {
+async fn load_archive(path: &Path) -> Result<InMemoryArchive, SaveError> {
     let buf = tokio::fs::read(path).await?;
     let reader = std::io::Cursor::new(buf);
     let archive = zip::ZipArchive::new(reader)?;
@@ -110,7 +110,7 @@ async fn load_archive(path: &PathBuf) -> Result<InMemoryArchive, SaveError> {
         archive
             .file_names()
             .find(|n| n == &s)
-            .ok_or_else(|| SaveError::ZipError(format!("{} file not found in archive", s)))
+            .ok_or_else(|| SaveError::Zip(format!("{} file not found in archive", s)))
     };
 
     exists("header.json")?;

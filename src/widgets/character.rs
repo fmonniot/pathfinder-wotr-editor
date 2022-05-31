@@ -29,6 +29,7 @@ impl Msg {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[allow(clippy::upper_case_acronyms)]
 enum Field {
     // Abilities
     Strength,
@@ -341,38 +342,36 @@ impl CharacterWidget {
     }
 
     pub fn patches(&self) -> Vec<JsonPatch> {
-        let mut patches = Vec::with_capacity(28);
-
-        patches.push(self.strength.change());
-        patches.push(self.dexterity.change());
-        patches.push(self.constitution.change());
-        patches.push(self.intelligence.change());
-        patches.push(self.wisdom.change());
-        patches.push(self.charisma.change());
-        patches.push(self.cmb.change());
-        patches.push(self.cmd.change());
-        patches.push(self.ac.change());
-        patches.push(self.bab.change());
-        patches.push(self.hp.change());
-        patches.push(self.initiative.change());
-        patches.push(self.save_fortitude.change());
-        patches.push(self.save_reflex.change());
-        patches.push(self.save_will.change());
-        patches.push(self.athletics.change());
-        patches.push(self.mobility.change());
-        patches.push(self.thievery.change());
-        patches.push(self.stealth.change());
-        patches.push(self.arcana.change());
-        patches.push(self.world.change());
-        patches.push(self.nature.change());
-        patches.push(self.religion.change());
-        patches.push(self.perception.change());
-        patches.push(self.persuasion.change());
-        patches.push(self.magic_device.change());
-        patches.push(self.experience.change());
-        patches.push(self.mythic_experience.change());
-
-        patches
+        vec![
+            self.strength.change(),
+            self.dexterity.change(),
+            self.constitution.change(),
+            self.intelligence.change(),
+            self.wisdom.change(),
+            self.charisma.change(),
+            self.cmb.change(),
+            self.cmd.change(),
+            self.ac.change(),
+            self.bab.change(),
+            self.hp.change(),
+            self.initiative.change(),
+            self.save_fortitude.change(),
+            self.save_reflex.change(),
+            self.save_will.change(),
+            self.athletics.change(),
+            self.mobility.change(),
+            self.thievery.change(),
+            self.stealth.change(),
+            self.arcana.change(),
+            self.world.change(),
+            self.nature.change(),
+            self.religion.change(),
+            self.perception.change(),
+            self.persuasion.change(),
+            self.magic_device.change(),
+            self.experience.change(),
+            self.mythic_experience.change(),
+        ]
     }
 
     fn stat_view_for_field(&mut self, field: &Field) -> &mut LabelledInputNumber<Field, u64> {

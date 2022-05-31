@@ -102,7 +102,7 @@ impl IndexedJson {
                 // Clone the pointer to release the immutable reference to self
                 let pointer = self
                     .index
-                    .get(&id)
+                    .get(id)
                     .cloned()
                     .ok_or_else(|| JsonError::UnknownId(id.clone()))?;
 
@@ -134,7 +134,7 @@ impl IndexedJson {
                 // Clone the pointer to release the immutable reference to self
                 let id_pointer = self
                     .index
-                    .get(&id)
+                    .get(id)
                     .cloned()
                     .ok_or_else(|| JsonError::UnknownId(id.clone()))?;
                 let separator = if pointer.0.starts_with('/') { "" } else { "/" };

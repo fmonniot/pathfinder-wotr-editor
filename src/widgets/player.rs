@@ -164,9 +164,8 @@ impl PlayerWidget {
     }
 
     pub fn patches(&self) -> Vec<JsonPatch> {
-        let mut patches = vec![];
+        let mut patches = vec![self.money.change()];
 
-        patches.push(self.money.change());
         if let Some(res) = self.resources.as_ref() {
             patches.append(&mut res.patches());
         };
@@ -253,7 +252,7 @@ impl KingdomResourcesWidget {
             .push(Text::new(title))
             .push(self.finances.view().map(update.clone()))
             .push(self.materials.view().map(update.clone()))
-            .push(self.favors.view().map(update.clone()));
+            .push(self.favors.view().map(update));
 
         Container::new(layout)
             .width(Length::Fill)
@@ -280,7 +279,7 @@ impl Display for ArmyField {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ArmyField::MovementPoints => write!(f, "Movement Points"),
-            ArmyField::Squad(unit, _) => match Squad::id_to_name(&unit) {
+            ArmyField::Squad(unit, _) => match Squad::id_to_name(unit) {
                 Some(named) => write!(f, "{}", named),
                 None => write!(f, "{}", unit),
             },

@@ -62,7 +62,7 @@ impl<'de> Deserialize<'de> for Alignment {
     {
         let s = <String>::deserialize(deserializer)?;
 
-        let split: Vec<_> = s.split("|").collect();
+        let split: Vec<_> = s.split('|').collect();
 
         match split[..] {
             [x, y] => {
@@ -89,14 +89,14 @@ pub fn read_party(index: &IndexedJson) -> Result<Party, JsonError> {
                 .filter(|s| s == &"Kingmaker.EntitySystem.Entities.UnitEntityData, Assembly-CSharp")
                 .is_some()
         })
-        .map(|json| read_character(&index, json))
+        .map(|json| read_character(index, json))
         .collect::<Result<Vec<_>, JsonError>>()?;
 
     Ok(Party { characters })
 }
 
 fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonError> {
-    let statistics = reader::pointer_as_object(&json, &"/Descriptor/Stats".into())?
+    let statistics = reader::pointer_as_object(json, &"/Descriptor/Stats".into())?
         .iter()
         .filter(|(key, _)| key != &"$id")
         .map(|(key, value)| {
@@ -110,16 +110,16 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonEr
         })
         .collect::<Result<Vec<_>, JsonError>>()?;
 
-    let id = reader::pointer_as(&json, &"/$id".into())?;
-    let name = (match reader::pointer_as(&json, &"/Descriptor/CustomName".into()) {
+    let id = reader::pointer_as(json, &"/$id".into())?;
+    let name = (match reader::pointer_as(json, &"/Descriptor/CustomName".into()) {
         Ok(name) => Ok(Some(name)),
         Err(JsonError::InvalidPointer(_)) => Ok(None),
         Err(err) => Err(err),
     })?;
-    let blueprint = reader::pointer_as(&json, &"/Descriptor/Blueprint".into())?;
-    let experience = reader::pointer_as(&json, &"/Descriptor/Progression/Experience".into())?;
+    let blueprint = reader::pointer_as(json, &"/Descriptor/Blueprint".into())?;
+    let experience = reader::pointer_as(json, &"/Descriptor/Progression/Experience".into())?;
     let mythic_experience =
-        reader::pointer_as(&json, &"/Descriptor/Progression/MythicExperience".into());
+        reader::pointer_as(json, &"/Descriptor/Progression/MythicExperience".into());
 
     // For now let's go with this solution. In the tutorial section that path doesn't exists
     // (since update 0.8). Let's see how it behave once we have finished act one.
@@ -130,7 +130,7 @@ fn read_character(index: &IndexedJson, json: &Value) -> Result<Character, JsonEr
     // to find the latest alignment change if we want to be able to modify it.
     // TODO Test out in game what happens if we modify m_Vector only, does the history
     // behaves as a CRDT or is it only for display on the UI ?
-    let alignment = reader::pointer_as(&json, &"/Descriptor/Alignment/m_Vector".into())?;
+    let alignment = reader::pointer_as(json, &"/Descriptor/Alignment/m_Vector".into())?;
 
     Ok(Character {
         id,
@@ -216,7 +216,7 @@ pub fn read_player(index: &IndexedJson) -> Result<Player, JsonError> {
     let armies = reader::pointer_as_array(&index.json, &"/m_GlobalMaps".into())?
         .iter()
         .map(|json| {
-            reader::pointer_as_array(&json, &"/m_Armies".into())?
+            reader::pointer_as_array(json, &"/m_Armies".into())?
                 .iter()
                 .filter(|json| {
                     // We only keep the crusaders squads
@@ -226,9 +226,9 @@ pub fn read_player(index: &IndexedJson) -> Result<Player, JsonError> {
                         .is_some()
                 })
                 .map(|json| {
-                    let id = reader::pointer_as(&json, &"/$id".into())?;
-                    let movement_points = reader::pointer_as(&json, &"/MovementPoints".into())?;
-                    let squads = reader::pointer_as(&json, &"/Data/m_Squads".into())?;
+                    let id = reader::pointer_as(json, &"/$id".into())?;
+                    let movement_points = reader::pointer_as(json, &"/MovementPoints".into())?;
+                    let squads = reader::pointer_as(json, &"/Data/m_Squads".into())?;
 
                     Ok(Army {
                         id,
