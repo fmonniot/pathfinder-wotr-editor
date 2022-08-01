@@ -1,8 +1,10 @@
 use crate::data::Alignment;
-use iced::canvas::{self, path::Builder, Cache, Canvas, Cursor, Frame, Geometry, Path, Program};
-use iced::{Element, Length, Point, Rectangle};
+use iced::{Length, Point, Rectangle};
 use log::trace;
+use iced::pure::Element;
+use iced::pure::widget::canvas::{self, path::Builder, Cache, Canvas, Cursor, Frame, Geometry, Path, Program};
 
+// TODO Good candidate for the Component trait ?
 pub struct AlignmentWidget {
     // data
     alignment: Alignment,
@@ -25,17 +27,20 @@ impl AlignmentWidget {
         }
     }
 
-    pub fn view(&mut self) -> Element<Message> {
+    pub fn view(&self) -> Element<Message> {
         let canvas = Canvas::new(self)
             .width(Length::Units(200))
             .height(Length::Units(200));
 
-        iced::Container::new(canvas).into()
+        iced::pure::widget::Container::new(canvas).into()
     }
 }
 
 impl<'a> Program<Message> for AlignmentWidget {
-    fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
+
+    type State = ();
+
+    fn draw(&self, _state: &(), bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         // Represent a character alignment on the Alignment Wheel
         //
         // Note that this part of the iced API will change considerably when upgrading
@@ -45,6 +50,7 @@ impl<'a> Program<Message> for AlignmentWidget {
             // Translate the frame such as (0, 0) in in the middle of it
             let (_, radius) = prep_frame(frame);
 
+            // TODO Find out what is the min/max for alignments value and normalize it
             let pin_point = Point::new(
                 self.alignment.x / 100f32 * radius,
                 -self.alignment.y / 100f32 * radius,

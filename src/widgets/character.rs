@@ -3,7 +3,7 @@ use super::{alignment, LabelledInputNumber};
 use crate::data::Character;
 use crate::json::{Id, JsonPatch};
 use crate::widgets::AlignmentWidget;
-use iced::{Alignment, Column, Command, Container, Element, Length, Row};
+use iced::{Alignment, Column, Command, Container, Element, Length, Row, pure::{self, Pure}};
 
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
@@ -188,6 +188,7 @@ impl Field {
 */
 pub struct CharacterWidget {
     pub id: Id,
+    state: pure::State,
 
     // Abilities
     strength: LabelledInputNumber<Field, u64>,
@@ -230,6 +231,7 @@ impl CharacterWidget {
     pub fn new(character: &Character) -> CharacterWidget {
         CharacterWidget {
             id: character.id.clone(),
+            state: pure::State::new(),
             experience: Field::Experience.build_view(character),
             mythic_experience: Field::MythicExperience.build_view(character),
             strength: Field::Strength.build_view(character),
@@ -310,7 +312,7 @@ impl CharacterWidget {
             .push(combat_stats)
             .push(skills_stats);
 
-        let alignment_wheel = self.alignment.view();
+        let alignment_wheel: Element<alignment::Message> = Pure::new(&mut self.state, self.alignment.view()).into();
 
         Container::new(
             Column::new()
