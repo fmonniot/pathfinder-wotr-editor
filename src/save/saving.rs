@@ -5,7 +5,7 @@ use async_channel::{Receiver, Sender};
 use std::hash::Hash;
 use std::io::Write;
 use std::ops::RangeInclusive;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub enum SavingStep {

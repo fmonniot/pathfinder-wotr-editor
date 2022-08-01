@@ -121,10 +121,7 @@ impl Application for Main {
         }
     }
 
-    fn update(
-        &mut self,
-        message: Self::Message,
-    ) -> Command<Self::Message> {
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             MainMessage::OpenFileDialog => {
                 Command::perform(dialog::open_file(), MainMessage::FileChosen)

@@ -4,8 +4,8 @@ use crate::save::{SaveError, SaveNotifications, SavingSaveGame, SavingStep};
 use crate::styles::{self, BOOKLETTER_1911, CALIGHRAPHIC_FONT};
 use crate::widgets::{CharacterMessage, CharacterWidget, PlayerMessage, PlayerWidget};
 use iced::{
-    button, alignment, Alignment, Button, Column, Command, Container, Element, Length,
-    ProgressBar, Row, Subscription, Text,
+    alignment, button, Alignment, Button, Column, Command, Container, Element, Length, ProgressBar,
+    Row, Subscription, Text,
 };
 use std::path::PathBuf;
 

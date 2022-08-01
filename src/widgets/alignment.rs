@@ -1,8 +1,10 @@
 use crate::data::Alignment;
+use iced::pure::widget::canvas::{
+    self, path::Builder, Cache, Canvas, Cursor, Frame, Geometry, Path, Program,
+};
+use iced::pure::Element;
 use iced::{Length, Point, Rectangle};
 use log::trace;
-use iced::pure::Element;
-use iced::pure::widget::canvas::{self, path::Builder, Cache, Canvas, Cursor, Frame, Geometry, Path, Program};
 
 // TODO Good candidate for the Component trait ?
 pub struct AlignmentWidget {
@@ -37,7 +39,6 @@ impl AlignmentWidget {
 }
 
 impl<'a> Program<Message> for AlignmentWidget {
-
     type State = ();
 
     fn draw(&self, _state: &(), bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {

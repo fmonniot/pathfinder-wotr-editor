@@ -3,7 +3,10 @@ use super::{alignment, LabelledInputNumber};
 use crate::data::Character;
 use crate::json::{Id, JsonPatch};
 use crate::widgets::AlignmentWidget;
-use iced::{Alignment, Column, Command, Container, Element, Length, Row, pure::{self, Pure}};
+use iced::{
+    pure::{self, Pure},
+    Alignment, Column, Command, Container, Element, Length, Row,
+};
 
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
@@ -312,7 +315,8 @@ impl CharacterWidget {
             .push(combat_stats)
             .push(skills_stats);
 
-        let alignment_wheel: Element<alignment::Message> = Pure::new(&mut self.state, self.alignment.view()).into();
+        let alignment_wheel: Element<alignment::Message> =
+            Pure::new(&mut self.state, self.alignment.view()).into();
 
         Container::new(
             Column::new()
