@@ -89,6 +89,7 @@ impl EditorWidget {
                 Command::none()
             }
             Message(Msg::SavingResult(res)) => {
+                // TODO Keep the progress bar on fail (and change its color) ?
                 match *res {
                     Ok(()) => log::debug!("Save Game modified successfully"),
                     Err(err) => log::error!("Saving save game failed: {:?}", err),
