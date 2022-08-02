@@ -1,7 +1,7 @@
 use super::input::InputChange;
 use super::{alignment, LabelledInputNumber};
 use crate::data::Character;
-use crate::json::{Id, JsonPatch};
+use crate::json::{Id, JsonPatch, JsonPointer};
 use crate::widgets::AlignmentWidget;
 use iced::{
     pure::{self, Pure},
@@ -19,6 +19,10 @@ enum Msg {
         entity_id: Field,
         value: String,
     },
+    StatisticModifiedNew {
+        field: Field,
+        value: u64,
+    },
     AlignmentWheel(alignment::Message),
 }
 
@@ -31,7 +35,7 @@ impl Msg {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(clippy::upper_case_acronyms)]
 enum Field {
     // Abilities
@@ -105,8 +109,8 @@ impl std::fmt::Display for Field {
 }
 
 impl Field {
-    fn build_view(self, character: &Character) -> LabelledInputNumber<Field, u64> {
-        let stat_key = match self {
+    fn stat_key(&self) -> Option<&str> {
+        match self {
             Field::Strength => Some("Strength"),
             Field::Dexterity => Some("Dexterity"),
             Field::Constitution => Some("Constitution"),
@@ -135,7 +139,11 @@ impl Field {
             Field::UseMagicDevice => Some("SkillUseMagicDevice"),
             Field::Experience => None,
             Field::MythicExperience => None,
-        };
+        }
+    }
+
+    fn build_view(self, character: &Character) -> LabelledInputNumber<Field, u64> {
+        let stat_key = self.stat_key();
 
         match stat_key {
             Some(key) => {
@@ -176,6 +184,92 @@ impl Field {
     }
 }
 
+struct FieldValue {
+    field: Field,
+    value: u64,
+    disabled: bool,
+    id: Id,
+    ptr: JsonPointer,
+}
+
+impl FieldValue {
+    fn from_field(character: &Character, field: Field) -> FieldValue {
+        let (value, disabled, id, ptr) = match field.stat_key() {
+            Some(key) => {
+                let stat = character.find_stat(key).unwrap();
+
+                let id = stat.id.clone();
+                let ptr = "/m_BaseValue".into();
+
+                if let Some(base_value) = stat.base_value {
+                    (base_value, false, id, ptr)
+                } else {
+                    (0, true, id, ptr)
+                }
+            }
+            None => match field {
+                Field::Experience => (
+                    character.experience,
+                    false,
+                    character.id.clone(),
+                    "/Descriptor/Progression/Experience".into(),
+                ),
+                Field::MythicExperience => {
+                    let id = character.id.clone();
+                    let ptr = "/Descriptor/Progression/MythicExperience".into();
+
+                    if let Some(xp) = character.mythic_experience {
+                        (xp, false, id, ptr)
+                    } else {
+                        (0, true, id, ptr)
+                    }
+                }
+                _ => panic!(
+                    "A field ({:?}) was not matched when building its view, please report",
+                    field
+                ),
+            },
+        };
+
+        FieldValue {
+            field,
+            value,
+            disabled,
+            id,
+            ptr,
+        }
+    }
+
+    fn change(&self) -> JsonPatch {
+        if self.disabled {
+            JsonPatch::None
+        } else {
+            JsonPatch::id_at_pointer(
+                self.id.clone(),
+                self.ptr.clone(),
+                serde_json::to_value(self.value).unwrap(),
+            )
+        }
+    }
+
+    fn view(&self) -> super::input::pure::LabelledInputNumber<u64, Message> {
+        let field = self.field;
+
+        super::input::pure::labelled_input_number(
+            self.field.to_string(),
+            self.value,
+            self.id.clone(),
+            self.ptr.clone(),
+            move |new_value| {
+                Message(Msg::StatisticModifiedNew {
+                    field: field.clone(),
+                    value: new_value,
+                })
+            },
+        )
+    }
+}
+
 /*
   We have a few more fields we don't display on the UI at the moment
   - "AdditionalDamage",
@@ -191,7 +285,10 @@ impl Field {
 */
 pub struct CharacterWidget {
     pub id: Id,
-    state: pure::State,
+
+    // tmp state, while we move to iced::pure
+    state_1: pure::State,
+    state_2: pure::State,
 
     // Abilities
     strength: LabelledInputNumber<Field, u64>,
@@ -223,9 +320,11 @@ pub struct CharacterWidget {
     perception: LabelledInputNumber<Field, u64>,
     persuasion: LabelledInputNumber<Field, u64>,
     magic_device: LabelledInputNumber<Field, u64>,
+
     // Experience points
-    experience: LabelledInputNumber<Field, u64>,
+    experience: FieldValue,
     mythic_experience: LabelledInputNumber<Field, u64>,
+
     // Alignment
     alignment: AlignmentWidget,
 }
@@ -234,8 +333,9 @@ impl CharacterWidget {
     pub fn new(character: &Character) -> CharacterWidget {
         CharacterWidget {
             id: character.id.clone(),
-            state: pure::State::new(),
-            experience: Field::Experience.build_view(character),
+            state_1: pure::State::new(),
+            state_2: pure::State::new(),
+            experience: FieldValue::from_field(&character, Field::Experience),
             mythic_experience: Field::MythicExperience.build_view(character),
             strength: Field::Strength.build_view(character),
             dexterity: Field::Dexterity.build_view(character),
@@ -268,11 +368,19 @@ impl CharacterWidget {
     }
 
     pub fn view(&mut self) -> Element<Message> {
+        let char_xp: Element<_> = Pure::new(
+            &mut self.state_1,
+            iced_lazy::pure::component(self.experience.view()),
+        )
+        .into();
+
+        let myth_xp: Element<_> = self.mythic_experience.view().map(Msg::statistic_modified);
+
         let main_stats = Row::new()
             .width(Length::Fill)
             .align_items(Alignment::Center)
-            .push(self.experience.view().map(Msg::statistic_modified))
-            .push(self.mythic_experience.view().map(Msg::statistic_modified));
+            .push(myth_xp)
+            .push(char_xp);
 
         let abilities_stats = Column::new()
             .width(Length::FillPortion(1))
@@ -316,7 +424,7 @@ impl CharacterWidget {
             .push(skills_stats);
 
         let alignment_wheel: Element<alignment::Message> =
-            Pure::new(&mut self.state, self.alignment.view()).into();
+            Pure::new(&mut self.state_2, self.alignment.view()).into();
 
         Container::new(
             Column::new()
@@ -339,6 +447,9 @@ impl CharacterWidget {
                 if let Ok(n) = value.parse::<u64>() {
                     self.stat_view_for_field(&entity_id).value = n;
                 }
+            }
+            Message(Msg::StatisticModifiedNew { field, value }) => {
+                self.stat_view_for_field(&field).value = value;
             }
             Message(Msg::AlignmentWheel(_m)) => {
                 // TODO Will be used when integrating drag & drop for the alignment pin

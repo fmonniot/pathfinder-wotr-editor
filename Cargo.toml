@@ -10,6 +10,8 @@ resolver = "2"
 [dependencies]
 iced = { version = "0.4", features = ["tokio", "canvas", "pure"] }
 iced_native = { version = "0.5", features = [] }
+iced_lazy = { version = "0.1", features = ["pure"] }
+iced_pure = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 tinyfiledialogs = "3.9"

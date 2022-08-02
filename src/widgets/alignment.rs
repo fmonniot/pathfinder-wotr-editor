@@ -6,7 +6,6 @@ use iced::pure::Element;
 use iced::{Length, Point, Rectangle};
 use log::trace;
 
-// TODO Good candidate for the Component trait ?
 pub struct AlignmentWidget {
     // data
     alignment: Alignment,
