@@ -62,23 +62,6 @@ mod impure {
             }
         }
 
-        pub fn disabled(
-            discriminator: D,
-            value: V,
-            id: Id,
-            ptr: JsonPointer,
-        ) -> LabelledInputNumber<D, V> {
-            LabelledInputNumber {
-                id,
-                ptr,
-                discriminator,
-                value,
-                text_input: text_input::State::new(),
-                label_input: text_input::State::new(),
-                disabled: true,
-            }
-        }
-
         pub fn view(&mut self) -> Element<InputChange<D>> {
             let label = self.discriminator.to_string();
             let discriminator = self.discriminator.clone();
@@ -131,7 +114,6 @@ mod impure {
 }
 
 pub mod pure {
-    use crate::json::{Id, JsonPatch, JsonPointer};
     use crate::styles;
     use iced::pure::{row, text_input};
     use iced::Length;
@@ -145,8 +127,6 @@ pub mod pure {
     pub fn labelled_input_number<V, Message>(
         label: String,
         value: V,
-        id: Id,
-        ptr: JsonPointer,
         on_change: impl Fn(V) -> Message + 'static,
     ) -> LabelledInputNumber<V, Message>
     where
@@ -154,8 +134,6 @@ pub mod pure {
     {
         LabelledInputNumber {
             label,
-            id,
-            ptr,
             value,
             on_change: Box::new(on_change),
             disabled: false,
@@ -164,32 +142,15 @@ pub mod pure {
 
     pub struct LabelledInputNumber<V, Message> {
         label: String,
-        id: Id,
-        ptr: JsonPointer,
         pub value: V,
         on_change: Box<dyn Fn(V) -> Message>,
         disabled: bool,
     }
 
     impl<V, Message> LabelledInputNumber<V, Message> {
-        fn disabled(mut self) -> Self {
+        pub fn disabled(mut self) -> Self {
             self.disabled = true;
             self
-        }
-
-        pub fn change(&self) -> JsonPatch
-        where
-            V: Copy + Serialize,
-        {
-            if self.disabled {
-                JsonPatch::None
-            } else {
-                JsonPatch::id_at_pointer(
-                    self.id.clone(),
-                    self.ptr.clone(),
-                    serde_json::to_value(self.value).unwrap(),
-                )
-            }
         }
     }
 

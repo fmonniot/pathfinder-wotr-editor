@@ -1,11 +1,10 @@
-use super::input::InputChange;
-use super::{alignment, LabelledInputNumber};
+use super::alignment;
 use crate::data::Character;
 use crate::json::{Id, JsonPatch, JsonPointer};
 use crate::widgets::AlignmentWidget;
 use iced::{
-    pure::{self, Pure},
-    Alignment, Column, Command, Container, Element, Length, Row,
+    pure::{self, column, container, row, Pure},
+    Alignment, Command, Element, Length,
 };
 
 #[derive(Debug, Clone)]
@@ -14,25 +13,11 @@ pub struct Message(Msg);
 #[derive(Debug, Clone)]
 enum Msg {
     /// Emitted when a Msg is required but nothing should be done
-    Nothing,
     StatisticModified {
-        entity_id: Field,
-        value: String,
-    },
-    StatisticModifiedNew {
         field: Field,
         value: u64,
     },
     AlignmentWheel(alignment::Message),
-}
-
-impl Msg {
-    fn statistic_modified(change: InputChange<Field>) -> Message {
-        Message(change.map_or_else(
-            || Msg::Nothing,
-            |entity_id, value| Msg::StatisticModified { entity_id, value },
-        ))
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -141,47 +126,6 @@ impl Field {
             Field::MythicExperience => None,
         }
     }
-
-    fn build_view(self, character: &Character) -> LabelledInputNumber<Field, u64> {
-        let stat_key = self.stat_key();
-
-        match stat_key {
-            Some(key) => {
-                let stat = character.find_stat(key).unwrap();
-
-                let id = stat.id.clone();
-                let ptr = "/m_BaseValue".into();
-
-                if let Some(base_value) = stat.base_value {
-                    LabelledInputNumber::new(self, base_value, id, ptr)
-                } else {
-                    LabelledInputNumber::disabled(self, 0, id, ptr)
-                }
-            }
-            None => match self {
-                Field::Experience => LabelledInputNumber::new(
-                    self,
-                    character.experience,
-                    character.id.clone(),
-                    "/Descriptor/Progression/Experience".into(),
-                ),
-                Field::MythicExperience => {
-                    let id = character.id.clone();
-                    let ptr = "/Descriptor/Progression/MythicExperience".into();
-
-                    if let Some(xp) = character.mythic_experience {
-                        LabelledInputNumber::new(self, xp, id, ptr)
-                    } else {
-                        LabelledInputNumber::disabled(self, 0, id, ptr)
-                    }
-                }
-                _ => panic!(
-                    "A field ({:?}) was not matched when building its view, please report",
-                    self
-                ),
-            },
-        }
-    }
 }
 
 struct FieldValue {
@@ -252,21 +196,25 @@ impl FieldValue {
         }
     }
 
-    fn view(&self) -> super::input::pure::LabelledInputNumber<u64, Message> {
+    fn view(&self) -> iced::pure::Element<'_, Message> {
         let field = self.field;
 
-        super::input::pure::labelled_input_number(
+        let mut input = super::input::pure::labelled_input_number(
             self.field.to_string(),
             self.value,
-            self.id.clone(),
-            self.ptr.clone(),
             move |new_value| {
-                Message(Msg::StatisticModifiedNew {
+                Message(Msg::StatisticModified {
                     field: field.clone(),
                     value: new_value,
                 })
             },
-        )
+        );
+
+        if self.disabled {
+            input = input.disabled();
+        }
+
+        iced_lazy::pure::component(input)
     }
 }
 
@@ -287,43 +235,42 @@ pub struct CharacterWidget {
     pub id: Id,
 
     // tmp state, while we move to iced::pure
-    state_1: pure::State,
-    state_2: pure::State,
+    pure_state: pure::State,
 
     // Abilities
-    strength: LabelledInputNumber<Field, u64>,
-    dexterity: LabelledInputNumber<Field, u64>,
-    constitution: LabelledInputNumber<Field, u64>,
-    intelligence: LabelledInputNumber<Field, u64>,
-    wisdom: LabelledInputNumber<Field, u64>,
-    charisma: LabelledInputNumber<Field, u64>,
+    strength: FieldValue,
+    dexterity: FieldValue,
+    constitution: FieldValue,
+    intelligence: FieldValue,
+    wisdom: FieldValue,
+    charisma: FieldValue,
     // Combat stats
-    cmb: LabelledInputNumber<Field, u64>,
-    cmd: LabelledInputNumber<Field, u64>,
-    ac: LabelledInputNumber<Field, u64>,
-    bab: LabelledInputNumber<Field, u64>,
-    hp: LabelledInputNumber<Field, u64>,
-    initiative: LabelledInputNumber<Field, u64>,
+    cmb: FieldValue,
+    cmd: FieldValue,
+    ac: FieldValue,
+    bab: FieldValue,
+    hp: FieldValue,
+    initiative: FieldValue,
     // Saves
-    save_fortitude: LabelledInputNumber<Field, u64>,
-    save_reflex: LabelledInputNumber<Field, u64>,
-    save_will: LabelledInputNumber<Field, u64>,
+    save_fortitude: FieldValue,
+    save_reflex: FieldValue,
+    save_will: FieldValue,
     // Skills
-    athletics: LabelledInputNumber<Field, u64>,
-    mobility: LabelledInputNumber<Field, u64>,
-    thievery: LabelledInputNumber<Field, u64>,
-    stealth: LabelledInputNumber<Field, u64>,
-    arcana: LabelledInputNumber<Field, u64>,
-    world: LabelledInputNumber<Field, u64>,
-    nature: LabelledInputNumber<Field, u64>,
-    religion: LabelledInputNumber<Field, u64>,
-    perception: LabelledInputNumber<Field, u64>,
-    persuasion: LabelledInputNumber<Field, u64>,
-    magic_device: LabelledInputNumber<Field, u64>,
+    athletics: FieldValue,
+    mobility: FieldValue,
+    thievery: FieldValue,
+    stealth: FieldValue,
+    arcana: FieldValue,
+    world: FieldValue,
+    nature: FieldValue,
+    religion: FieldValue,
+    perception: FieldValue,
+    persuasion: FieldValue,
+    magic_device: FieldValue,
 
     // Experience points
     experience: FieldValue,
-    mythic_experience: LabelledInputNumber<Field, u64>,
+    mythic_experience: FieldValue,
 
     // Alignment
     alignment: AlignmentWidget,
@@ -333,122 +280,109 @@ impl CharacterWidget {
     pub fn new(character: &Character) -> CharacterWidget {
         CharacterWidget {
             id: character.id.clone(),
-            state_1: pure::State::new(),
-            state_2: pure::State::new(),
+            pure_state: pure::State::new(),
             experience: FieldValue::from_field(&character, Field::Experience),
-            mythic_experience: Field::MythicExperience.build_view(character),
-            strength: Field::Strength.build_view(character),
-            dexterity: Field::Dexterity.build_view(character),
-            constitution: Field::Constitution.build_view(character),
-            intelligence: Field::Intelligence.build_view(character),
-            wisdom: Field::Wisdom.build_view(character),
-            charisma: Field::Charisma.build_view(character),
-            cmb: Field::CMB.build_view(character),
-            cmd: Field::CMD.build_view(character),
-            ac: Field::ArmorClass.build_view(character),
-            bab: Field::BaseAttackBonus.build_view(character),
-            hp: Field::HitPoints.build_view(character),
-            initiative: Field::Initiative.build_view(character),
-            save_fortitude: Field::SaveFortitude.build_view(character),
-            save_reflex: Field::SaveReflex.build_view(character),
-            save_will: Field::SaveWill.build_view(character),
-            athletics: Field::Athletics.build_view(character),
-            mobility: Field::Mobility.build_view(character),
-            thievery: Field::Thievery.build_view(character),
-            stealth: Field::Stealth.build_view(character),
-            arcana: Field::KnowledgeArcana.build_view(character),
-            world: Field::KnowledgeWorld.build_view(character),
-            nature: Field::LoreNature.build_view(character),
-            religion: Field::LoreReligion.build_view(character),
-            perception: Field::Perception.build_view(character),
-            persuasion: Field::Persuasion.build_view(character),
-            magic_device: Field::UseMagicDevice.build_view(character),
+            mythic_experience: FieldValue::from_field(&character, Field::MythicExperience),
+            strength: FieldValue::from_field(&character, Field::Strength),
+            dexterity: FieldValue::from_field(&character, Field::Dexterity),
+            constitution: FieldValue::from_field(&character, Field::Constitution),
+            intelligence: FieldValue::from_field(&character, Field::Intelligence),
+            wisdom: FieldValue::from_field(&character, Field::Wisdom),
+            charisma: FieldValue::from_field(&character, Field::Charisma),
+            cmb: FieldValue::from_field(&character, Field::CMB),
+            cmd: FieldValue::from_field(&character, Field::CMD),
+            ac: FieldValue::from_field(&character, Field::ArmorClass),
+            bab: FieldValue::from_field(&character, Field::BaseAttackBonus),
+            hp: FieldValue::from_field(&character, Field::HitPoints),
+            initiative: FieldValue::from_field(&character, Field::Initiative),
+            save_fortitude: FieldValue::from_field(&character, Field::SaveFortitude),
+            save_reflex: FieldValue::from_field(&character, Field::SaveReflex),
+            save_will: FieldValue::from_field(&character, Field::SaveWill),
+            athletics: FieldValue::from_field(&character, Field::Athletics),
+            mobility: FieldValue::from_field(&character, Field::Mobility),
+            thievery: FieldValue::from_field(&character, Field::Thievery),
+            stealth: FieldValue::from_field(&character, Field::Stealth),
+            arcana: FieldValue::from_field(&character, Field::KnowledgeArcana),
+            world: FieldValue::from_field(&character, Field::KnowledgeWorld),
+            nature: FieldValue::from_field(&character, Field::LoreNature),
+            religion: FieldValue::from_field(&character, Field::LoreReligion),
+            perception: FieldValue::from_field(&character, Field::Perception),
+            persuasion: FieldValue::from_field(&character, Field::Persuasion),
+            magic_device: FieldValue::from_field(&character, Field::UseMagicDevice),
             alignment: AlignmentWidget::new(character.alignment.clone(), false),
         }
     }
 
     pub fn view(&mut self) -> Element<Message> {
-        let char_xp: Element<_> = Pure::new(
-            &mut self.state_1,
-            iced_lazy::pure::component(self.experience.view()),
-        )
-        .into();
-
-        let myth_xp: Element<_> = self.mythic_experience.view().map(Msg::statistic_modified);
-
-        let main_stats = Row::new()
+        let main_stats = row()
             .width(Length::Fill)
             .align_items(Alignment::Center)
-            .push(myth_xp)
-            .push(char_xp);
+            .push(self.mythic_experience.view())
+            .push(self.experience.view());
 
-        let abilities_stats = Column::new()
+        let abilities_stats = column()
             .width(Length::FillPortion(1))
-            .push(self.strength.view().map(Msg::statistic_modified))
-            .push(self.dexterity.view().map(Msg::statistic_modified))
-            .push(self.constitution.view().map(Msg::statistic_modified))
-            .push(self.intelligence.view().map(Msg::statistic_modified))
-            .push(self.wisdom.view().map(Msg::statistic_modified))
-            .push(self.charisma.view().map(Msg::statistic_modified));
+            .push(self.strength.view())
+            .push(self.dexterity.view())
+            .push(self.constitution.view())
+            .push(self.intelligence.view())
+            .push(self.wisdom.view())
+            .push(self.charisma.view());
 
-        let combat_stats = Column::new()
+        let combat_stats = column()
             .width(Length::FillPortion(1))
-            .push(self.cmb.view().map(Msg::statistic_modified))
-            .push(self.cmd.view().map(Msg::statistic_modified))
-            .push(self.ac.view().map(Msg::statistic_modified))
-            .push(self.bab.view().map(Msg::statistic_modified))
-            .push(self.hp.view().map(Msg::statistic_modified))
-            .push(self.initiative.view().map(Msg::statistic_modified))
-            .push(self.save_fortitude.view().map(Msg::statistic_modified))
-            .push(self.save_reflex.view().map(Msg::statistic_modified))
-            .push(self.save_will.view().map(Msg::statistic_modified));
+            .push(self.cmb.view())
+            .push(self.cmd.view())
+            .push(self.ac.view())
+            .push(self.bab.view())
+            .push(self.hp.view())
+            .push(self.initiative.view())
+            .push(self.save_fortitude.view())
+            .push(self.save_reflex.view())
+            .push(self.save_will.view());
 
-        let skills_stats = Column::new()
+        let skills_stats = column()
             .width(Length::FillPortion(1))
-            .push(self.athletics.view().map(Msg::statistic_modified))
-            .push(self.mobility.view().map(Msg::statistic_modified))
-            .push(self.thievery.view().map(Msg::statistic_modified))
-            .push(self.stealth.view().map(Msg::statistic_modified))
-            .push(self.arcana.view().map(Msg::statistic_modified))
-            .push(self.world.view().map(Msg::statistic_modified))
-            .push(self.nature.view().map(Msg::statistic_modified))
-            .push(self.religion.view().map(Msg::statistic_modified))
-            .push(self.perception.view().map(Msg::statistic_modified))
-            .push(self.persuasion.view().map(Msg::statistic_modified))
-            .push(self.magic_device.view().map(Msg::statistic_modified));
+            .push(self.athletics.view())
+            .push(self.mobility.view())
+            .push(self.thievery.view())
+            .push(self.stealth.view())
+            .push(self.arcana.view())
+            .push(self.world.view())
+            .push(self.nature.view())
+            .push(self.religion.view())
+            .push(self.perception.view())
+            .push(self.persuasion.view())
+            .push(self.magic_device.view());
 
-        let statistics = Row::new()
+        let statistics = row()
             .spacing(25)
             .push(abilities_stats)
             .push(combat_stats)
             .push(skills_stats);
 
-        let alignment_wheel: Element<alignment::Message> =
-            Pure::new(&mut self.state_2, self.alignment.view()).into();
-
-        Container::new(
-            Column::new()
+        let container = container(
+            column()
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .padding(10)
                 .push(main_stats)
                 .push(statistics)
-                .push(alignment_wheel.map(|m| Message(Msg::AlignmentWheel(m))))
+                .push(
+                    self.alignment
+                        .view()
+                        .map(|m| Message(Msg::AlignmentWheel(m))),
+                )
                 .push(iced::widget::Space::new(Length::Fill, Length::Fill)),
         )
-        .style(crate::styles::MainPane)
-        .into()
+        .style(crate::styles::MainPane);
+
+        Pure::new(&mut self.pure_state, container).into()
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message(Msg::Nothing) => (),
-            Message(Msg::StatisticModified { entity_id, value }) => {
-                if let Ok(n) = value.parse::<u64>() {
-                    self.stat_view_for_field(&entity_id).value = n;
-                }
-            }
-            Message(Msg::StatisticModifiedNew { field, value }) => {
+            Message(Msg::StatisticModified { field, value }) => {
                 self.stat_view_for_field(&field).value = value;
             }
             Message(Msg::AlignmentWheel(_m)) => {
@@ -491,7 +425,7 @@ impl CharacterWidget {
         ]
     }
 
-    fn stat_view_for_field(&mut self, field: &Field) -> &mut LabelledInputNumber<Field, u64> {
+    fn stat_view_for_field(&mut self, field: &Field) -> &mut FieldValue {
         match field {
             Field::Strength => &mut self.strength,
             Field::Dexterity => &mut self.dexterity,
