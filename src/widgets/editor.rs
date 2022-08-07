@@ -1,20 +1,19 @@
-use crate::data::{Party, Player};
+use crate::data::{Character, Party, Player};
 use crate::json::Id;
 use crate::save::{SaveError, SaveNotifications, SavingSaveGame, SavingStep};
 use crate::styles::{self, BOOKLETTER_1911, CALIGHRAPHIC_FONT};
 use crate::widgets::{CharacterMessage, CharacterWidget, PlayerMessage, PlayerWidget};
 use iced::{
-    alignment, button, Alignment, Button, Column, Command, Container, Element, Length, ProgressBar,
-    Row, Subscription, Text,
+    alignment,
+    pure::{self, button, column, container, progress_bar, row, text, Pure},
+    Alignment, Command, Element, Length, Subscription,
 };
 use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
 
-
-
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 enum Pane {
     Party,
     Crusade,
@@ -32,31 +31,36 @@ enum Msg {
 }
 
 pub struct EditorWidget {
+    pure_state: pure::State,
+
     archive_path: PathBuf,
-    pane_selector: PaneSelector,
-    character_selector: CharacterSelector,
+    characters: Vec<Character>,
     active_character: Id,
-    characters: Vec<CharacterWidget>,
-    player_widget: PlayerWidget,
+    active_pane: Pane,
     saving: Option<SaveNotifications>,
     save_progress: Option<SavingStep>,
+
+    character_widgets: Vec<CharacterWidget>,
+    player_widget: PlayerWidget,
 }
 
 impl EditorWidget {
     pub fn new(archive_path: PathBuf, party: Party, player: Player) -> EditorWidget {
-        let character_selector = CharacterSelector::new(&party.characters);
         let active_character = party.characters.first().unwrap().id.clone();
-        let characters = party.characters.iter().map(CharacterWidget::new).collect();
+        let character_widgets = party.characters.iter().map(CharacterWidget::new).collect();
 
         EditorWidget {
+            pure_state: pure::State::new(),
+
             archive_path,
-            pane_selector: PaneSelector::new(),
-            character_selector,
+            characters: party.characters,
             active_character,
-            characters,
-            player_widget: PlayerWidget::new(&player),
+            active_pane: Pane::Party,
             saving: None,
             save_progress: None,
+
+            character_widgets,
+            player_widget: PlayerWidget::new(&player),
         }
     }
 
@@ -66,7 +70,10 @@ impl EditorWidget {
             Message(Msg::ChangeActivePane(Pane::Save)) => {
                 let (saving, receiver) = SavingSaveGame::new(
                     self.player_widget.patches(),
-                    self.characters.iter().flat_map(|c| c.patches()).collect(),
+                    self.character_widgets
+                        .iter()
+                        .flat_map(|c| c.patches())
+                        .collect(),
                     self.archive_path.clone(),
                 );
                 self.saving = Some(receiver);
@@ -76,12 +83,11 @@ impl EditorWidget {
                 })
             }
             Message(Msg::ChangeActivePane(new_pane)) => {
-                self.pane_selector.active = new_pane;
+                self.active_pane = new_pane;
                 Command::none()
             }
             Message(Msg::SwitchCharacter(active_character_id)) => {
-                self.active_character = active_character_id.clone();
-                self.character_selector.active_character_id = active_character_id;
+                self.active_character = active_character_id;
 
                 Command::none()
             }
@@ -116,44 +122,48 @@ impl EditorWidget {
     fn active_character_mut(&mut self) -> &mut CharacterWidget {
         let a = self.active_character.clone();
 
-        self.characters.iter_mut().find(|c| c.id == a).unwrap()
+        self.character_widgets
+            .iter_mut()
+            .find(|c| c.id == a)
+            .unwrap()
     }
 
     pub fn view(&mut self) -> Element<Message> {
-        match self.pane_selector.active {
+        let mut container = row().push(pane_selector(self.active_pane, self.save_progress));
+
+        match self.active_pane {
             Pane::Party => {
                 let a = self.active_character.clone();
 
                 // we unfortunately cannot use `active_character_mut` here because
                 // if we do we would borrow self multiple time (for some reason)
                 let character = self
-                    .characters
+                    .character_widgets
                     .iter_mut()
                     .find(|c| c.id == a)
                     .unwrap()
                     .view()
                     .map(|msg| Message(Msg::CharacterMessage(msg)));
 
-                Row::new()
-                    .push(self.pane_selector.view(self.save_progress))
-                    .push(self.character_selector.view())
-                    .push(character)
-                    .into()
+                container = container
+                    .push(character_selector(&self.characters, &self.active_character))
+                    .push(character);
             }
 
-            Pane::Crusade => Row::new()
-                .push(self.pane_selector.view(self.save_progress))
-                .push(
+            Pane::Crusade => {
+                container = container.push(
                     self.player_widget
                         .view()
                         .map(|msg| Message(Msg::Player(msg))),
                 )
-                .into(),
+            }
 
             Pane::Save => {
                 unreachable!("Save is a hack for the time being and should not be reached")
             }
-        }
+        };
+
+        Pure::new(&mut self.pure_state, container).into()
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -166,122 +176,96 @@ impl EditorWidget {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-struct PaneSelector {
-    party_button: button::State,
-    crusade_button: button::State,
-    save_button: button::State,
+fn pane_selector(
     active: Pane,
-}
+    save_progress: Option<SavingStep>,
+) -> iced::pure::Element<'static, Message> {
+    let build_tile = |label: &'static str, message: Message, is_active| {
+        let txt = text(label)
+            .font(CALIGHRAPHIC_FONT)
+            .size(30)
+            .horizontal_alignment(alignment::Horizontal::Center)
+            .vertical_alignment(alignment::Vertical::Center);
 
-impl PaneSelector {
-    fn new() -> PaneSelector {
-        PaneSelector {
-            party_button: button::State::new(),
-            crusade_button: button::State::new(),
-            save_button: button::State::new(),
-            active: Pane::Party,
-        }
-    }
+        button(txt)
+            .on_press(message)
+            .width(Length::from(100))
+            .height(Length::from(80))
+            .padding(1)
+            .style(if is_active {
+                styles::PaneSelectorButton::Selected
+            } else {
+                styles::PaneSelectorButton::Inactive
+            })
+    };
 
-    fn view(&mut self, save_progress: Option<SavingStep>) -> Element<Message> {
-        let item = |pane, state, active| {
-            let label = match pane {
-                Pane::Party => "Party",
-                Pane::Crusade => "Crusade",
-                Pane::Save => "Save",
-            };
-
-            let is_active = &pane == active;
-
-            let txt = Text::new(label)
-                .font(CALIGHRAPHIC_FONT)
-                .size(30)
-                .horizontal_alignment(alignment::Horizontal::Center)
-                .vertical_alignment(alignment::Vertical::Center);
-
-            Button::new(state, txt)
-                .on_press(Message(Msg::ChangeActivePane(pane)))
-                .width(Length::from(100))
-                .height(Length::from(80))
-                .padding(1)
-                .style(if is_active {
-                    styles::PaneSelectorButton::Selected
-                } else {
-                    styles::PaneSelectorButton::Inactive
-                })
+    let go_to_pane = |target| {
+        let label = match target {
+            Pane::Party => "Party",
+            Pane::Crusade => "Crusade",
+            Pane::Save => "Save",
         };
 
-        let mut layout = Column::new()
-            .align_items(Alignment::Start)
-            .push(item(Pane::Party, &mut self.party_button, &self.active))
-            .push(item(Pane::Crusade, &mut self.crusade_button, &self.active))
-            .push(item(Pane::Save, &mut self.save_button, &self.active));
+        let is_active = target == active;
 
-        if let Some(step) = save_progress {
-            let bar = ProgressBar::new(SavingStep::steps_range(), step.number())
-                .width(Length::from(100))
-                .height(Length::from(10))
-                .style(styles::PaneSelectorSurface);
+        build_tile(label, Message(Msg::ChangeActivePane(target)), is_active)
+    };
 
-            layout = layout.push(bar);
-        }
+    let mut layout = column()
+        .align_items(Alignment::Start)
+        .push(go_to_pane(Pane::Party))
+        .push(go_to_pane(Pane::Crusade))
+        .push(build_tile(
+            "Save",
+            Message(Msg::ChangeActivePane(Pane::Save)),
+            false,
+        ));
 
-        Container::new(layout)
-            .height(Length::Fill)
-            .style(styles::PaneSelectorSurface)
-            .into()
+    if let Some(step) = save_progress {
+        let bar = progress_bar(SavingStep::steps_range(), step.number())
+            .width(Length::from(100))
+            .height(Length::from(10))
+            .style(styles::PaneSelectorSurface);
+
+        layout = layout.push(bar);
     }
+
+    container(layout)
+        .height(Length::Fill)
+        .style(styles::PaneSelectorSurface)
+        .into()
 }
 
-struct CharacterSelector {
-    characters: Vec<(button::State, String, Id)>, // (state, name, id)
-    active_character_id: Id,
-}
+fn character_selector<'a>(
+    characters: &[Character],
+    active_character_id: &Id,
+) -> iced::pure::Element<'a, Message> {
+    let mut col = column().width(Length::from(150)).height(Length::Fill);
 
-impl CharacterSelector {
-    fn new(characters: &[crate::data::Character]) -> CharacterSelector {
-        let characters = characters
-            .iter()
-            .map(|c| (button::State::new(), c.name(), c.id.clone()))
-            .collect::<Vec<_>>();
+    for character in characters {
+        let active = character.id == *active_character_id;
 
-        let active_character_id = characters.first().unwrap().2.clone();
+        let text = text(character.name())
+            .font(BOOKLETTER_1911)
+            .size(30)
+            .vertical_alignment(alignment::Vertical::Center)
+            .horizontal_alignment(alignment::Horizontal::Left);
 
-        CharacterSelector {
-            characters,
-            active_character_id,
-        }
+        let button = button(text)
+            .on_press(Message(Msg::SwitchCharacter(character.id.clone())))
+            .width(Length::Fill)
+            .style(if active {
+                styles::SecondaryMenuItem::Selected
+            } else {
+                styles::SecondaryMenuItem::Inactive
+            })
+            .padding(10);
+
+        col = col.push(button);
     }
 
-    fn view(&mut self) -> Element<Message> {
-        let mut characters = Column::new().width(Length::from(150)).height(Length::Fill);
-
-        for (ref mut state, ref name, id) in &mut self.characters {
-            let active = id == &self.active_character_id;
-
-            let text = Text::new(name)
-                .font(BOOKLETTER_1911)
-                .size(30)
-                .vertical_alignment(alignment::Vertical::Center)
-                .horizontal_alignment(alignment::Horizontal::Left);
-
-            let button = Button::new(state, text)
-                .on_press(Message(Msg::SwitchCharacter(id.clone())))
-                .width(Length::Fill)
-                .style(if active {
-                    styles::SecondaryMenuItem::Selected
-                } else {
-                    styles::SecondaryMenuItem::Inactive
-                })
-                .padding(10);
-
-            characters = characters.push(button);
-        }
-
-        Container::new(characters)
-            .style(styles::SecondaryMenuSurface)
-            .height(Length::Fill)
-            .into()
-    }
+    container(col)
+        .style(styles::SecondaryMenuSurface)
+        .height(Length::Fill)
+        .into()
 }

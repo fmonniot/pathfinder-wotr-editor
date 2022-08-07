@@ -2,10 +2,10 @@ use super::input::labelled_input_number;
 use crate::data::{Army, KingdomResources, Player, Squad};
 use crate::json::{Id, JsonPatch};
 use crate::styles;
-use iced::pure::{
-    self, column, container, row, text, widget::Row as PureRow, widget::Space as PureSpace, Pure,
+use iced::{
+    pure::{column, container, row, text, widget::Row, widget::Space, Element},
+    Command, Length,
 };
-use iced::{Command, Element, Length};
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
@@ -47,7 +47,6 @@ impl Display for KingdomResourcesField {
 }
 
 pub struct PlayerWidget {
-    pure_state: pure::State,
     player_id: Id,
     money: u64,
     resources: Option<KingdomResourcesState>,
@@ -60,7 +59,6 @@ impl PlayerWidget {
         let armies = player.armies.iter().map(ArmyState::from).collect();
 
         PlayerWidget {
-            pure_state: pure::State::new(),
             player_id: player.id.clone(),
             money: player.money,
             resources: player
@@ -110,12 +108,11 @@ impl PlayerWidget {
             .push(text("Armies"))
             .push(armies);
 
-        let container = container(layout)
+        container(layout)
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(styles::MainPane);
-
-        Pure::new(&mut self.pure_state, container).into()
+            .style(styles::MainPane)
+            .into()
     }
 
     fn update_resource(
@@ -205,8 +202,8 @@ where
             None => break,
             Some(el1) => {
                 let el2 =
-                    second.unwrap_or_else(|| PureSpace::new(Length::Fill, Length::from(1)).into());
-                columns = columns.push(PureRow::with_children(vec![el1, el2]))
+                    second.unwrap_or_else(|| Space::new(Length::Fill, Length::from(1)).into());
+                columns = columns.push(Row::with_children(vec![el1, el2]))
             }
         }
     }

@@ -4,8 +4,8 @@ use crate::data::Character;
 use crate::json::{Id, JsonPatch, JsonPointer};
 use crate::widgets::AlignmentWidget;
 use iced::{
-    pure::{self, column, container, row, Pure},
-    Alignment, Command, Element, Length,
+    pure::{column, container, row, Element},
+    Alignment, Command, Length,
 };
 
 #[derive(Debug, Clone)]
@@ -200,13 +200,9 @@ impl FieldValue {
     fn view(&self) -> iced::pure::Element<'_, Message> {
         let field = self.field;
 
-        let mut input =
-            labelled_input_number(self.field.to_string(), self.value, move |value| {
-                Message(Msg::StatisticModified {
-                    field,
-                    value,
-                })
-            });
+        let mut input = labelled_input_number(self.field.to_string(), self.value, move |value| {
+            Message(Msg::StatisticModified { field, value })
+        });
 
         if self.disabled {
             input = input.disabled();
@@ -231,9 +227,6 @@ impl FieldValue {
 */
 pub struct CharacterWidget {
     pub id: Id,
-
-    // tmp state, while we move to iced::pure
-    pure_state: pure::State,
 
     // Abilities
     strength: FieldValue,
@@ -278,7 +271,6 @@ impl CharacterWidget {
     pub fn new(character: &Character) -> CharacterWidget {
         CharacterWidget {
             id: character.id.clone(),
-            pure_state: pure::State::new(),
             experience: FieldValue::from_field(character, Field::Experience),
             mythic_experience: FieldValue::from_field(character, Field::MythicExperience),
             strength: FieldValue::from_field(character, Field::Strength),
@@ -359,7 +351,7 @@ impl CharacterWidget {
             .push(combat_stats)
             .push(skills_stats);
 
-        let container = container(
+        container(
             column()
                 .width(Length::Fill)
                 .height(Length::Fill)
@@ -373,9 +365,8 @@ impl CharacterWidget {
                 )
                 .push(iced::widget::Space::new(Length::Fill, Length::Fill)),
         )
-        .style(crate::styles::MainPane);
-
-        Pure::new(&mut self.pure_state, container).into()
+        .style(crate::styles::MainPane)
+        .into()
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
