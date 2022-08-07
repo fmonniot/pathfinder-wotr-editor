@@ -1,19 +1,25 @@
-use super::input::InputChange;
-use super::LabelledInputNumber;
+use super::input::labelled_input_number;
 use crate::data::{Army, KingdomResources, Player, Squad};
 use crate::json::{Id, JsonPatch};
 use crate::styles;
-use iced::{Column, Command, Container, Element, Length, Row, Space, Text};
-use log::debug;
+use iced::pure::{
+    self, column, container, row, text, widget::Row as PureRow, widget::Space as PureSpace, Pure,
+};
+use iced::{Command, Element, Length};
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
 
+// The clippy warning would be useful if the enum itself would
+// have been named Update something. As it stands, the overall
+// Msg could in theory be something else than a field update.
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone)]
 enum Msg {
-    FieldUpdate(Field, String),
-    Nothing,
+    FieldUpdate(Field, u64),
+    ArmyMovementPointsUpdate(Id, f64), // (army id, new value)
+    ArmySquadUpdate(Id, Id, u64),      // (army id, squad id, new value)
 }
 
 #[derive(Debug, Clone)]
@@ -21,21 +27,9 @@ enum Field {
     Money,
     Resources(KingdomResourcesField),
     ResourcesPerTurn(KingdomResourcesField),
-    Army(Id, ArmyField),
 }
 
-impl Display for Field {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Field::Money => write!(f, "Money"),
-            Field::Resources(res) => write!(f, "{}", res),
-            Field::ResourcesPerTurn(res) => write!(f, "{}", res),
-            Field::Army(_, res) => write!(f, "{}", res),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 enum KingdomResourcesField {
     Finances,
     Materials,
@@ -53,30 +47,30 @@ impl Display for KingdomResourcesField {
 }
 
 pub struct PlayerWidget {
-    money: LabelledInputNumber<Field, u64>,
-    resources: Option<KingdomResourcesWidget>,
-    resources_per_turn: Option<KingdomResourcesWidget>,
-    armies: Vec<ArmyWidget>,
+    pure_state: pure::State,
+    player_id: Id,
+    money: u64,
+    resources: Option<KingdomResourcesState>,
+    resources_per_turn: Option<KingdomResourcesState>,
+    armies: Vec<ArmyState>,
 }
 
 impl PlayerWidget {
     pub fn new(player: &Player) -> PlayerWidget {
-        let armies = player.armies.iter().map(ArmyWidget::new).collect();
+        let armies = player.armies.iter().map(ArmyState::from).collect();
+
         PlayerWidget {
-            money: LabelledInputNumber::new(
-                Field::Money,
-                player.money,
-                player.id.clone(),
-                "/Money".into(),
-            ),
+            pure_state: pure::State::new(),
+            player_id: player.id.clone(),
+            money: player.money,
             resources: player
                 .kingdom
                 .as_ref()
-                .map(|k| KingdomResourcesWidget::new(&k.resources)),
+                .map(|k| KingdomResourcesState::from(&k.resources)),
             resources_per_turn: player
                 .kingdom
                 .as_ref()
-                .map(|k| KingdomResourcesWidget::new(&k.resources_per_turn)),
+                .map(|k| KingdomResourcesState::from(&k.resources_per_turn)),
             armies,
         }
     }
@@ -84,6 +78,12 @@ impl PlayerWidget {
     // TODO We are missing recruits panels
     // TODO We might need a scrollable widget to account for many army blocks
     pub fn view(&mut self) -> Element<Message> {
+        let money = iced_lazy::pure::component(labelled_input_number(
+            "Money",
+            self.money,
+            move |new_value| Message(Msg::FieldUpdate(Field::Money, new_value)),
+        ));
+
         let mut resources = vec![];
         match &mut self.resources {
             Some(res) => {
@@ -103,34 +103,31 @@ impl PlayerWidget {
         let armies = two_columns_layout(self.armies.iter_mut().map(|a| a.view()));
 
         // TODO Make a dedicated function for title (and separator) with nicer style
-        let layout = Column::new()
-            .push(
-                self.money
-                    .view()
-                    .map(|change| Message(change.map_or_else(|| Msg::Nothing, Msg::FieldUpdate))),
-            )
-            .push(Text::new("Resources"))
-            .push(Row::with_children(resources))
-            .push(Text::new("Armies"))
+        let layout = column()
+            .push(money)
+            .push(text("Resources"))
+            //.push(PureRow::with_children(resources))
+            .push(text("Armies"))
             .push(armies);
 
-        Container::new(layout)
+        let container = container(layout)
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(styles::MainPane)
-            .into()
+            .style(styles::MainPane);
+
+        Pure::new(&mut self.pure_state, container).into()
     }
 
     fn update_resource(
-        resources: &mut Option<KingdomResourcesWidget>,
+        resources: &mut Option<KingdomResourcesState>,
         field: &KingdomResourcesField,
         value: u64,
     ) {
         if let Some(ref mut resources) = resources.as_mut() {
             match field {
-                KingdomResourcesField::Finances => resources.finances.value = value,
-                KingdomResourcesField::Materials => resources.materials.value = value,
-                KingdomResourcesField::Favors => resources.favors.value = value,
+                KingdomResourcesField::Finances => resources.finances = value,
+                KingdomResourcesField::Materials => resources.materials = value,
+                KingdomResourcesField::Favors => resources.favors = value,
             };
         }
     }
@@ -138,33 +135,40 @@ impl PlayerWidget {
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message(Msg::FieldUpdate(field, value)) => {
-                if let Ok(value) = value.parse::<u64>() {
-                    match &field {
-                        Field::Money => self.money.value = value,
-                        Field::Resources(res) => {
-                            PlayerWidget::update_resource(&mut self.resources, res, value)
-                        }
-                        Field::ResourcesPerTurn(res) => {
-                            PlayerWidget::update_resource(&mut self.resources_per_turn, res, value)
-                        }
-                        _ => (),
+                match &field {
+                    Field::Money => self.money = value,
+                    Field::Resources(res) => {
+                        PlayerWidget::update_resource(&mut self.resources, res, value)
+                    }
+                    Field::ResourcesPerTurn(res) => {
+                        PlayerWidget::update_resource(&mut self.resources_per_turn, res, value)
                     }
                 };
-
-                if let Field::Army(id, res) = field {
-                    debug!("Finding army to update (id={:?}, field={:?})", id, res);
-                    if let Some(army) = self.armies.iter_mut().find(|a| a.id == id) {
-                        army.update(res, value);
-                    };
-                }
             }
-            Message(Msg::Nothing) => (),
+            Message(Msg::ArmyMovementPointsUpdate(army_id, new_value)) => {
+                if let Some(army) = self.find_army_state(army_id) {
+                    army.movement_points = new_value;
+                };
+            }
+            Message(Msg::ArmySquadUpdate(army_id, squad_id, new_value)) => {
+                if let Some(army) = self.find_army_state(army_id) {
+                    army.update_squad(squad_id, new_value);
+                };
+            }
         }
         Command::none()
     }
 
+    fn find_army_state(&mut self, army_id: Id) -> Option<&mut ArmyState> {
+        self.armies.iter_mut().find(|a| a.army_id == army_id)
+    }
+
     pub fn patches(&self) -> Vec<JsonPatch> {
-        let mut patches = vec![self.money.change()];
+        let mut patches = vec![JsonPatch::id_at_pointer(
+            self.player_id.clone(),
+            "/Money".into(),
+            serde_json::to_value(self.money).unwrap(),
+        )];
 
         if let Some(res) = self.resources.as_ref() {
             patches.append(&mut res.patches());
@@ -182,15 +186,15 @@ impl PlayerWidget {
 /// per row. On the event that children is odd, the latest element will
 /// take half the space of the layout, not the entire width.
 // Should this be moved to a module for generic layouts ?
-fn two_columns_layout<'a, Msg: 'a, I>(children: I) -> Element<'a, Msg>
+fn two_columns_layout<'a, Msg: 'a, I>(children: I) -> iced::pure::Element<'a, Msg>
 where
-    I: Iterator<Item = Element<'a, Msg>>,
+    I: Iterator<Item = iced::pure::Element<'a, Msg>>,
 {
     // TODO Make some optimization in the layout used based on the iterator size
     // e.g. if one/two elements, remove the outer Column
     // let (lower_bound, upper_bound) = children.size_hint(); // how many elements we have to layout
 
-    let mut columns = Column::new();
+    let mut columns = column();
 
     let mut c = children;
     loop {
@@ -201,8 +205,8 @@ where
             None => break,
             Some(el1) => {
                 let el2 =
-                    second.unwrap_or_else(|| Space::new(Length::Fill, Length::from(1)).into());
-                columns = columns.push(Row::with_children(vec![el1, el2]))
+                    second.unwrap_or_else(|| PureSpace::new(Length::Fill, Length::from(1)).into());
+                columns = columns.push(PureRow::with_children(vec![el1, el2]))
             }
         }
     }
@@ -210,188 +214,159 @@ where
     columns.into()
 }
 
-struct KingdomResourcesWidget {
-    finances: LabelledInputNumber<KingdomResourcesField, u64>,
-    materials: LabelledInputNumber<KingdomResourcesField, u64>,
-    favors: LabelledInputNumber<KingdomResourcesField, u64>,
+struct KingdomResourcesState {
+    resources_id: Id,
+    finances: u64,
+    materials: u64,
+    favors: u64,
 }
 
-impl KingdomResourcesWidget {
-    fn new(resources: &KingdomResources) -> KingdomResourcesWidget {
-        KingdomResourcesWidget {
-            finances: LabelledInputNumber::new(
-                KingdomResourcesField::Finances,
-                resources.finances,
-                resources.id.clone(),
-                "m_Finances".into(),
-            ),
-            materials: LabelledInputNumber::new(
-                KingdomResourcesField::Materials,
-                resources.materials,
-                resources.id.clone(),
-                "m_Materials".into(),
-            ),
-            favors: LabelledInputNumber::new(
-                KingdomResourcesField::Favors,
-                resources.favors,
-                resources.id.clone(),
-                "m_Favors".into(),
-            ),
+impl KingdomResourcesState {
+    fn from(resources: &KingdomResources) -> KingdomResourcesState {
+        KingdomResourcesState {
+            resources_id: resources.id.clone(),
+            finances: resources.finances,
+            materials: resources.materials,
+            favors: resources.favors,
         }
     }
 
-    fn view<F>(&mut self, title: &str, f: F) -> Element<Message>
-    where
-        F: 'static + Clone + Fn(KingdomResourcesField) -> Field,
-    {
-        let update = move |i: InputChange<KingdomResourcesField>| {
-            Message(i.map_or_else(|| Msg::Nothing, |id, value| Msg::FieldUpdate(f(id), value)))
+    fn patches(&self) -> Vec<JsonPatch> {
+        let base = |pointer: &str, value| {
+            JsonPatch::id_at_pointer(
+                self.resources_id.clone(),
+                pointer.into(),
+                serde_json::to_value(value).unwrap(),
+            )
         };
 
-        let layout = Column::new()
-            .push(Text::new(title))
-            .push(self.finances.view().map(update.clone()))
-            .push(self.materials.view().map(update.clone()))
-            .push(self.favors.view().map(update));
+        let patches = vec![
+            base("m_Finances", self.finances),
+            base("m_Materials", self.finances),
+            base("m_Favors", self.finances),
+        ];
 
-        Container::new(layout)
+        patches
+    }
+
+    fn view<F>(&self, title: impl Into<String>, build_field: F) -> iced::pure::Element<Message>
+    where
+        F: 'static + Clone + Fn(KingdomResourcesField) -> Field, // TODO is 'static and Clone still required ?
+    {
+        let view = move |field: KingdomResourcesField, value| {
+            let build_field = build_field.clone();
+
+            iced_lazy::pure::component(labelled_input_number(
+                field.to_string(),
+                value,
+                move |new_value| Message(Msg::FieldUpdate(build_field(field), new_value)),
+            ))
+        };
+
+        let layout = column()
+            .push(text(title))
+            .push(view(KingdomResourcesField::Finances, self.finances))
+            .push(view(KingdomResourcesField::Materials, self.materials))
+            .push(view(KingdomResourcesField::Favors, self.favors));
+
+        container(layout)
             .width(Length::Fill)
             .style(styles::MainPane)
             .into()
     }
-
-    fn patches(&self) -> Vec<JsonPatch> {
-        vec![
-            self.finances.change(),
-            self.materials.change(),
-            self.favors.change(),
-        ]
-    }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-enum ArmyField {
-    MovementPoints,
-    Squad(String, Id), // (Unit, $id)
+struct ArmyState {
+    army_id: Id,
+    movement_points: f64,
+    /// A squad is composed of the unit id (a reference to the type
+    /// of id) and a game id (a reference to the unique squad within
+    /// the runtime). It is associated with the number of unit within
+    /// the squad.
+    ///
+    /// TODO Should I introduce a SquadId newtype instead of using a
+    /// string? It would at least make it clearer that
+    /// [Squad::id_to_name()] needs to be used to get a human readable
+    /// name (or rather, newtype could implement the correct [Display]
+    /// for it)
+    squads: Vec<Squad>,
 }
 
-impl Display for ArmyField {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ArmyField::MovementPoints => write!(f, "Movement Points"),
-            ArmyField::Squad(unit, _) => match Squad::id_to_name(unit) {
-                Some(named) => write!(f, "{}", named),
-                None => write!(f, "{}", unit),
-            },
+impl ArmyState {
+    fn from(army: &Army) -> ArmyState {
+        let army_id = army.id.clone();
+        let squads = army.squads.to_vec();
+        let movement_points = army.movement_points;
+
+        ArmyState {
+            army_id,
+            movement_points,
+            squads,
         }
     }
-}
 
-struct ArmyWidget {
-    id: Id,
-    movement_points: LabelledInputNumber<ArmyField, f64>,
-    squads: Vec<LabelledInputNumber<ArmyField, u64>>,
-}
+    fn view(&self) -> iced::pure::Element<Message> {
+        // I don't know of a cleaner pattern to share the same immutable variable with multiple closures.
+        // I feel there should be a simpler pattern than having multiple named variable but that will have
+        // to do for now.
+        let army_id = self.army_id.clone();
+        let common = row().push(iced_lazy::pure::component(labelled_input_number(
+            "Movement Points",
+            self.movement_points,
+            move |v| Message(Msg::ArmyMovementPointsUpdate(army_id.clone(), v)),
+        )));
 
-impl ArmyWidget {
-    fn new(army: &Army) -> ArmyWidget {
-        let squads = army
+        let mut layout = column().push(common);
+
+        for Squad { id, unit, count } in self.squads.iter() {
+            let army_id = self.army_id.clone();
+            let squad_id = id.clone();
+
+            let label = match Squad::id_to_name(unit) {
+                Some(s) => s,
+                None => unit,
+            };
+
+            layout = layout.push(iced_lazy::pure::component(labelled_input_number(
+                label,
+                *count,
+                move |v| Message(Msg::ArmySquadUpdate(army_id.clone(), squad_id.clone(), v)),
+            )));
+        }
+        let inner = container(layout).padding(5).style(ArmyWidgetContainerStyle);
+
+        // Outer container, simulating a margin on inner
+        container(inner).padding(10).width(Length::Fill).into()
+    }
+
+    fn update_squad(&mut self, new_squad_id: Id, new_squad_count: u64) {
+        for mut squad in &mut self.squads {
+            // Looking at the id is enough, as they are unique per
+            // game instance.
+            if squad.id == new_squad_id {
+                squad.count = new_squad_count
+            }
+        }
+    }
+
+    fn patches(&self) -> Vec<JsonPatch> {
+        let mut patches: Vec<_> = self
             .squads
             .iter()
-            .map(|squad| {
-                LabelledInputNumber::new(
-                    ArmyField::Squad(squad.unit.clone(), squad.id.clone()),
-                    squad.count,
-                    squad.id.clone(),
+            .map(|s| {
+                JsonPatch::id_at_pointer(
+                    s.id.clone(),
                     "Count".into(),
+                    serde_json::to_value(s.count).unwrap(),
                 )
             })
             .collect();
 
-        ArmyWidget {
-            id: army.id.clone(),
-            squads,
-            movement_points: LabelledInputNumber::new(
-                ArmyField::MovementPoints,
-                army.movement_points,
-                army.id.clone(),
-                "MovementPoints".into(),
-            ),
-        }
-    }
-
-    fn view(&mut self) -> Element<Message> {
-        // I don't know of a cleaner pattern to share the same immutable variable with multiple closures.
-        // I feel there should be a simpler pattern than having multiple named variable but that will have
-        // to do for now.
-        let id_for_mp = self.id.clone();
-        let common = Row::with_children(vec![
-            // We currently don't have an army name, so we should do like the game and use their order of
-            // apparition to number them. And monitor the game if that changes with further releases.
-            self.movement_points.view().map(move |change| {
-                Message(change.map_or_else(
-                    || Msg::Nothing,
-                    |d, v| Msg::FieldUpdate(Field::Army(id_for_mp.clone(), d), v),
-                ))
-            }),
-        ]);
-
-        let mut layout = Column::new().push(common);
-
-        // Adding the members of the army to the layout
-        // A "squad" is basically the number of a given unit type in the army
-        for squad in &mut self.squads {
-            let id_for_squads = self.id.clone();
-
-            layout = layout.push(squad.view().map(move |change| {
-                Message(change.map_or_else(
-                    || Msg::Nothing,
-                    |d, v| Msg::FieldUpdate(Field::Army(id_for_squads.clone(), d), v),
-                ))
-            }));
-        }
-
-        let inner = Container::new(layout)
-            .padding(5)
-            .style(ArmyWidgetContainerStyle);
-
-        // Outer container, simulating a margin on inner
-        Container::new(inner).padding(10).width(Length::Fill).into()
-    }
-
-    fn update(&mut self, field: ArmyField, value: String) {
-        debug!("ArmyWidget.update(field = {:?}, value = {})", field, value);
-        match field {
-            ArmyField::MovementPoints => {
-                if let Ok(value) = value.parse::<f64>() {
-                    self.movement_points.value = value;
-                }
-            }
-            // TODO Fix this
-            // ArmyField::Squad currently contains the unit_id (incorrectly named squad_id)
-            // We need to use its $id instead. We can also use this $id to generate the patch.
-            // Unit should be kept to be able to display the correct name.
-            ArmyField::Squad(unit_id, squad_id) => {
-                for mut squad in &mut self.squads {
-                    let expected = ArmyField::Squad(unit_id.clone(), squad_id.clone());
-                    debug!(
-                        "Finding correct squad. discriminator={:?}, looking for '{:?}'",
-                        squad.discriminator, expected
-                    );
-                    if squad.discriminator == expected {
-                        if let Ok(value) = value.parse::<u64>() {
-                            squad.value = value;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    fn patches(&self) -> Vec<JsonPatch> {
-        let mut patches = vec![self.movement_points.change()];
-
-        patches.append(&mut self.squads.iter().map(|s| s.change()).collect());
+        patches.push(JsonPatch::id_at_pointer(
+            self.army_id.clone(),
+            "MovementPoints".into(),
+            serde_json::to_value(self.movement_points).unwrap(),
+        ));
 
         patches
     }

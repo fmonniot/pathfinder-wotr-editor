@@ -1,4 +1,4 @@
-pub mod alignment;
+mod alignment;
 mod character;
 mod editor;
 mod input;
@@ -7,7 +7,6 @@ mod player;
 // module building blocks
 use alignment::AlignmentWidget;
 use character::{CharacterWidget, Message as CharacterMessage};
-use input::LabelledInputNumber;
 use player::{Message as PlayerMessage, PlayerWidget};
 
 // exposed components

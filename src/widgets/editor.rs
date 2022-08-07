@@ -12,6 +12,15 @@ use std::path::PathBuf;
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
 
+
+
+#[derive(Debug, Clone, PartialEq)]
+enum Pane {
+    Party,
+    Crusade,
+    Save,
+}
+
 #[derive(Debug, Clone)]
 enum Msg {
     ChangeActivePane(Pane),
@@ -155,13 +164,6 @@ impl EditorWidget {
             None => Subscription::none(),
         }
     }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum Pane {
-    Party,
-    Crusade,
-    Save,
 }
 
 #[derive(Debug, Clone, PartialEq)]

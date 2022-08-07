@@ -1,4 +1,5 @@
 use super::alignment;
+use super::input::labelled_input_number;
 use crate::data::Character;
 use crate::json::{Id, JsonPatch, JsonPointer};
 use crate::widgets::AlignmentWidget;
@@ -199,16 +200,13 @@ impl FieldValue {
     fn view(&self) -> iced::pure::Element<'_, Message> {
         let field = self.field;
 
-        let mut input = super::input::pure::labelled_input_number(
-            self.field.to_string(),
-            self.value,
-            move |new_value| {
+        let mut input =
+            labelled_input_number(self.field.to_string(), self.value, move |value| {
                 Message(Msg::StatisticModified {
-                    field: field.clone(),
-                    value: new_value,
+                    field,
+                    value,
                 })
-            },
-        );
+            });
 
         if self.disabled {
             input = input.disabled();
@@ -281,34 +279,34 @@ impl CharacterWidget {
         CharacterWidget {
             id: character.id.clone(),
             pure_state: pure::State::new(),
-            experience: FieldValue::from_field(&character, Field::Experience),
-            mythic_experience: FieldValue::from_field(&character, Field::MythicExperience),
-            strength: FieldValue::from_field(&character, Field::Strength),
-            dexterity: FieldValue::from_field(&character, Field::Dexterity),
-            constitution: FieldValue::from_field(&character, Field::Constitution),
-            intelligence: FieldValue::from_field(&character, Field::Intelligence),
-            wisdom: FieldValue::from_field(&character, Field::Wisdom),
-            charisma: FieldValue::from_field(&character, Field::Charisma),
-            cmb: FieldValue::from_field(&character, Field::CMB),
-            cmd: FieldValue::from_field(&character, Field::CMD),
-            ac: FieldValue::from_field(&character, Field::ArmorClass),
-            bab: FieldValue::from_field(&character, Field::BaseAttackBonus),
-            hp: FieldValue::from_field(&character, Field::HitPoints),
-            initiative: FieldValue::from_field(&character, Field::Initiative),
-            save_fortitude: FieldValue::from_field(&character, Field::SaveFortitude),
-            save_reflex: FieldValue::from_field(&character, Field::SaveReflex),
-            save_will: FieldValue::from_field(&character, Field::SaveWill),
-            athletics: FieldValue::from_field(&character, Field::Athletics),
-            mobility: FieldValue::from_field(&character, Field::Mobility),
-            thievery: FieldValue::from_field(&character, Field::Thievery),
-            stealth: FieldValue::from_field(&character, Field::Stealth),
-            arcana: FieldValue::from_field(&character, Field::KnowledgeArcana),
-            world: FieldValue::from_field(&character, Field::KnowledgeWorld),
-            nature: FieldValue::from_field(&character, Field::LoreNature),
-            religion: FieldValue::from_field(&character, Field::LoreReligion),
-            perception: FieldValue::from_field(&character, Field::Perception),
-            persuasion: FieldValue::from_field(&character, Field::Persuasion),
-            magic_device: FieldValue::from_field(&character, Field::UseMagicDevice),
+            experience: FieldValue::from_field(character, Field::Experience),
+            mythic_experience: FieldValue::from_field(character, Field::MythicExperience),
+            strength: FieldValue::from_field(character, Field::Strength),
+            dexterity: FieldValue::from_field(character, Field::Dexterity),
+            constitution: FieldValue::from_field(character, Field::Constitution),
+            intelligence: FieldValue::from_field(character, Field::Intelligence),
+            wisdom: FieldValue::from_field(character, Field::Wisdom),
+            charisma: FieldValue::from_field(character, Field::Charisma),
+            cmb: FieldValue::from_field(character, Field::CMB),
+            cmd: FieldValue::from_field(character, Field::CMD),
+            ac: FieldValue::from_field(character, Field::ArmorClass),
+            bab: FieldValue::from_field(character, Field::BaseAttackBonus),
+            hp: FieldValue::from_field(character, Field::HitPoints),
+            initiative: FieldValue::from_field(character, Field::Initiative),
+            save_fortitude: FieldValue::from_field(character, Field::SaveFortitude),
+            save_reflex: FieldValue::from_field(character, Field::SaveReflex),
+            save_will: FieldValue::from_field(character, Field::SaveWill),
+            athletics: FieldValue::from_field(character, Field::Athletics),
+            mobility: FieldValue::from_field(character, Field::Mobility),
+            thievery: FieldValue::from_field(character, Field::Thievery),
+            stealth: FieldValue::from_field(character, Field::Stealth),
+            arcana: FieldValue::from_field(character, Field::KnowledgeArcana),
+            world: FieldValue::from_field(character, Field::KnowledgeWorld),
+            nature: FieldValue::from_field(character, Field::LoreNature),
+            religion: FieldValue::from_field(character, Field::LoreReligion),
+            perception: FieldValue::from_field(character, Field::Perception),
+            persuasion: FieldValue::from_field(character, Field::Persuasion),
+            magic_device: FieldValue::from_field(character, Field::UseMagicDevice),
             alignment: AlignmentWidget::new(character.alignment.clone(), false),
         }
     }
