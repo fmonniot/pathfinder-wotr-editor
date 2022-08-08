@@ -17,11 +17,11 @@ pub struct Message(Msg);
 enum Pane {
     Party,
     Crusade,
-    Save,
 }
 
 #[derive(Debug, Clone)]
 enum Msg {
+    Save,
     ChangeActivePane(Pane),
     SwitchCharacter(Id),
     CharacterMessage(CharacterMessage),
@@ -67,7 +67,7 @@ impl EditorWidget {
     pub fn update(&mut self, message: Message) -> Command<Message> {
         log::debug!("Message received: {:?}", message);
         match message {
-            Message(Msg::ChangeActivePane(Pane::Save)) => {
+            Message(Msg::Save) => {
                 let (saving, receiver) = SavingSaveGame::new(
                     self.player_widget.patches(),
                     self.character_widgets
@@ -82,23 +82,6 @@ impl EditorWidget {
                     Message(Msg::SavingResult(Box::new(res)))
                 })
             }
-            Message(Msg::ChangeActivePane(new_pane)) => {
-                self.active_pane = new_pane;
-                Command::none()
-            }
-            Message(Msg::SwitchCharacter(active_character_id)) => {
-                self.active_character = active_character_id;
-
-                Command::none()
-            }
-            Message(Msg::CharacterMessage(msg)) => self
-                .active_character_mut()
-                .update(msg)
-                .map(|msg| Message(Msg::CharacterMessage(msg))),
-            Message(Msg::Player(msg)) => self
-                .player_widget
-                .update(msg)
-                .map(|msg| Message(Msg::Player(msg))),
             Message(Msg::SavingChange(step)) => {
                 self.save_progress = Some(step);
                 Command::none()
@@ -116,10 +99,29 @@ impl EditorWidget {
 
                 Command::none()
             }
+
+            Message(Msg::ChangeActivePane(new_pane)) => {
+                self.active_pane = new_pane;
+                Command::none()
+            }
+            Message(Msg::SwitchCharacter(active_character_id)) => {
+                self.active_character = active_character_id;
+
+                Command::none()
+            }
+
+            Message(Msg::CharacterMessage(msg)) => self
+                .active_character_widget_mut()
+                .update(msg)
+                .map(|msg| Message(Msg::CharacterMessage(msg))),
+            Message(Msg::Player(msg)) => self
+                .player_widget
+                .update(msg)
+                .map(|msg| Message(Msg::Player(msg))),
         }
     }
 
-    fn active_character_mut(&mut self) -> &mut CharacterWidget {
+    fn active_character_widget_mut(&mut self) -> &mut CharacterWidget {
         let a = self.active_character.clone();
 
         self.character_widgets
@@ -139,7 +141,7 @@ impl EditorWidget {
                 // if we do we would borrow self multiple time (for some reason)
                 let character = self
                     .character_widgets
-                    .iter_mut()
+                    .iter()
                     .find(|c| c.id == a)
                     .unwrap()
                     .view()
@@ -156,10 +158,6 @@ impl EditorWidget {
                         .view()
                         .map(|msg| Message(Msg::Player(msg))),
                 )
-            }
-
-            Pane::Save => {
-                unreachable!("Save is a hack for the time being and should not be reached")
             }
         };
 
@@ -203,7 +201,6 @@ fn pane_selector(
         let label = match target {
             Pane::Party => "Party",
             Pane::Crusade => "Crusade",
-            Pane::Save => "Save",
         };
 
         let is_active = target == active;
@@ -215,11 +212,7 @@ fn pane_selector(
         .align_items(Alignment::Start)
         .push(go_to_pane(Pane::Party))
         .push(go_to_pane(Pane::Crusade))
-        .push(build_tile(
-            "Save",
-            Message(Msg::ChangeActivePane(Pane::Save)),
-            false,
-        ));
+        .push(build_tile("Save", Message(Msg::Save), false));
 
     if let Some(step) = save_progress {
         let bar = progress_bar(SavingStep::steps_range(), step.number())

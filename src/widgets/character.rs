@@ -83,7 +83,7 @@ impl std::fmt::Display for Field {
             Field::Stealth => write!(f, "Stealth"),
             Field::KnowledgeArcana => write!(f, "Knowledge: Arcana"),
             Field::KnowledgeWorld => write!(f, "Knowledge: World"),
-            Field::LoreNature => write!(f, "Lore: Nature"),
+            Field::LoreNature => write!(f, "Lore: Nature"),
             Field::LoreReligion => write!(f, "Lore: Religion"),
             Field::Perception => write!(f, "Perception"),
             Field::Persuasion => write!(f, "Persuasion"),
@@ -303,7 +303,7 @@ impl CharacterWidget {
         }
     }
 
-    pub fn view(&mut self) -> Element<Message> {
+    pub fn view(&self) -> Element<Message> {
         let main_stats = row()
             .width(Length::Fill)
             .align_items(Alignment::Center)

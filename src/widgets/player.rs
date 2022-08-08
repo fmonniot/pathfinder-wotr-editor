@@ -75,7 +75,7 @@ impl PlayerWidget {
 
     // TODO We are missing recruits panels
     // TODO We might need a scrollable widget to account for many army blocks
-    pub fn view(&mut self) -> Element<Message> {
+    pub fn view(&self) -> Element<Message> {
         let money = iced_lazy::pure::component(labelled_input_number(
             "Money",
             self.money,
@@ -83,14 +83,14 @@ impl PlayerWidget {
         ));
 
         let mut resources = vec![];
-        match &mut self.resources {
+        match &self.resources {
             Some(res) => {
                 let v = res.view("Resources", Field::Resources);
                 resources.push(v);
             }
             None => (),
         };
-        match &mut self.resources_per_turn {
+        match &self.resources_per_turn {
             Some(res) => {
                 let v = res.view("Resources/turn", Field::ResourcesPerTurn);
                 resources.push(v);
@@ -98,7 +98,7 @@ impl PlayerWidget {
             None => (),
         };
 
-        let armies = two_columns_layout(self.armies.iter_mut().map(|a| a.view()));
+        let armies = two_columns_layout(self.armies.iter().map(|a| a.view()));
 
         // TODO Make a dedicated function for title (and separator) with nicer style
         let layout = column()
