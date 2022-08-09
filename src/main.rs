@@ -1,8 +1,8 @@
 #![windows_subsystem = "windows"]
 
 use iced::{
-    button, Alignment, Application, Button, Column, Command, Container, Element, Length,
-    ProgressBar, Settings, Subscription, Text,
+    pure::{self, button, column, container, progress_bar, text, Pure},
+    Alignment, Application, Command, Element, Length, Settings, Subscription, 
 };
 use std::path::PathBuf;
 
@@ -55,19 +55,18 @@ fn icon_window_settings() -> iced::window::Settings {
     }
 }
 
-struct LoadingState {
-    notifications: LoadNotifications,
-    file_path: PathBuf,
-    current_step: LoadingStep,
-    failed: Option<SaveError>,
-}
-
 enum Main {
     Loader {
-        open_button_state: button::State,
+        pure_state: pure::State,
         open_failed: Option<dialog::OpenError>,
     },
-    Loading(Box<LoadingState>),
+    Loading {
+        pure_state: pure::State,
+        notifications: LoadNotifications,
+        file_path: PathBuf,
+        current_step: LoadingStep,
+        failed: Option<SaveError>,
+    },
     Loaded(Box<EditorWidget>),
 }
 
@@ -89,7 +88,7 @@ impl Application for Main {
         let (component, command) = match save_path {
             None => (
                 Main::Loader {
-                    open_button_state: button::State::new(),
+                    pure_state: pure::State::new(),
                     open_failed: None,
                 },
                 Command::none(),
@@ -97,12 +96,13 @@ impl Application for Main {
             Some(file_path) => {
                 let (loader, notifications) = SaveLoader::new(file_path.clone());
 
-                let component = Main::Loading(Box::new(LoadingState {
+                let component = Main::Loading {
+                    pure_state: pure::State::new(),
                     notifications,
                     file_path,
                     current_step: LoadingStep::Initialized,
                     failed: None,
-                }));
+                };
                 let command =
                     Command::perform(loader.load(), |r| MainMessage::LoadDone(Box::new(r)));
 
@@ -116,7 +116,7 @@ impl Application for Main {
     fn title(&self) -> String {
         match self {
             Main::Loader { .. } => "Pathfinder WotR Editor".to_string(),
-            Main::Loading(state) => format!("Loading file {:?}", state.file_path),
+            Main::Loading { file_path, .. } => format!("Loading file {:?}", file_path),
             Main::Loaded { .. } => "Pathfinder WotR Editor".to_string(),
         }
     }
@@ -129,25 +129,30 @@ impl Application for Main {
             MainMessage::FileChosen(Ok(file_path)) => {
                 let (loader, notifications) = SaveLoader::new(file_path.clone());
 
-                *self = Main::Loading(Box::new(LoadingState {
+                *self = Main::Loading {
+                    pure_state: pure::State::new(),
                     notifications,
                     file_path,
                     current_step: LoadingStep::Initialized,
                     failed: None,
-                }));
+                };
 
                 Command::perform(loader.load(), |r| MainMessage::LoadDone(Box::new(r)))
             }
             MainMessage::FileChosen(Err(error)) => {
                 *self = Main::Loader {
-                    open_button_state: button::State::new(),
+                    pure_state: pure::State::new(),
                     open_failed: Some(error),
                 };
                 Command::none()
             }
             MainMessage::LoadProgressed(step) => {
-                if let Main::Loading(ref mut state) = self {
-                    state.current_step = step;
+                if let Main::Loading {
+                    ref mut current_step,
+                    ..
+                } = self
+                {
+                    *current_step = step;
                 }
                 Command::none()
             }
@@ -161,8 +166,8 @@ impl Application for Main {
                     Command::none()
                 }
                 Err(error) => {
-                    if let Main::Loading(ref mut state) = self {
-                        state.failed = Some(error);
+                    if let Main::Loading { ref mut failed, .. } = self {
+                        *failed = Some(error);
                     }
                     Command::none()
                 }
@@ -180,70 +185,74 @@ impl Application for Main {
     fn view(&mut self) -> Element<MainMessage> {
         match self {
             Main::Loader {
-                open_button_state,
+                pure_state,
                 open_failed,
             } => {
-                let mut layout = Column::new()
+                let mut layout = column()
                     .align_items(Alignment::Center)
                     .spacing(8)
+                    .push(text("Pathfinder Editor").size(60).font(CALIGHRAPHIC_FONT))
                     .push(
-                        Text::new("Pathfinder Editor")
-                            .size(60)
-                            .font(CALIGHRAPHIC_FONT),
-                    )
-                    .push(
-                        Text::new("Wrath of the Righteous Edition")
+                        text("Wrath of the Righteous Edition")
                             .size(45)
                             .font(CALIGHRAPHIC_FONT),
                     )
                     .push(
-                        Button::new(open_button_state, Text::new("Load a save game"))
+                        button(text("Load a save game"))
                             .on_press(MainMessage::OpenFileDialog)
                             .padding(10),
                     );
 
                 if let Some(error) = open_failed {
-                    layout = layout.push(Text::new(format!("Loading file failed: {}", error)));
+                    layout = layout.push(text(format!("Loading file failed: {}", error)));
                 };
 
-                let content = Container::new(layout).max_width(640).max_height(480);
+                let content = container(layout).max_width(640).max_height(480);
 
-                Container::new(content)
+                let container = container(content)
                     .center_x()
                     .center_y()
                     .width(Length::Fill)
-                    .height(Length::Fill)
-                    .into()
+                    .height(Length::Fill);
+
+                Pure::new(pure_state, container).into()
             }
-            Main::Loading(state) => {
-                let layout = match &state.failed {
-                    Some(error) => Column::new()
-                        .push(Text::new("Loading failed"))
-                        .push(Text::new(format!("{:?}", error))),
-                    None => Column::new()
-                        .push(Text::new(format!(
+            Main::Loading {
+                pure_state,
+                failed,
+                file_path,
+                current_step,
+                ..
+            } => {
+                let layout = match &failed {
+                    Some(error) => column()
+                        .push(text("Loading failed"))
+                        .push(text(format!("{:?}", error))),
+                    None => column()
+                        .push(text(format!(
                             "Loading {:?}",
-                            state.file_path.file_name().expect(
+                            file_path.file_name().expect(
                                 "File name must be present, otherwise we couldn't be loading it"
                             )
                         )))
-                        .push(ProgressBar::new(
+                        .push(progress_bar(
                             0.0..=LoadingStep::total_steps(),
-                            state.current_step.step_number(),
+                            current_step.step_number(),
                         ))
-                        .push(Text::new(state.current_step.description())),
+                        .push(text(current_step.description())),
                 };
 
-                let content = Container::new(layout.spacing(8).align_items(Alignment::Center))
+                let content = container(layout.spacing(8).align_items(Alignment::Center))
                     .max_width(640)
                     .max_height(480);
 
-                Container::new(content)
+                let container = container(content)
                     .center_x()
                     .center_y()
                     .width(Length::Fill)
-                    .height(Length::Fill)
-                    .into()
+                    .height(Length::Fill);
+
+                Pure::new(pure_state, container).into()
             }
             Main::Loaded(editor) => editor.view().map(MainMessage::EditorMessage),
         }
@@ -251,8 +260,10 @@ impl Application for Main {
 
     fn subscription(&self) -> Subscription<Self::Message> {
         match self {
-            Main::Loading(state) => iced::Subscription::from_recipe(state.notifications.clone())
-                .map(Self::Message::LoadProgressed),
+            Main::Loading { notifications, .. } => {
+                iced::Subscription::from_recipe(notifications.clone())
+                    .map(Self::Message::LoadProgressed)
+            }
             Main::Loaded(state) => state.subscription().map(Self::Message::EditorMessage),
             _ => Subscription::none(),
         }
