@@ -1,8 +1,8 @@
 #![windows_subsystem = "windows"]
 
 use iced::{
-    pure::{self, button, column, container, progress_bar, text, Pure},
-    Alignment, Application, Command, Element, Length, Settings, Subscription, 
+    widget::{button, column, container, progress_bar, text},
+    Alignment, Application, Command, Length, Settings, Subscription, 
 };
 use std::path::PathBuf;
 
@@ -10,12 +10,12 @@ mod data;
 mod dialog;
 mod json;
 mod save;
-mod styles;
+mod theme;
 mod widgets;
 
 use save::{LoadNotifications, LoadingDone, LoadingStep, SaveError, SaveLoader};
-use styles::CALIGHRAPHIC_FONT;
-use widgets::{EditorMessage, EditorWidget};
+use theme::CALIGHRAPHIC_FONT;
+use widgets::{EditorMessage, EditorWidget, Element};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -57,11 +57,9 @@ fn icon_window_settings() -> iced::window::Settings {
 
 enum Main {
     Loader {
-        pure_state: pure::State,
         open_failed: Option<dialog::OpenError>,
     },
     Loading {
-        pure_state: pure::State,
         notifications: LoadNotifications,
         file_path: PathBuf,
         current_step: LoadingStep,
@@ -82,13 +80,13 @@ enum MainMessage {
 impl Application for Main {
     type Executor = iced::executor::Default;
     type Message = MainMessage;
+    type Theme = theme::Theme;
     type Flags = Option<PathBuf>;
 
     fn new(save_path: Self::Flags) -> (Self, Command<Self::Message>) {
         let (component, command) = match save_path {
             None => (
                 Main::Loader {
-                    pure_state: pure::State::new(),
                     open_failed: None,
                 },
                 Command::none(),
@@ -97,7 +95,6 @@ impl Application for Main {
                 let (loader, notifications) = SaveLoader::new(file_path.clone());
 
                 let component = Main::Loading {
-                    pure_state: pure::State::new(),
                     notifications,
                     file_path,
                     current_step: LoadingStep::Initialized,
@@ -130,7 +127,6 @@ impl Application for Main {
                 let (loader, notifications) = SaveLoader::new(file_path.clone());
 
                 *self = Main::Loading {
-                    pure_state: pure::State::new(),
                     notifications,
                     file_path,
                     current_step: LoadingStep::Initialized,
@@ -141,7 +137,6 @@ impl Application for Main {
             }
             MainMessage::FileChosen(Err(error)) => {
                 *self = Main::Loader {
-                    pure_state: pure::State::new(),
                     open_failed: Some(error),
                 };
                 Command::none()
@@ -182,13 +177,12 @@ impl Application for Main {
         }
     }
 
-    fn view(&mut self) -> Element<MainMessage> {
+    fn view(&self) -> Element<MainMessage> {
         match self {
             Main::Loader {
-                pure_state,
                 open_failed,
             } => {
-                let mut layout = column()
+                let mut layout = column(vec![])
                     .align_items(Alignment::Center)
                     .spacing(8)
                     .push(text("Pathfinder Editor").size(60).font(CALIGHRAPHIC_FONT))
@@ -215,20 +209,19 @@ impl Application for Main {
                     .width(Length::Fill)
                     .height(Length::Fill);
 
-                Pure::new(pure_state, container).into()
+                container.into()
             }
             Main::Loading {
-                pure_state,
                 failed,
                 file_path,
                 current_step,
                 ..
             } => {
                 let layout = match &failed {
-                    Some(error) => column()
+                    Some(error) => column(vec![])
                         .push(text("Loading failed"))
                         .push(text(format!("{:?}", error))),
-                    None => column()
+                    None => column(vec![])
                         .push(text(format!(
                             "Loading {:?}",
                             file_path.file_name().expect(
@@ -252,7 +245,7 @@ impl Application for Main {
                     .width(Length::Fill)
                     .height(Length::Fill);
 
-                Pure::new(pure_state, container).into()
+                container.into()
             }
             Main::Loaded(editor) => editor.view().map(MainMessage::EditorMessage),
         }

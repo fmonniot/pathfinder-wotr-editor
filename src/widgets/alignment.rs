@@ -1,8 +1,7 @@
-use crate::data::Alignment;
-use iced::pure::widget::canvas::{
+use crate::{data::Alignment, theme::Theme, widgets::Element};
+use iced::widget::canvas::{
     self, path::Builder, Cache, Canvas, Cursor, Frame, Geometry, Path, Program,
 };
-use iced::pure::Element;
 use iced::{Length, Point, Rectangle};
 use log::trace;
 
@@ -33,14 +32,14 @@ impl AlignmentWidget {
             .width(Length::Units(200))
             .height(Length::Units(200));
 
-        iced::pure::widget::Container::new(canvas).into()
+        iced::widget::Container::new(canvas).into()
     }
 }
 
-impl<'a> Program<Message> for AlignmentWidget {
+impl Program<Message, Theme> for AlignmentWidget {
     type State = ();
-
-    fn draw(&self, _state: &(), bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
+    
+    fn draw(&self, _state: &(), _theme: &Theme, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         // Represent a character alignment on the Alignment Wheel
         //
         // Note that this part of the iced API will change considerably when upgrading
@@ -78,10 +77,9 @@ impl<'a> Program<Message> for AlignmentWidget {
             // Brush for the separations
             let thin_stroke = canvas::Stroke {
                 width: 2.0,
-                color: colors::border(),
                 line_cap: canvas::LineCap::Round,
                 ..canvas::Stroke::default()
-            };
+            }.with_color(colors::border());
 
             // Paint each alignment section
             for (index, start_angle) in angles.iter().enumerate() {
@@ -123,7 +121,7 @@ impl<'a> Program<Message> for AlignmentWidget {
                 let path = builder.build();
 
                 // Make the lines and fill with the alignment color
-                frame.stroke(&path, thin_stroke);
+                frame.stroke(&path, thin_stroke.clone());
                 frame.fill(&path, color);
 
                 // Debug mode, label cell with its index

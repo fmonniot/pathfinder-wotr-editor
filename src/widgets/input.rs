@@ -1,8 +1,7 @@
-use crate::styles;
-use iced::pure::{row, text_input};
+use crate::{theme, widgets::{Element, Renderer}};
+use iced::widget::{row, text_input};
 use iced::Length;
-use iced_lazy::pure::Component;
-use iced_pure::Element;
+use iced_lazy::Component;
 use serde::Serialize;
 use std::str::FromStr;
 use std::string::ToString;
@@ -44,9 +43,8 @@ pub enum Event {
     InputChanged(String),
 }
 
-impl<V, Message, Renderer> Component<Message, Renderer> for LabelledInputNumber<V, Message>
+impl<V, Message> Component<Message, Renderer> for LabelledInputNumber<V, Message>
 where
-    Renderer: iced_native::text::Renderer + 'static,
     V: ToString + FromStr,
 {
     /// The internal state of this [`Component`].
@@ -68,22 +66,22 @@ where
 
     /// Produces the widgets of the [`Component`], which may trigger an [`Event`](Component::Event)
     /// on user interaction.
-    fn view(&self, _state: &Self::State) -> Element<Self::Event, Renderer> {
+    fn view(&self, _state: &Self::State) -> Element<Self::Event> {
         let label_widget = text_input(&self.label, &self.label, |_| Event::NoOp)
             .size(16)
-            .style(styles::InputAsText)
+            .style(theme::TextInput::InputAsText)
             .width(Length::FillPortion(2));
 
         let mut input_widget =
             text_input(&self.label, &self.value.to_string(), Event::InputChanged)
-                .style(styles::MainPane)
                 .width(Length::FillPortion(1));
 
         if self.disabled {
-            input_widget = input_widget.style(styles::InputAsText);
+            input_widget = input_widget.style(theme::TextInput::InputAsText);
         }
 
-        row()
+
+        row(vec![])
             .push(label_widget)
             .push(input_widget)
             .width(Length::FillPortion(1))

@@ -1,14 +1,15 @@
 use crate::data::{Character, Party, Player};
 use crate::json::Id;
 use crate::save::{SaveError, SaveNotifications, SavingSaveGame, SavingStep};
-use crate::styles::{self, BOOKLETTER_1911, CALIGHRAPHIC_FONT};
-use crate::widgets::{CharacterMessage, CharacterWidget, PlayerMessage, PlayerWidget};
+use crate::theme::{self, BOOKLETTER_1911, CALIGHRAPHIC_FONT};
+use crate::widgets::{CharacterMessage, CharacterWidget, PlayerMessage, PlayerWidget, Element};
 use iced::{
     alignment,
-    pure::{self, button, column, container, progress_bar, row, text, Pure},
-    Alignment, Command, Element, Length, Subscription,
+    widget::{button, column, container, progress_bar, row, text},
+    Alignment, Command, Length, Subscription,
 };
 use std::path::PathBuf;
+use std::vec;
 
 #[derive(Debug, Clone)]
 pub struct Message(Msg);
@@ -31,8 +32,6 @@ enum Msg {
 }
 
 pub struct EditorWidget {
-    pure_state: pure::State,
-
     archive_path: PathBuf,
     characters: Vec<Character>,
     active_character: Id,
@@ -50,8 +49,6 @@ impl EditorWidget {
         let character_widgets = party.characters.iter().map(CharacterWidget::new).collect();
 
         EditorWidget {
-            pure_state: pure::State::new(),
-
             archive_path,
             characters: party.characters,
             active_character,
@@ -130,8 +127,8 @@ impl EditorWidget {
             .unwrap()
     }
 
-    pub fn view(&mut self) -> Element<Message> {
-        let mut container = row().push(pane_selector(self.active_pane, self.save_progress));
+    pub fn view(&self) -> Element<Message> {
+        let mut container = row(vec![]).push(pane_selector(self.active_pane, self.save_progress));
 
         match self.active_pane {
             Pane::Party => {
@@ -161,7 +158,7 @@ impl EditorWidget {
             }
         };
 
-        Pure::new(&mut self.pure_state, container).into()
+        container.into()
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -177,7 +174,7 @@ impl EditorWidget {
 fn pane_selector(
     active: Pane,
     save_progress: Option<SavingStep>,
-) -> iced::pure::Element<'static, Message> {
+) -> Element<'static, Message> {
     let build_tile = |label: &'static str, message: Message, is_active| {
         let txt = text(label)
             .font(CALIGHRAPHIC_FONT)
@@ -191,9 +188,9 @@ fn pane_selector(
             .height(Length::from(80))
             .padding(1)
             .style(if is_active {
-                styles::PaneSelectorButton::Selected
+                theme::Button::PaneSelectorActive
             } else {
-                styles::PaneSelectorButton::Inactive
+                theme::Button::PaneSelectorInactive
             })
     };
 
@@ -208,7 +205,7 @@ fn pane_selector(
         build_tile(label, Message(Msg::ChangeActivePane(target)), is_active)
     };
 
-    let mut layout = column()
+    let mut layout = column(vec![])
         .align_items(Alignment::Start)
         .push(go_to_pane(Pane::Party))
         .push(go_to_pane(Pane::Crusade))
@@ -217,23 +214,22 @@ fn pane_selector(
     if let Some(step) = save_progress {
         let bar = progress_bar(SavingStep::steps_range(), step.number())
             .width(Length::from(100))
-            .height(Length::from(10))
-            .style(styles::PaneSelectorSurface);
+            .height(Length::from(10));
 
         layout = layout.push(bar);
     }
 
     container(layout)
         .height(Length::Fill)
-        .style(styles::PaneSelectorSurface)
+        .style(theme::Container::PaneSelectorSurface)
         .into()
 }
 
 fn character_selector<'a>(
     characters: &[Character],
     active_character_id: &Id,
-) -> iced::pure::Element<'a, Message> {
-    let mut col = column().width(Length::from(150)).height(Length::Fill);
+) -> Element<'a, Message> {
+    let mut col = column(vec![]).width(Length::from(150)).height(Length::Fill);
 
     for character in characters {
         let active = character.id == *active_character_id;
@@ -248,9 +244,9 @@ fn character_selector<'a>(
             .on_press(Message(Msg::SwitchCharacter(character.id.clone())))
             .width(Length::Fill)
             .style(if active {
-                styles::SecondaryMenuItem::Selected
+                theme::Button::SecondaryMenuItemActive
             } else {
-                styles::SecondaryMenuItem::Inactive
+                theme::Button::SecondaryMenuItemInactive
             })
             .padding(10);
 
@@ -258,7 +254,7 @@ fn character_selector<'a>(
     }
 
     container(col)
-        .style(styles::SecondaryMenuSurface)
+        .style(theme::Container::SecondaryMenuSurface)
         .height(Length::Fill)
         .into()
 }

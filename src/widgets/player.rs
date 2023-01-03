@@ -1,10 +1,11 @@
 use super::input::labelled_input_number;
 use crate::data::{Army, KingdomResources, Player, Squad};
 use crate::json::{Id, JsonPatch};
-use crate::styles;
+use crate::theme;
+use crate::widgets::Element;
 use iced::{
-    pure::{column, container, row, text, widget::Row, widget::Space, Element},
-    Command, Length,
+    widget::{column, container, row, text, Row, Space},
+    Command, Length
 };
 use std::fmt::Display;
 
@@ -76,7 +77,7 @@ impl PlayerWidget {
     // TODO We are missing recruits panels
     // TODO We might need a scrollable widget to account for many army blocks
     pub fn view(&self) -> Element<Message> {
-        let money = iced_lazy::pure::component(labelled_input_number(
+        let money = iced_lazy::component(labelled_input_number(
             "Money",
             self.money,
             move |new_value| Message(Msg::FieldUpdate(Field::Money, new_value)),
@@ -101,7 +102,7 @@ impl PlayerWidget {
         let armies = two_columns_layout(self.armies.iter().map(|a| a.view()));
 
         // TODO Make a dedicated function for title (and separator) with nicer style
-        let layout = column()
+        let layout = column(vec![])
             .push(money)
             .push(text("Resources"))
             //.push(PureRow::with_children(resources))
@@ -111,7 +112,7 @@ impl PlayerWidget {
         container(layout)
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(styles::MainPane)
+            .style(theme::Container::MainPane)
             .into()
     }
 
@@ -183,15 +184,15 @@ impl PlayerWidget {
 /// per row. On the event that children is odd, the latest element will
 /// take half the space of the layout, not the entire width.
 // Should this be moved to a module for generic layouts ?
-fn two_columns_layout<'a, Msg: 'a, I>(children: I) -> iced::pure::Element<'a, Msg>
+fn two_columns_layout<'a, Msg: 'a, I>(children: I) -> Element<'a, Msg>
 where
-    I: Iterator<Item = iced::pure::Element<'a, Msg>>,
+    I: Iterator<Item = Element<'a, Msg>>,
 {
     // TODO Make some optimization in the layout used based on the iterator size
     // e.g. if one/two elements, remove the outer Column
     // let (lower_bound, upper_bound) = children.size_hint(); // how many elements we have to layout
 
-    let mut columns = column();
+    let mut columns = column(vec![]);
 
     let mut c = children;
     loop {
@@ -246,21 +247,21 @@ impl KingdomResourcesState {
         patches
     }
 
-    fn view<F>(&self, title: impl Into<String>, build_field: F) -> iced::pure::Element<Message>
+    fn view<F>(&self, title: impl ToString, build_field: F) -> Element<Message>
     where
         F: 'static + Clone + Fn(KingdomResourcesField) -> Field, // TODO is 'static and Clone still required ?
     {
         let view = move |field: KingdomResourcesField, value| {
             let build_field = build_field.clone();
 
-            iced_lazy::pure::component(labelled_input_number(
+            iced_lazy::component(labelled_input_number(
                 field.to_string(),
                 value,
                 move |new_value| Message(Msg::FieldUpdate(build_field(field), new_value)),
             ))
         };
 
-        let layout = column()
+        let layout = column(vec![])
             .push(text(title))
             .push(view(KingdomResourcesField::Finances, self.finances))
             .push(view(KingdomResourcesField::Materials, self.materials))
@@ -268,7 +269,7 @@ impl KingdomResourcesState {
 
         container(layout)
             .width(Length::Fill)
-            .style(styles::MainPane)
+            .style(theme::Container::MainPane)
             .into()
     }
 }
@@ -302,18 +303,18 @@ impl ArmyState {
         }
     }
 
-    fn view(&self) -> iced::pure::Element<Message> {
+    fn view(&self) -> Element<Message> {
         // I don't know of a cleaner pattern to share the same immutable variable with multiple closures.
         // I feel there should be a simpler pattern than having multiple named variable but that will have
         // to do for now.
         let army_id = self.army_id.clone();
-        let common = row().push(iced_lazy::pure::component(labelled_input_number(
+        let common = row(vec![]).push(iced_lazy::component(labelled_input_number(
             "Movement Points",
             self.movement_points,
             move |v| Message(Msg::ArmyMovementPointsUpdate(army_id.clone(), v)),
         )));
 
-        let mut layout = column().push(common);
+        let mut layout = column(vec![]).push(common);
 
         for Squad { id, unit, count } in self.squads.iter() {
             let army_id = self.army_id.clone();
@@ -324,13 +325,13 @@ impl ArmyState {
                 None => unit,
             };
 
-            layout = layout.push(iced_lazy::pure::component(labelled_input_number(
+            layout = layout.push(iced_lazy::component(labelled_input_number(
                 label,
                 *count,
                 move |v| Message(Msg::ArmySquadUpdate(army_id.clone(), squad_id.clone(), v)),
             )));
         }
-        let inner = container(layout).padding(5).style(ArmyWidgetContainerStyle);
+        let inner = container(layout).padding(5).style(theme::Container::ArmyWidget);
 
         // Outer container, simulating a margin on inner
         container(inner).padding(10).width(Length::Fill).into()
@@ -366,19 +367,5 @@ impl ArmyState {
         ));
 
         patches
-    }
-}
-
-struct ArmyWidgetContainerStyle;
-
-use iced::{container, Color};
-
-impl container::StyleSheet for ArmyWidgetContainerStyle {
-    fn style(&self) -> container::Style {
-        container::Style {
-            border_color: Color::WHITE,
-            border_width: 1.,
-            ..container::Style::default()
-        }
     }
 }

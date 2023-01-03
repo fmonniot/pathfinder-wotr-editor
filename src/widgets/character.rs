@@ -2,10 +2,11 @@ use super::alignment;
 use super::input::labelled_input_number;
 use crate::data::Character;
 use crate::json::{Id, JsonPatch, JsonPointer};
-use crate::widgets::AlignmentWidget;
+use crate::widgets::{AlignmentWidget, Element};
+use crate::theme;
 use iced::{
-    pure::{column, container, row, Element},
-    Alignment, Command, Length,
+    widget::{column, container, row},
+    Alignment, Command, Length
 };
 
 #[derive(Debug, Clone)]
@@ -197,7 +198,7 @@ impl FieldValue {
         }
     }
 
-    fn view(&self) -> iced::pure::Element<'_, Message> {
+    fn view(&self) -> Element<'_, Message> {
         let field = self.field;
 
         let mut input = labelled_input_number(self.field.to_string(), self.value, move |value| {
@@ -208,7 +209,7 @@ impl FieldValue {
             input = input.disabled();
         }
 
-        iced_lazy::pure::component(input)
+        iced_lazy::component(input)
     }
 }
 
@@ -304,13 +305,13 @@ impl CharacterWidget {
     }
 
     pub fn view(&self) -> Element<Message> {
-        let main_stats = row()
+        let main_stats = row(vec![])
             .width(Length::Fill)
             .align_items(Alignment::Center)
             .push(self.mythic_experience.view())
             .push(self.experience.view());
 
-        let abilities_stats = column()
+        let abilities_stats = column(vec![])
             .width(Length::FillPortion(1))
             .push(self.strength.view())
             .push(self.dexterity.view())
@@ -319,7 +320,7 @@ impl CharacterWidget {
             .push(self.wisdom.view())
             .push(self.charisma.view());
 
-        let combat_stats = column()
+        let combat_stats = column(vec![])
             .width(Length::FillPortion(1))
             .push(self.cmb.view())
             .push(self.cmd.view())
@@ -331,7 +332,7 @@ impl CharacterWidget {
             .push(self.save_reflex.view())
             .push(self.save_will.view());
 
-        let skills_stats = column()
+        let skills_stats = column(vec![])
             .width(Length::FillPortion(1))
             .push(self.athletics.view())
             .push(self.mobility.view())
@@ -345,14 +346,14 @@ impl CharacterWidget {
             .push(self.persuasion.view())
             .push(self.magic_device.view());
 
-        let statistics = row()
+        let statistics = row(vec![])
             .spacing(25)
             .push(abilities_stats)
             .push(combat_stats)
             .push(skills_stats);
 
         container(
-            column()
+            column(vec![])
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .padding(10)
@@ -365,7 +366,7 @@ impl CharacterWidget {
                 )
                 .push(iced::widget::Space::new(Length::Fill, Length::Fill)),
         )
-        .style(crate::styles::MainPane)
+        .style(theme::Container::MainPane)
         .into()
     }
 
