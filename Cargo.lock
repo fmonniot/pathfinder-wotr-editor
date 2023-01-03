@@ -1168,7 +1168,7 @@ dependencies = [
  "iced_core",
  "iced_futures",
  "iced_graphics",
- "iced_native",
+ "iced_native 0.6.1",
  "iced_wgpu",
  "iced_winit",
  "thiserror",
@@ -1207,7 +1207,7 @@ dependencies = [
  "bitflags",
  "bytemuck",
  "glam",
- "iced_native",
+ "iced_native 0.6.1",
  "iced_style",
  "log",
  "lyon",
@@ -1217,11 +1217,11 @@ dependencies = [
 
 [[package]]
 name = "iced_lazy"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59e7ac54f3f0272459d25b19a8daf71558e5737df83b6cacbd9c3b75cb40c47f"
+checksum = "ca5123ef2db0af871a34bc63dee221987560709052e5cf1ff96b72e361d1ce0f"
 dependencies = [
- "iced_native",
+ "iced_native 0.7.0",
  "ouroboros",
 ]
 
@@ -1230,6 +1230,20 @@ name = "iced_native"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61964acdd967f58ee6194b0b746c5656826f1e4aafc8f12de28ad4f7ced8ec0b"
+dependencies = [
+ "iced_core",
+ "iced_futures",
+ "iced_style",
+ "num-traits",
+ "twox-hash",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "iced_native"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5748f6d4fa3a8e31ba642cf2e159100f68c2fbc3b2973db8d8035526164d6685"
 dependencies = [
  "iced_core",
  "iced_futures",
@@ -1264,7 +1278,7 @@ dependencies = [
  "glyph_brush",
  "guillotiere",
  "iced_graphics",
- "iced_native",
+ "iced_native 0.6.1",
  "log",
  "raw-window-handle 0.5.0",
  "wgpu",
@@ -1279,7 +1293,7 @@ checksum = "217f078cb38bedf1d4283eca4c82327e1ef0de8c78d2652187108ebd1e613a14"
 dependencies = [
  "iced_futures",
  "iced_graphics",
- "iced_native",
+ "iced_native 0.6.1",
  "log",
  "thiserror",
  "web-sys",
@@ -1954,7 +1968,7 @@ dependencies = [
  "futures",
  "iced",
  "iced_lazy",
- "iced_native",
+ "iced_native 0.6.1",
  "ico",
  "log",
  "serde",
