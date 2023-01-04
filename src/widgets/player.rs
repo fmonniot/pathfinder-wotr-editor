@@ -5,7 +5,7 @@ use crate::theme;
 use crate::widgets::Element;
 use iced::{
     widget::{column, container, row, text, Row, Space},
-    Command, Length
+    Command, Length,
 };
 use std::fmt::Display;
 
@@ -331,7 +331,9 @@ impl ArmyState {
                 move |v| Message(Msg::ArmySquadUpdate(army_id.clone(), squad_id.clone(), v)),
             )));
         }
-        let inner = container(layout).padding(5).style(theme::Container::ArmyWidget);
+        let inner = container(layout)
+            .padding(5)
+            .style(theme::Container::ArmyWidget);
 
         // Outer container, simulating a margin on inner
         container(inner).padding(10).width(Length::Fill).into()

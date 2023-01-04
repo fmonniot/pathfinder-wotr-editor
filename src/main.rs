@@ -2,7 +2,7 @@
 
 use iced::{
     widget::{button, column, container, progress_bar, text},
-    Alignment, Application, Command, Length, Settings, Subscription, 
+    Alignment, Application, Command, Length, Settings, Subscription,
 };
 use std::path::PathBuf;
 
@@ -85,12 +85,7 @@ impl Application for Main {
 
     fn new(save_path: Self::Flags) -> (Self, Command<Self::Message>) {
         let (component, command) = match save_path {
-            None => (
-                Main::Loader {
-                    open_failed: None,
-                },
-                Command::none(),
-            ),
+            None => (Main::Loader { open_failed: None }, Command::none()),
             Some(file_path) => {
                 let (loader, notifications) = SaveLoader::new(file_path.clone());
 
@@ -179,9 +174,7 @@ impl Application for Main {
 
     fn view(&self) -> Element<MainMessage> {
         match self {
-            Main::Loader {
-                open_failed,
-            } => {
+            Main::Loader { open_failed } => {
                 let mut layout = column(vec![])
                     .align_items(Alignment::Center)
                     .spacing(8)

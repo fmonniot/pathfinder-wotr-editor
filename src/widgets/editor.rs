@@ -2,7 +2,7 @@ use crate::data::{Character, Party, Player};
 use crate::json::Id;
 use crate::save::{SaveError, SaveNotifications, SavingSaveGame, SavingStep};
 use crate::theme::{self, BOOKLETTER_1911, CALIGHRAPHIC_FONT};
-use crate::widgets::{CharacterMessage, CharacterWidget, PlayerMessage, PlayerWidget, Element};
+use crate::widgets::{CharacterMessage, CharacterWidget, Element, PlayerMessage, PlayerWidget};
 use iced::{
     alignment,
     widget::{button, column, container, progress_bar, row, text},
@@ -171,10 +171,7 @@ impl EditorWidget {
     }
 }
 
-fn pane_selector(
-    active: Pane,
-    save_progress: Option<SavingStep>,
-) -> Element<'static, Message> {
+fn pane_selector(active: Pane, save_progress: Option<SavingStep>) -> Element<'static, Message> {
     let build_tile = |label: &'static str, message: Message, is_active| {
         let txt = text(label)
             .font(CALIGHRAPHIC_FONT)

@@ -38,8 +38,14 @@ impl AlignmentWidget {
 
 impl Program<Message, Theme> for AlignmentWidget {
     type State = ();
-    
-    fn draw(&self, _state: &(), _theme: &Theme, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
+
+    fn draw(
+        &self,
+        _state: &(),
+        _theme: &Theme,
+        bounds: Rectangle,
+        _cursor: Cursor,
+    ) -> Vec<Geometry> {
         // Represent a character alignment on the Alignment Wheel
         //
         // Note that this part of the iced API will change considerably when upgrading
@@ -79,7 +85,8 @@ impl Program<Message, Theme> for AlignmentWidget {
                 width: 2.0,
                 line_cap: canvas::LineCap::Round,
                 ..canvas::Stroke::default()
-            }.with_color(colors::border());
+            }
+            .with_color(colors::border());
 
             // Paint each alignment section
             for (index, start_angle) in angles.iter().enumerate() {

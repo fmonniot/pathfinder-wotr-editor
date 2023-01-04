@@ -2,11 +2,11 @@ use super::alignment;
 use super::input::labelled_input_number;
 use crate::data::Character;
 use crate::json::{Id, JsonPatch, JsonPointer};
-use crate::widgets::{AlignmentWidget, Element};
 use crate::theme;
+use crate::widgets::{AlignmentWidget, Element};
 use iced::{
     widget::{column, container, row},
-    Alignment, Command, Length
+    Alignment, Command, Length,
 };
 
 #[derive(Debug, Clone)]

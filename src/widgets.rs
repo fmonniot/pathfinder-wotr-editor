@@ -12,7 +12,6 @@ use player::{Message as PlayerMessage, PlayerWidget};
 // exposed components
 pub use editor::{EditorWidget, Message as EditorMessage};
 
-
 // Always import widget types from this module since it
 // uses our custom theme instead of the built-in iced::Theme.
 // Otherwise you will get compilation errors since iced::Element

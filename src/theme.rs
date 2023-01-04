@@ -128,10 +128,10 @@ impl container::StyleSheet for Theme {
                 ..Default::default()
             },
             Container::ArmyWidget => container::Appearance {
-                    border_color: Color::WHITE,
-                    border_width: 1.,
-                    ..Default::default()
-            }
+                border_color: Color::WHITE,
+                border_width: 1.,
+                ..Default::default()
+            },
         }
     }
 }

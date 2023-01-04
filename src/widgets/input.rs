@@ -1,4 +1,7 @@
-use crate::{theme, widgets::{Element, Renderer}};
+use crate::{
+    theme,
+    widgets::{Element, Renderer},
+};
 use iced::widget::{row, text_input};
 use iced::Length;
 use iced_lazy::Component;
@@ -79,7 +82,6 @@ where
         if self.disabled {
             input_widget = input_widget.style(theme::TextInput::InputAsText);
         }
-
 
         row(vec![])
             .push(label_widget)
