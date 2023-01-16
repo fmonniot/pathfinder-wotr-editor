@@ -1228,11 +1228,11 @@ dependencies = [
 
 [[package]]
 name = "iced_lazy"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca5123ef2db0af871a34bc63dee221987560709052e5cf1ff96b72e361d1ce0f"
+checksum = "79aeddab3c88af853769fc025e4f4cf76fa5980e31572791d14858575da4a675"
 dependencies = [
- "iced_native 0.7.0",
+ "iced_native 0.8.0",
  "ouroboros",
 ]
 
