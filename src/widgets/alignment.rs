@@ -29,8 +29,8 @@ impl AlignmentWidget {
 
     pub fn view(&self) -> Element<Message> {
         let canvas = Canvas::new(self)
-            .width(Length::Units(200))
-            .height(Length::Units(200));
+            .width(Length::Fixed(200.0))
+            .height(Length::Fixed(200.0));
 
         iced::widget::Container::new(canvas).into()
     }
