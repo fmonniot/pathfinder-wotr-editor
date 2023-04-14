@@ -212,7 +212,7 @@ pub fn companion_as_string(s: &str) -> Option<&'static str> {
         "1b893f7cf2b150e4f8bc2b3c389ba71d" => Some("Nenio"),
         "0d37024170b172346b3769df92a971f5" => Some("Regill"),
         "54be53f0b35bf3c4592a97ae335fe765" => Some("Seelah"),
-        "1cbbbb892f93c3d439f8417ad7cbb6aa" => Some("SosielVaenic"),
+        "1cbbbb892f93c3d439f8417ad7cbb6aa" => Some("Sosiel"),
         "0bb1c03b9f7bbcf42bb74478af2c6258" => Some("Trever"),
         "ae766624c03058440a036de90a7f2009" => Some("Wenduag"),
         "766435873b1361c4287c351de194e5f9" => Some("Woljif"),

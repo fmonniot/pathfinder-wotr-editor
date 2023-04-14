@@ -40,7 +40,8 @@ impl<V, Message> LabelledInputNumber<V, Message> {
     }
 }
 
-// TODO I don't think we need that one anymore, looks like text_input has support for disabled state
+// We still need this hack so that label can be selectable, having disabled text_input
+// isn't enough to get rid of it entirely.
 #[derive(Clone)]
 pub enum Event {
     NoOp,
@@ -71,6 +72,10 @@ where
     /// Produces the widgets of the [`Component`], which may trigger an [`Event`](Component::Event)
     /// on user interaction.
     fn view(&self, _state: &Self::State) -> Element<Self::Event> {
+        // We still have to rely on this hack so that people can select and copy the labels.
+        // Follow https://github.com/iced-rs/iced/issues/36 to know when we can use regular text block.
+        // Moreover we do need to set an event, otherwise the input is disabled which also disable selecting and
+        // copying the content… sigh, can't have good things can we?
         let label_widget = text_input(&self.label, &self.label)
             .on_input(|_| Event::NoOp)
             .size(16)
@@ -79,11 +84,10 @@ where
 
         let mut input_widget =
             text_input(&self.label, &self.value.to_string())
-                .on_input(Event::InputChanged)
                 .width(Length::FillPortion(1));
 
-        if self.disabled {
-            input_widget = input_widget.style(theme::TextInput::InputAsText);
+        if !self.disabled {
+            input_widget = input_widget.on_input(Event::InputChanged);
         }
 
         row(vec![])
