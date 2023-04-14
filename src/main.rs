@@ -44,7 +44,7 @@ fn icon_window_settings() -> iced::window::Settings {
 
     if let Some(entry) = idx {
         let img = entry.decode().unwrap().rgba_data().to_vec();
-        let icon = iced::window::Icon::from_rgba(img, 48, 48).unwrap();
+        let icon = iced::window::icon::from_rgba(img, 48, 48).unwrap();
 
         iced::window::Settings {
             icon: Some(icon),

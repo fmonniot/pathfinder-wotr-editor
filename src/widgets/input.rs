@@ -40,6 +40,7 @@ impl<V, Message> LabelledInputNumber<V, Message> {
     }
 }
 
+// TODO I don't think we need that one anymore, looks like text_input has support for disabled state
 #[derive(Clone)]
 pub enum Event {
     NoOp,
@@ -70,13 +71,15 @@ where
     /// Produces the widgets of the [`Component`], which may trigger an [`Event`](Component::Event)
     /// on user interaction.
     fn view(&self, _state: &Self::State) -> Element<Self::Event> {
-        let label_widget = text_input(&self.label, &self.label, |_| Event::NoOp)
+        let label_widget = text_input(&self.label, &self.label)
+            .on_input(|_| Event::NoOp)
             .size(16)
             .style(theme::TextInput::InputAsText)
             .width(Length::FillPortion(2));
 
         let mut input_widget =
-            text_input(&self.label, &self.value.to_string(), Event::InputChanged)
+            text_input(&self.label, &self.value.to_string())
+                .on_input(Event::InputChanged)
                 .width(Length::FillPortion(1));
 
         if self.disabled {

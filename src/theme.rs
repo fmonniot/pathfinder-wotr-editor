@@ -260,13 +260,25 @@ impl text_input::StyleSheet for Theme {
                 border_radius: 2.,
                 border_width: 0.,
                 border_color: Color::TRANSPARENT,
+                icon_color: Color::TRANSPARENT,
             },
             TextInput::InputAsText => text_input::Appearance {
                 background: Background::Color(MAIN_SURFACE_BACKGROUND),
                 border_radius: 0.,
                 border_width: 0.,
                 border_color: Color::TRANSPARENT,
+                icon_color: Color::TRANSPARENT,
             },
+        }
+    }
+
+    fn disabled(&self, _style: &Self::Style) -> text_input::Appearance {
+        text_input::Appearance {
+            background: Background::Color(MAIN_SURFACE_BACKGROUND),
+            border_radius: 0.,
+            border_width: 0.,
+            border_color: Color::TRANSPARENT,
+            icon_color: Color::TRANSPARENT,
         }
     }
 
@@ -305,5 +317,9 @@ impl text_input::StyleSheet for Theme {
             },
             _ => self.focused(style),
         }
+    }
+
+    fn disabled_color(&self, _style: &Self::Style) -> Color {
+        Color::WHITE
     }
 }
