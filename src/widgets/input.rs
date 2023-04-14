@@ -83,8 +83,7 @@ where
             .width(Length::FillPortion(2));
 
         let mut input_widget =
-            text_input(&self.label, &self.value.to_string())
-                .width(Length::FillPortion(1));
+            text_input(&self.label, &self.value.to_string()).width(Length::FillPortion(1));
 
         if !self.disabled {
             input_widget = input_widget.on_input(Event::InputChanged);
