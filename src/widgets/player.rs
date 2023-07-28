@@ -340,7 +340,7 @@ impl ArmyState {
     }
 
     fn update_squad(&mut self, new_squad_id: Id, new_squad_count: u64) {
-        for mut squad in &mut self.squads {
+        for squad in &mut self.squads {
             // Looking at the id is enough, as they are unique per
             // game instance.
             if squad.id == new_squad_id {

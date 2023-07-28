@@ -90,7 +90,7 @@ mod paths {
     #[cfg(any(target_os = "macos", target_os = "ios"))]
     use mac as os;
 
-    #[cfg(any(target_os = "linux"))]
+    #[cfg(target_os = "linux")]
     mod mac {
         use std::path::PathBuf;
 
@@ -100,6 +100,6 @@ mod paths {
             })
         }
     }
-    #[cfg(any(target_os = "linux"))]
+    #[cfg(target_os = "linux")]
     use mac as os;
 }

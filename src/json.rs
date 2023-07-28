@@ -1,6 +1,7 @@
+//! This module describe our utilities to work with JSON
+//! and in particular with the quirks of the Unity data model.
+
 use serde::{Deserialize, Serialize};
-///! This module describe our utilities to work with JSON
-///! and in particular with the quirks of the Unity data model.
 pub use serde_json::Value;
 use std::collections::BTreeMap;
 use std::convert::From;
