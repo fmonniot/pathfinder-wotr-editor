@@ -2,11 +2,14 @@ use super::SaveError;
 use crate::data::Header;
 use crate::json::JsonPatch;
 use async_channel::{Receiver, Sender};
+use iced::advanced::{
+    subscription::{EventStream, Recipe},
+    Hasher,
+};
 use std::hash::Hash;
 use std::io::Write;
 use std::ops::RangeInclusive;
 use std::path::{Path, PathBuf};
-use iced::advanced::{Hasher, subscription::{Recipe, EventStream}};
 
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub enum SavingStep {

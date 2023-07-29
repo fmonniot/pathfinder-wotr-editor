@@ -1,7 +1,7 @@
 use crate::data::{Character, Party, Player};
 use crate::json::Id;
 use crate::save::{SaveError, SaveNotifications, SavingSaveGame, SavingStep};
-use crate::theme::{self, BOOKLETTER_1911, BECKETT_FONT};
+use crate::theme::{self, BECKETT_FONT, BOOKLETTER_1911};
 use crate::widgets::{CharacterMessage, CharacterWidget, Element, PlayerMessage, PlayerWidget};
 use iced::{
     alignment,

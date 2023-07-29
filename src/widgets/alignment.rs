@@ -1,8 +1,10 @@
-use crate::{data::Alignment, theme::Theme, widgets::{Element, Renderer}};
-use iced::widget::canvas::{
-    self, path::Builder, Cache, Canvas, Frame, Geometry, Path, Program,
+use crate::{
+    data::Alignment,
+    theme::Theme,
+    widgets::{Element, Renderer},
 };
-use iced::{Length, Point, Rectangle, mouse::Cursor};
+use iced::widget::canvas::{self, path::Builder, Cache, Canvas, Frame, Geometry, Path, Program};
+use iced::{mouse::Cursor, Length, Point, Rectangle};
 use log::trace;
 
 pub struct AlignmentWidget {

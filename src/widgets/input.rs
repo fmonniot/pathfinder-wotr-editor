@@ -2,9 +2,9 @@ use crate::{
     theme,
     widgets::{Element, Renderer},
 };
+use iced::widget::Component;
 use iced::widget::{row, text_input};
 use iced::Length;
-use iced::widget::Component;
 use serde::Serialize;
 use std::str::FromStr;
 use std::string::ToString;

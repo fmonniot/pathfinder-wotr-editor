@@ -10,7 +10,7 @@ pub const BECKETT_FONT: Font = Font {
     family: iced::font::Family::Name("Beckett"),
     weight: iced::font::Weight::Medium,
     stretch: iced::font::Stretch::Normal,
-    monospaced: false
+    monospaced: false,
 };
 
 // Should probably be used by main pane widgets too

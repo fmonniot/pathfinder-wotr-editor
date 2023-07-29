@@ -180,7 +180,7 @@ impl Application for Main {
                 } else {
                     Command::none()
                 }
-            },
+            }
             MainMessage::FontLoaded(result) => {
                 if let Err(error) = result {
                     log::error!("Couldn't load font. error={error:?}");

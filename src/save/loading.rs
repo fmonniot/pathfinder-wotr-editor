@@ -1,9 +1,12 @@
 use super::SaveError;
 use crate::data::{Header, Party, Player};
 use async_channel::{Receiver, Sender};
+use iced::advanced::{
+    subscription::{EventStream, Recipe},
+    Hasher,
+};
 use std::hash::Hash;
 use std::path::PathBuf;
-use iced::advanced::{Hasher, subscription::{Recipe, EventStream}};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LoadingStep {
