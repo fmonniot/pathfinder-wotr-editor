@@ -209,7 +209,7 @@ impl FieldValue {
             input = input.disabled();
         }
 
-        iced_lazy::component(input)
+        iced::widget::component(input)
     }
 }
 

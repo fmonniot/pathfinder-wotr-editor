@@ -14,7 +14,7 @@ mod theme;
 mod widgets;
 
 use save::{LoadNotifications, LoadingDone, LoadingStep, SaveError, SaveLoader};
-use theme::CALIGHRAPHIC_FONT;
+use theme::BECKETT_FONT;
 use widgets::{EditorMessage, EditorWidget, Element};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -75,6 +75,7 @@ enum MainMessage {
     LoadProgressed(LoadingStep),
     LoadDone(Box<Result<LoadingDone, SaveError>>),
     EditorMessage(EditorMessage),
+    FontLoaded(Result<(), iced::font::Error>),
 }
 
 impl Application for Main {
@@ -101,6 +102,17 @@ impl Application for Main {
                 (component, command)
             }
         };
+
+        let command = Command::batch(vec![
+            command,
+            iced::font::load(include_bytes!("../assets/beckett/Beckett-Regular.otf").as_slice())
+                .map(MainMessage::FontLoaded),
+            iced::font::load(
+                include_bytes!("../assets/Goudy_Bookletter_1911/GoudyBookletter1911-Regular.ttf")
+                    .as_slice(),
+            )
+            .map(MainMessage::FontLoaded),
+        ]);
 
         (component, command)
     }
@@ -168,6 +180,13 @@ impl Application for Main {
                 } else {
                     Command::none()
                 }
+            },
+            MainMessage::FontLoaded(result) => {
+                if let Err(error) = result {
+                    log::error!("Couldn't load font. error={error:?}");
+                }
+
+                Command::none()
             }
         }
     }
@@ -178,11 +197,11 @@ impl Application for Main {
                 let mut layout = column(vec![])
                     .align_items(Alignment::Center)
                     .spacing(8)
-                    .push(text("Pathfinder Editor").size(60).font(CALIGHRAPHIC_FONT))
+                    .push(text("Pathfinder Editor").size(60).font(BECKETT_FONT))
                     .push(
                         text("Wrath of the Righteous Edition")
                             .size(45)
-                            .font(CALIGHRAPHIC_FONT),
+                            .font(BECKETT_FONT),
                     )
                     .push(
                         button(text("Load a save game"))

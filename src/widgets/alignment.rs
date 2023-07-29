@@ -1,8 +1,8 @@
-use crate::{data::Alignment, theme::Theme, widgets::Element};
+use crate::{data::Alignment, theme::Theme, widgets::{Element, Renderer}};
 use iced::widget::canvas::{
-    self, path::Builder, Cache, Canvas, Cursor, Frame, Geometry, Path, Program,
+    self, path::Builder, Cache, Canvas, Frame, Geometry, Path, Program,
 };
-use iced::{Length, Point, Rectangle};
+use iced::{Length, Point, Rectangle, mouse::Cursor};
 use log::trace;
 
 pub struct AlignmentWidget {
@@ -36,12 +36,13 @@ impl AlignmentWidget {
     }
 }
 
-impl Program<Message, Theme> for AlignmentWidget {
+impl Program<Message, Renderer> for AlignmentWidget {
     type State = ();
 
     fn draw(
         &self,
         _state: &(),
+        renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: Cursor,
@@ -51,7 +52,7 @@ impl Program<Message, Theme> for AlignmentWidget {
         // Note that this part of the iced API will change considerably when upgrading
         // from 0.1 to 0.2. As such, I tried to keep most of the draw content Layer or Drawable
         // agnostic and only relying on Path and Frame primitive.
-        let alignment = self.pin_cache.draw(bounds.size(), |frame| {
+        let alignment = self.pin_cache.draw(renderer, bounds.size(), |frame| {
             // Translate the frame such as (0, 0) in in the middle of it
             let (_, radius) = prep_frame(frame);
 
@@ -69,7 +70,7 @@ impl Program<Message, Theme> for AlignmentWidget {
         });
 
         // Draw the alignment wheel itself (background)
-        let background = self.background.draw(bounds.size(), |frame| {
+        let background = self.background.draw(renderer, bounds.size(), |frame| {
             // Prepare the frame to be used in the correct coordinates
             let (inner_radius, outer_radius) = prep_frame(frame);
 

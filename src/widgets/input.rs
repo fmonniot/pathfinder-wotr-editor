@@ -4,7 +4,7 @@ use crate::{
 };
 use iced::widget::{row, text_input};
 use iced::Length;
-use iced_lazy::Component;
+use iced::widget::Component;
 use serde::Serialize;
 use std::str::FromStr;
 use std::string::ToString;

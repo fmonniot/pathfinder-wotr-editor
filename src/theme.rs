@@ -1,17 +1,20 @@
 use iced::widget::{button, container, progress_bar, text, text_input};
 use iced::{application, color, Background, Color, Font};
 
-// Fonts (might need to move to style.rs if I create that file)
-pub const CALIGHRAPHIC_FONT: Font = Font::External {
-    name: "Caligraphic",
-    bytes: include_bytes!("../assets/beckett/BECKETT.TTF"),
+// Do not forget to load custom fonts in the main function
+
+// I had to regenerate the file cause the original had a weight of 5, which doesn't correspond to any of the
+// standard weight and thus couldn't be loaded by iced. It now has a weight of 500 which correspond to the
+// medium weight. That does mean I cannot use the simple `with_name` construct as this one assume a weight of 400.
+pub const BECKETT_FONT: Font = Font {
+    family: iced::font::Family::Name("Beckett"),
+    weight: iced::font::Weight::Medium,
+    stretch: iced::font::Stretch::Normal,
+    monospaced: false
 };
 
 // Should probably be used by main pane widgets too
-pub const BOOKLETTER_1911: Font = Font::External {
-    name: "Goudy_Bookletter_1911",
-    bytes: include_bytes!("../assets/Goudy_Bookletter_1911/GoudyBookletter1911-Regular.ttf"),
-};
+pub const BOOKLETTER_1911: Font = Font::with_name("Goudy Bookletter 1911"); // working
 
 // TODO Inline those three using the color! macro
 const SELECTOR_SURFACE: Color = Color::from_rgb(
@@ -150,7 +153,7 @@ impl progress_bar::StyleSheet for Theme {
             ProgressBar::Default => progress_bar::Appearance {
                 background: Background::Color(SELECTOR_SURFACE),
                 bar: Background::Color(SELECTOR_TEXT_MUTED),
-                border_radius: 0.,
+                border_radius: (0.).into(),
             },
         }
     }
@@ -216,7 +219,7 @@ fn pane_selecter_active_button() -> button::Appearance {
 
 fn pane_selector_inactive_button() -> button::Appearance {
     button::Appearance {
-        border_radius: 0.,
+        border_radius: (0.).into(),
         text_color: SELECTOR_TEXT_MUTED,
         ..Default::default()
     }
@@ -232,7 +235,7 @@ fn secondary_menu_active_button() -> button::Appearance {
 
 fn secondary_menu_inactive_button() -> button::Appearance {
     button::Appearance {
-        border_radius: 0.,
+        border_radius: (0.).into(),
         text_color: color!(0x87, 0x90, 0x9c),
         ..Default::default()
     }
@@ -257,15 +260,15 @@ impl text_input::StyleSheet for Theme {
         match style {
             TextInput::Default => text_input::Appearance {
                 background: Background::Color(TEXTINPUT_SURFACE),
-                border_radius: 2.,
-                border_width: 0.,
+                border_radius: (2.).into(),
+                border_width: (0.).into(),
                 border_color: Color::TRANSPARENT,
                 icon_color: Color::TRANSPARENT,
             },
             TextInput::InputAsText => text_input::Appearance {
                 background: Background::Color(MAIN_SURFACE_BACKGROUND),
-                border_radius: 0.,
-                border_width: 0.,
+                border_radius: (0.).into(),
+                border_width: (0.).into(),
                 border_color: Color::TRANSPARENT,
                 icon_color: Color::TRANSPARENT,
             },
@@ -275,8 +278,8 @@ impl text_input::StyleSheet for Theme {
     fn disabled(&self, _style: &Self::Style) -> text_input::Appearance {
         text_input::Appearance {
             background: Background::Color(MAIN_SURFACE_BACKGROUND),
-            border_radius: 0.,
-            border_width: 0.,
+            border_radius: (0.).into(),
+            border_width: (0.).into(),
             border_color: Color::TRANSPARENT,
             icon_color: Color::TRANSPARENT,
         }

@@ -3,6 +3,7 @@ use crate::data::{Header, Party, Player};
 use async_channel::{Receiver, Sender};
 use std::hash::Hash;
 use std::path::PathBuf;
+use iced::advanced::{Hasher, subscription::{Recipe, EventStream}};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LoadingStep {
@@ -86,19 +87,16 @@ impl SaveLoader {
 pub struct LoadNotifications(Receiver<LoadingStep>);
 
 // Make sure iced can use our download stream
-impl<H, I> iced_native::subscription::Recipe<H, I> for LoadNotifications
-where
-    H: std::hash::Hasher,
-{
+impl Recipe for LoadNotifications {
     type Output = LoadingStep;
 
-    fn hash(&self, state: &mut H) {
+    fn hash(&self, state: &mut Hasher) {
         std::any::TypeId::of::<Self>().hash(state);
     }
 
     fn stream(
         self: Box<Self>,
-        _input: futures::stream::BoxStream<'static, I>,
+        _input: EventStream,
     ) -> futures::stream::BoxStream<'static, Self::Output> {
         Box::pin(self.0)
     }

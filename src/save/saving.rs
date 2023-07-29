@@ -6,6 +6,7 @@ use std::hash::Hash;
 use std::io::Write;
 use std::ops::RangeInclusive;
 use std::path::{Path, PathBuf};
+use iced::advanced::{Hasher, subscription::{Recipe, EventStream}};
 
 #[derive(Clone, Debug, PartialEq, Copy)]
 pub enum SavingStep {
@@ -179,19 +180,16 @@ impl SavingSaveGame {
 #[derive(Clone, Debug)]
 pub struct SaveNotifications(Receiver<SavingStep>);
 
-impl<H, I> iced_native::subscription::Recipe<H, I> for SaveNotifications
-where
-    H: std::hash::Hasher,
-{
+impl Recipe for SaveNotifications {
     type Output = SavingStep;
 
-    fn hash(&self, state: &mut H) {
+    fn hash(&self, state: &mut Hasher) {
         std::any::TypeId::of::<Self>().hash(state);
     }
 
     fn stream(
         self: Box<Self>,
-        _input: futures::stream::BoxStream<'static, I>,
+        _input: EventStream,
     ) -> futures::stream::BoxStream<'static, Self::Output> {
         Box::pin(self.0)
     }

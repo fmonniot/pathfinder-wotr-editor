@@ -77,7 +77,7 @@ impl PlayerWidget {
     // TODO We are missing recruits panels
     // TODO We might need a scrollable widget to account for many army blocks
     pub fn view(&self) -> Element<Message> {
-        let money = iced_lazy::component(labelled_input_number(
+        let money = iced::widget::component(labelled_input_number(
             "Money",
             self.money,
             move |new_value| Message(Msg::FieldUpdate(Field::Money, new_value)),
@@ -254,7 +254,7 @@ impl KingdomResourcesState {
         let view = move |field: KingdomResourcesField, value| {
             let build_field = build_field.clone();
 
-            iced_lazy::component(labelled_input_number(
+            iced::widget::component(labelled_input_number(
                 field.to_string(),
                 value,
                 move |new_value| Message(Msg::FieldUpdate(build_field(field), new_value)),
@@ -308,7 +308,7 @@ impl ArmyState {
         // I feel there should be a simpler pattern than having multiple named variable but that will have
         // to do for now.
         let army_id = self.army_id.clone();
-        let common = row(vec![]).push(iced_lazy::component(labelled_input_number(
+        let common = row(vec![]).push(iced::widget::component(labelled_input_number(
             "Movement Points",
             self.movement_points,
             move |v| Message(Msg::ArmyMovementPointsUpdate(army_id.clone(), v)),
@@ -325,7 +325,7 @@ impl ArmyState {
                 None => unit,
             };
 
-            layout = layout.push(iced_lazy::component(labelled_input_number(
+            layout = layout.push(iced::widget::component(labelled_input_number(
                 label,
                 *count,
                 move |v| Message(Msg::ArmySquadUpdate(army_id.clone(), squad_id.clone(), v)),
