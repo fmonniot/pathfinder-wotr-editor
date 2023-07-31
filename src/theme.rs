@@ -261,14 +261,14 @@ impl text_input::StyleSheet for Theme {
             TextInput::Default => text_input::Appearance {
                 background: Background::Color(TEXTINPUT_SURFACE),
                 border_radius: (2.).into(),
-                border_width: (0.).into(),
+                border_width: 0.,
                 border_color: Color::TRANSPARENT,
                 icon_color: Color::TRANSPARENT,
             },
             TextInput::InputAsText => text_input::Appearance {
                 background: Background::Color(MAIN_SURFACE_BACKGROUND),
                 border_radius: (0.).into(),
-                border_width: (0.).into(),
+                border_width: 0.,
                 border_color: Color::TRANSPARENT,
                 icon_color: Color::TRANSPARENT,
             },
@@ -279,7 +279,7 @@ impl text_input::StyleSheet for Theme {
         text_input::Appearance {
             background: Background::Color(MAIN_SURFACE_BACKGROUND),
             border_radius: (0.).into(),
-            border_width: (0.).into(),
+            border_width: 0.,
             border_color: Color::TRANSPARENT,
             icon_color: Color::TRANSPARENT,
         }

@@ -253,7 +253,10 @@ mod tests {
 
     #[tokio::test]
     async fn find_save_name_no_file() {
-        let tmp_dir = tempfile::Builder::new().prefix("find_save_name_no_files").tempdir().unwrap();
+        let tmp_dir = tempfile::Builder::new()
+            .prefix("find_save_name_no_files")
+            .tempdir()
+            .unwrap();
         let file_path = tmp_dir.path().join("Save Game.zks");
         let header = Header {
             name: "Save Name".to_string(),
@@ -270,7 +273,10 @@ mod tests {
 
     #[tokio::test]
     async fn find_save_name_one_file() {
-        let tmp_dir = tempfile::Builder::new().prefix("find_save_name_one_file").tempdir().unwrap();
+        let tmp_dir = tempfile::Builder::new()
+            .prefix("find_save_name_one_file")
+            .tempdir()
+            .unwrap();
         let file_path = tmp_dir.path().join("Save Game__Copy.zks");
         let mut tmp_file = File::create(&file_path).unwrap();
         writeln!(tmp_file, "content doesn't matter").unwrap();
