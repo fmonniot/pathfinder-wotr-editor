@@ -46,5 +46,4 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: actions-rs-plus/clippy-check@v2.1.1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features
