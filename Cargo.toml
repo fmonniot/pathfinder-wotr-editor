@@ -8,7 +8,7 @@ resolver = "2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-iced = { version = "0.10", features = ["tokio", "canvas", "advanced", "lazy"] }
+iced = { version = "0.12", features = ["tokio", "canvas", "advanced", "lazy"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 tinyfiledialogs = "3.9"

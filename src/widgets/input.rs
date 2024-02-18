@@ -1,6 +1,6 @@
 use crate::{
-    theme,
-    widgets::{Element, Renderer},
+    theme::{self, Theme},
+    widgets::Element,
 };
 use iced::widget::Component;
 use iced::widget::{row, text_input};
@@ -48,7 +48,7 @@ pub enum Event {
     InputChanged(String),
 }
 
-impl<V, Message> Component<Message, Renderer> for LabelledInputNumber<V, Message>
+impl<V, Message> Component<Message, Theme> for LabelledInputNumber<V, Message>
 where
     V: ToString + FromStr,
 {
