@@ -275,7 +275,7 @@ impl text_input::StyleSheet for Theme {
                 border: Border {
                     color: Color::TRANSPARENT,
                     width: 0.,
-                    radius: (2.).into()
+                    radius: (2.).into(),
                 },
                 icon_color: Color::TRANSPARENT,
             },
@@ -284,7 +284,7 @@ impl text_input::StyleSheet for Theme {
                 border: Border {
                     color: Color::TRANSPARENT,
                     width: 0.,
-                    radius: (0.).into()
+                    radius: (0.).into(),
                 },
                 icon_color: Color::TRANSPARENT,
             },
@@ -297,7 +297,7 @@ impl text_input::StyleSheet for Theme {
             border: Border {
                 color: Color::TRANSPARENT,
                 width: 0.,
-                radius: (0.).into()
+                radius: (0.).into(),
             },
             icon_color: Color::TRANSPARENT,
         }

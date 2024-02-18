@@ -1,8 +1,4 @@
-use crate::{
-    data::Alignment,
-    theme::Theme,
-    widgets::Element,
-};
+use crate::{data::Alignment, theme::Theme, widgets::Element};
 use iced::widget::canvas::{self, path::Builder, Cache, Canvas, Frame, Geometry, Path, Program};
 use iced::{mouse::Cursor, Length, Point, Rectangle, Renderer};
 use log::trace;
