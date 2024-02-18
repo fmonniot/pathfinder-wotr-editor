@@ -1,5 +1,5 @@
 use iced::widget::{button, container, progress_bar, text, text_input};
-use iced::{application, color, Background, Color, Font};
+use iced::{application, color, Background, Border, Color, Font};
 
 // Do not forget to load custom fonts in the main function
 
@@ -10,7 +10,7 @@ pub const BECKETT_FONT: Font = Font {
     family: iced::font::Family::Name("Beckett"),
     weight: iced::font::Weight::Medium,
     stretch: iced::font::Stretch::Normal,
-    monospaced: false,
+    style: iced::font::Style::Normal,
 };
 
 // Should probably be used by main pane widgets too
@@ -114,7 +114,10 @@ impl container::StyleSheet for Theme {
         match style {
             Container::Default => container::Appearance::default(),
             Container::PaneSelectorSurface => container::Appearance {
-                border_color: SELECTOR_SURFACE,
+                border: Border {
+                    color: SELECTOR_SURFACE,
+                    ..Default::default()
+                },
                 ..Default::default()
             },
             Container::SecondaryMenuSurface => container::Appearance {
@@ -131,8 +134,11 @@ impl container::StyleSheet for Theme {
                 ..Default::default()
             },
             Container::ArmyWidget => container::Appearance {
-                border_color: Color::WHITE,
-                border_width: 1.,
+                border: Border {
+                    color: Color::WHITE,
+                    width: 1.,
+                    ..Default::default()
+                },
                 ..Default::default()
             },
         }
@@ -219,7 +225,10 @@ fn pane_selecter_active_button() -> button::Appearance {
 
 fn pane_selector_inactive_button() -> button::Appearance {
     button::Appearance {
-        border_radius: (0.).into(),
+        border: Border {
+            radius: (0.).into(),
+            ..Default::default()
+        },
         text_color: SELECTOR_TEXT_MUTED,
         ..Default::default()
     }
@@ -235,7 +244,10 @@ fn secondary_menu_active_button() -> button::Appearance {
 
 fn secondary_menu_inactive_button() -> button::Appearance {
     button::Appearance {
-        border_radius: (0.).into(),
+        border: Border {
+            radius: (0.).into(),
+            ..Default::default()
+        },
         text_color: color!(0x87, 0x90, 0x9c),
         ..Default::default()
     }
@@ -260,16 +272,20 @@ impl text_input::StyleSheet for Theme {
         match style {
             TextInput::Default => text_input::Appearance {
                 background: Background::Color(TEXTINPUT_SURFACE),
-                border_radius: (2.).into(),
-                border_width: 0.,
-                border_color: Color::TRANSPARENT,
+                border: Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.,
+                    radius: (2.).into()
+                },
                 icon_color: Color::TRANSPARENT,
             },
             TextInput::InputAsText => text_input::Appearance {
                 background: Background::Color(MAIN_SURFACE_BACKGROUND),
-                border_radius: (0.).into(),
-                border_width: 0.,
-                border_color: Color::TRANSPARENT,
+                border: Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.,
+                    radius: (0.).into()
+                },
                 icon_color: Color::TRANSPARENT,
             },
         }
@@ -278,9 +294,11 @@ impl text_input::StyleSheet for Theme {
     fn disabled(&self, _style: &Self::Style) -> text_input::Appearance {
         text_input::Appearance {
             background: Background::Color(MAIN_SURFACE_BACKGROUND),
-            border_radius: (0.).into(),
-            border_width: 0.,
-            border_color: Color::TRANSPARENT,
+            border: Border {
+                color: Color::TRANSPARENT,
+                width: 0.,
+                radius: (0.).into()
+            },
             icon_color: Color::TRANSPARENT,
         }
     }
@@ -288,8 +306,11 @@ impl text_input::StyleSheet for Theme {
     fn focused(&self, style: &Self::Style) -> text_input::Appearance {
         match style {
             TextInput::Default => text_input::Appearance {
-                border_width: 1.,
-                border_color: ACCENT,
+                border: Border {
+                    color: ACCENT,
+                    width: 1.,
+                    ..Default::default()
+                },
                 ..self.active(style)
             },
             _ => self.active(style),
@@ -314,8 +335,11 @@ impl text_input::StyleSheet for Theme {
     fn hovered(&self, style: &Self::Style) -> text_input::Appearance {
         match style {
             TextInput::Default => text_input::Appearance {
-                border_width: 1.,
-                border_color: Color { a: 0.3, ..ACCENT },
+                border: Border {
+                    color: Color { a: 0.3, ..ACCENT },
+                    width: 1.,
+                    ..Default::default()
+                },
                 ..self.focused(style)
             },
             _ => self.focused(style),
