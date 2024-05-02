@@ -133,7 +133,7 @@ impl SavingSaveGame {
             let mut original = archive
                 .by_name(&file)
                 .expect("Archive contained file by not really oO");
-            let options = zip::write::FileOptions::default()
+            let options = zip::write::SimpleFileOptions::default()
                 .compression_method(original.compression())
                 .last_modified_time(original.last_modified());
             let options = match original.unix_mode() {
@@ -147,22 +147,22 @@ impl SavingSaveGame {
         }
 
         self.tx.send(SavingStep::WritingCustomFiles).await?;
-        let options =
-            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        let options = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Stored);
         zip.start_file("player.json", options)
             .expect("Starting file player.json");
         zip.write_all(&player_bytes)
             .expect("Writing player_bytes to archive");
 
-        let options =
-            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        let options = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Stored);
         zip.start_file("party.json", options)
             .expect("Starting file party.json");
         zip.write_all(&party_bytes)
             .expect("Writing party_bytes to archive");
 
-        let options =
-            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        let options = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Stored);
         zip.start_file("header.json", options)
             .expect("Starting file header.json");
         zip.write_all(&header_bytes)
