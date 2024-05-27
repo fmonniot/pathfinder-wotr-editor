@@ -170,7 +170,6 @@ impl SavingSaveGame {
 
         self.tx.send(SavingStep::FinishingArchive).await?;
         zip.finish().expect("Finishing zip archive");
-        drop(zip); // Release the borrow on the underlying buffer
 
         self.tx.send(SavingStep::WritingToDisk).await?;
         tokio::fs::write(new_file_path, write_buffer).await?;
