@@ -2,10 +2,9 @@ use super::input::labelled_input_number;
 use crate::data::{Army, KingdomResources, Player, Squad};
 use crate::json::{Id, JsonPatch};
 use crate::theme;
-use crate::widgets::Element;
 use iced::{
     widget::{column, container, row, text, Row, Space},
-    Command, Length,
+    Element, Length, Task,
 };
 use std::fmt::Display;
 
@@ -112,7 +111,7 @@ impl PlayerWidget {
         container(layout)
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(theme::Container::MainPane)
+            .style(theme::main_pane)
             .into()
     }
 
@@ -130,7 +129,7 @@ impl PlayerWidget {
         }
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message(Msg::FieldUpdate(field, value)) => {
                 match &field {
@@ -154,7 +153,7 @@ impl PlayerWidget {
                 };
             }
         }
-        Command::none()
+        Task::none()
     }
 
     fn find_army_state(&mut self, army_id: Id) -> Option<&mut ArmyState> {
@@ -247,7 +246,7 @@ impl KingdomResourcesState {
         patches
     }
 
-    fn view<F>(&self, title: impl ToString, build_field: F) -> Element<Message>
+    fn view<F>(&self, title: &'static str, build_field: F) -> Element<Message>
     where
         F: 'static + Clone + Fn(KingdomResourcesField) -> Field, // TODO is 'static and Clone still required ?
     {
@@ -269,7 +268,7 @@ impl KingdomResourcesState {
 
         container(layout)
             .width(Length::Fill)
-            .style(theme::Container::MainPane)
+            .style(theme::main_pane)
             .into()
     }
 }
@@ -331,9 +330,7 @@ impl ArmyState {
                 move |v| Message(Msg::ArmySquadUpdate(army_id.clone(), squad_id.clone(), v)),
             )));
         }
-        let inner = container(layout)
-            .padding(5)
-            .style(theme::Container::ArmyWidget);
+        let inner = container(layout).padding(5).style(theme::army_widget);
 
         // Outer container, simulating a margin on inner
         container(inner).padding(10).width(Length::Fill).into()

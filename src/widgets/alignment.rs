@@ -1,6 +1,6 @@
-use crate::{data::Alignment, theme::Theme, widgets::Element};
+use crate::data::Alignment;
 use iced::widget::canvas::{self, path::Builder, Cache, Canvas, Frame, Geometry, Path, Program};
-use iced::{mouse::Cursor, Length, Point, Rectangle, Renderer};
+use iced::{mouse::Cursor, Element, Length, Point, Rectangle, Renderer, Theme};
 use log::trace;
 
 pub struct AlignmentWidget {
@@ -34,7 +34,7 @@ impl AlignmentWidget {
     }
 }
 
-impl Program<Message, Theme> for AlignmentWidget {
+impl Program<Message> for AlignmentWidget {
     type State = ();
 
     fn draw(

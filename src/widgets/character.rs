@@ -3,10 +3,10 @@ use super::input::labelled_input_number;
 use crate::data::Character;
 use crate::json::{Id, JsonPatch, JsonPointer};
 use crate::theme;
-use crate::widgets::{AlignmentWidget, Element};
+use crate::widgets::AlignmentWidget;
 use iced::{
     widget::{column, container, row},
-    Alignment, Command, Length,
+    Alignment, Element, Length, Task,
 };
 
 #[derive(Debug, Clone)]
@@ -307,7 +307,7 @@ impl CharacterWidget {
     pub fn view(&self) -> Element<Message> {
         let main_stats = row(vec![])
             .width(Length::Fill)
-            .align_items(Alignment::Center)
+            .align_y(Alignment::Center)
             .push(self.mythic_experience.view())
             .push(self.experience.view());
 
@@ -366,11 +366,11 @@ impl CharacterWidget {
                 )
                 .push(iced::widget::Space::new(Length::Fill, Length::Fill)),
         )
-        .style(theme::Container::MainPane)
+        .style(theme::main_pane)
         .into()
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message(Msg::StatisticModified { field, value }) => {
                 self.stat_view_for_field(&field).value = value;
@@ -379,7 +379,7 @@ impl CharacterWidget {
                 // TODO Will be used when integrating drag & drop for the alignment pin
             }
         };
-        Command::none()
+        Task::none()
     }
 
     pub fn patches(&self) -> Vec<JsonPatch> {

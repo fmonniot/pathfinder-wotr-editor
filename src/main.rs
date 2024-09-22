@@ -2,7 +2,7 @@
 
 use iced::{
     widget::{button, column, container, progress_bar, text},
-    Alignment, Application, Command, Length, Settings, Subscription,
+    Alignment, Element, Length, Subscription, Task,
 };
 use std::path::PathBuf;
 
@@ -15,7 +15,7 @@ mod widgets;
 
 use save::{LoadNotifications, LoadingDone, LoadingStep, SaveError, SaveLoader};
 use theme::BECKETT_FONT;
-use widgets::{EditorMessage, EditorWidget, Element};
+use widgets::{EditorMessage, EditorWidget};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -24,15 +24,15 @@ pub fn main() {
     log::debug!("Running with version {}", VERSION);
 
     let window = icon_window_settings();
-    let flags: Option<PathBuf> = std::env::args().nth(1).map(|s| s.into());
+    let save_file: Option<PathBuf> = std::env::args().nth(1).map(|s| s.into());
 
-    Main::run(Settings {
-        window,
-        flags,
-        antialiasing: true,
-        ..Settings::default()
-    })
-    .expect("UI runloop couldn't be started")
+    iced::application(Main::title, Main::update, Main::view)
+        .subscription(Main::subscription)
+        .window(window)
+        .antialiasing(true)
+        .theme(|_state| theme::app_theme())
+        .run_with(|| Main::new(save_file))
+        .expect("UI runloop couldn't be started")
 }
 
 // No error handling as the app.ico file is injected at compile time.
@@ -55,6 +55,16 @@ fn icon_window_settings() -> iced::window::Settings {
     }
 }
 
+#[derive(Debug, Clone)]
+enum MainMessage {
+    OpenFileDialog,
+    FileChosen(Result<PathBuf, dialog::OpenError>),
+    LoadProgressed(LoadingStep),
+    LoadDone(Box<Result<LoadingDone, SaveError>>),
+    EditorMessage(EditorMessage),
+    FontLoaded(Result<(), iced::font::Error>),
+}
+
 enum Main {
     Loader {
         open_failed: Option<dialog::OpenError>,
@@ -68,25 +78,10 @@ enum Main {
     Loaded(Box<EditorWidget>),
 }
 
-#[derive(Debug, Clone)]
-enum MainMessage {
-    OpenFileDialog,
-    FileChosen(Result<PathBuf, dialog::OpenError>),
-    LoadProgressed(LoadingStep),
-    LoadDone(Box<Result<LoadingDone, SaveError>>),
-    EditorMessage(EditorMessage),
-    FontLoaded(Result<(), iced::font::Error>),
-}
-
-impl Application for Main {
-    type Executor = iced::executor::Default;
-    type Message = MainMessage;
-    type Theme = theme::Theme;
-    type Flags = Option<PathBuf>;
-
-    fn new(save_path: Self::Flags) -> (Self, Command<Self::Message>) {
+impl Main {
+    fn new(save_path: Option<PathBuf>) -> (Self, Task<MainMessage>) {
         let (component, command) = match save_path {
-            None => (Main::Loader { open_failed: None }, Command::none()),
+            None => (Main::Loader { open_failed: None }, Task::none()),
             Some(file_path) => {
                 let (loader, notifications) = SaveLoader::new(file_path.clone());
 
@@ -96,14 +91,13 @@ impl Application for Main {
                     current_step: LoadingStep::Initialized,
                     failed: None,
                 };
-                let command =
-                    Command::perform(loader.load(), |r| MainMessage::LoadDone(Box::new(r)));
+                let command = Task::perform(loader.load(), |r| MainMessage::LoadDone(Box::new(r)));
 
                 (component, command)
             }
         };
 
-        let command = Command::batch(vec![
+        let command = Task::batch(vec![
             command,
             iced::font::load(include_bytes!("../assets/beckett/Beckett-Regular.otf").as_slice())
                 .map(MainMessage::FontLoaded),
@@ -125,10 +119,10 @@ impl Application for Main {
         }
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+    fn update(&mut self, message: MainMessage) -> Task<MainMessage> {
         match message {
             MainMessage::OpenFileDialog => {
-                Command::perform(dialog::open_file(), MainMessage::FileChosen)
+                Task::perform(dialog::open_file(), MainMessage::FileChosen)
             }
             MainMessage::FileChosen(Ok(file_path)) => {
                 let (loader, notifications) = SaveLoader::new(file_path.clone());
@@ -140,13 +134,13 @@ impl Application for Main {
                     failed: None,
                 };
 
-                Command::perform(loader.load(), |r| MainMessage::LoadDone(Box::new(r)))
+                Task::perform(loader.load(), |r| MainMessage::LoadDone(Box::new(r)))
             }
             MainMessage::FileChosen(Err(error)) => {
                 *self = Main::Loader {
                     open_failed: Some(error),
                 };
-                Command::none()
+                Task::none()
             }
             MainMessage::LoadProgressed(step) => {
                 if let Main::Loading {
@@ -156,7 +150,7 @@ impl Application for Main {
                 {
                     *current_step = step;
                 }
-                Command::none()
+                Task::none()
             }
             MainMessage::LoadDone(result) => match *result {
                 Ok(done) => {
@@ -165,20 +159,20 @@ impl Application for Main {
                         done.party,
                         done.player,
                     )));
-                    Command::none()
+                    Task::none()
                 }
                 Err(error) => {
                     if let Main::Loading { ref mut failed, .. } = self {
                         *failed = Some(error);
                     }
-                    Command::none()
+                    Task::none()
                 }
             },
             MainMessage::EditorMessage(msg) => {
                 if let Main::Loaded(ref mut state) = self {
-                    state.update(msg).map(Self::Message::EditorMessage)
+                    state.update(msg).map(MainMessage::EditorMessage)
                 } else {
-                    Command::none()
+                    Task::none()
                 }
             }
             MainMessage::FontLoaded(result) => {
@@ -186,7 +180,7 @@ impl Application for Main {
                     log::error!("Couldn't load font. error={error:?}");
                 }
 
-                Command::none()
+                Task::none()
             }
         }
     }
@@ -195,7 +189,7 @@ impl Application for Main {
         match self {
             Main::Loader { open_failed } => {
                 let mut layout = column(vec![])
-                    .align_items(Alignment::Center)
+                    .align_x(Alignment::Center)
                     .spacing(8)
                     .push(text("Pathfinder Editor").size(60).font(BECKETT_FONT))
                     .push(
@@ -216,10 +210,8 @@ impl Application for Main {
                 let content = container(layout).max_width(640).max_height(480);
 
                 let container = container(content)
-                    .center_x()
-                    .center_y()
-                    .width(Length::Fill)
-                    .height(Length::Fill);
+                    .center_x(Length::Fill)
+                    .center_y(Length::Fill);
 
                 container.into()
             }
@@ -247,15 +239,13 @@ impl Application for Main {
                         .push(text(current_step.description())),
                 };
 
-                let content = container(layout.spacing(8).align_items(Alignment::Center))
+                let content = container(layout.spacing(8).align_x(Alignment::Center))
                     .max_width(640)
                     .max_height(480);
 
                 let container = container(content)
-                    .center_x()
-                    .center_y()
-                    .width(Length::Fill)
-                    .height(Length::Fill);
+                    .center_x(Length::Fill)
+                    .center_y(Length::Fill);
 
                 container.into()
             }
@@ -263,13 +253,13 @@ impl Application for Main {
         }
     }
 
-    fn subscription(&self) -> Subscription<Self::Message> {
+    fn subscription(&self) -> Subscription<MainMessage> {
         match self {
             Main::Loading { notifications, .. } => {
-                iced::Subscription::from_recipe(notifications.clone())
-                    .map(Self::Message::LoadProgressed)
+                iced::advanced::subscription::from_recipe(notifications.clone())
+                    .map(MainMessage::LoadProgressed)
             }
-            Main::Loaded(state) => state.subscription().map(Self::Message::EditorMessage),
+            Main::Loaded(state) => state.subscription().map(MainMessage::EditorMessage),
             _ => Subscription::none(),
         }
     }

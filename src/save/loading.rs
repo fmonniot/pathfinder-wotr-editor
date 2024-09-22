@@ -1,10 +1,7 @@
 use super::SaveError;
 use crate::data::{Header, Party, Player};
 use async_channel::{Receiver, Sender};
-use iced::advanced::{
-    subscription::{EventStream, Recipe},
-    Hasher,
-};
+use iced::advanced::subscription::{EventStream, Hasher, Recipe};
 use std::hash::Hash;
 use std::path::PathBuf;
 

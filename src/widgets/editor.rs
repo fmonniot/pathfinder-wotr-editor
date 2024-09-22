@@ -2,11 +2,11 @@ use crate::data::{Character, Party, Player};
 use crate::json::Id;
 use crate::save::{SaveError, SaveNotifications, SavingSaveGame, SavingStep};
 use crate::theme::{self, BECKETT_FONT, BOOKLETTER_1911};
-use crate::widgets::{CharacterMessage, CharacterWidget, Element, PlayerMessage, PlayerWidget};
+use crate::widgets::{CharacterMessage, CharacterWidget, PlayerMessage, PlayerWidget};
 use iced::{
     alignment,
     widget::{button, column, container, progress_bar, row, text},
-    Alignment, Command, Length, Subscription,
+    Alignment, Element, Length, Subscription, Task,
 };
 use std::path::PathBuf;
 use std::vec;
@@ -61,7 +61,7 @@ impl EditorWidget {
         }
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         log::debug!("Message received: {:?}", message);
         match message {
             Message(Msg::Save) => {
@@ -75,13 +75,13 @@ impl EditorWidget {
                 );
                 self.saving = Some(receiver);
 
-                Command::perform(saving.save(), |res| {
+                Task::perform(saving.save(), |res| {
                     Message(Msg::SavingResult(Box::new(res)))
                 })
             }
             Message(Msg::SavingChange(step)) => {
                 self.save_progress = Some(step);
-                Command::none()
+                Task::none()
             }
             Message(Msg::SavingResult(res)) => {
                 // TODO Keep the progress bar on fail (and change its color) ?
@@ -94,17 +94,17 @@ impl EditorWidget {
                 self.save_progress = None;
                 self.saving = None;
 
-                Command::none()
+                Task::none()
             }
 
             Message(Msg::ChangeActivePane(new_pane)) => {
                 self.active_pane = new_pane;
-                Command::none()
+                Task::none()
             }
             Message(Msg::SwitchCharacter(active_character_id)) => {
                 self.active_character = active_character_id;
 
-                Command::none()
+                Task::none()
             }
 
             Message(Msg::CharacterMessage(msg)) => self
@@ -163,32 +163,32 @@ impl EditorWidget {
 
     pub fn subscription(&self) -> Subscription<Message> {
         match &self.saving {
-            Some(s) => {
-                iced::Subscription::from_recipe(s.clone()).map(|s| Message(Msg::SavingChange(s)))
-            }
+            Some(s) => iced::advanced::subscription::from_recipe(s.clone())
+                .map(|s| Message(Msg::SavingChange(s))),
             None => Subscription::none(),
         }
     }
 }
 
 fn pane_selector(active: Pane, save_progress: Option<SavingStep>) -> Element<'static, Message> {
-    let build_tile = |label: &'static str, message: Message, is_active| {
+    let build_tile = |label: &'static str, message: Message, is_active: bool| {
         let txt = text(label)
             .font(BECKETT_FONT)
             .size(30)
-            .horizontal_alignment(alignment::Horizontal::Center)
-            .vertical_alignment(alignment::Vertical::Center);
+            .align_x(alignment::Horizontal::Center)
+            .align_y(alignment::Vertical::Center);
 
-        button(txt)
-            .on_press(message)
+        let mut btn = button(txt)
             .width(Length::from(100))
             .height(Length::from(80))
             .padding(1)
-            .style(if is_active {
-                theme::Button::PaneSelectorActive
-            } else {
-                theme::Button::PaneSelectorInactive
-            })
+            .style(theme::pane_selector_button);
+
+        if !is_active {
+            btn = btn.on_press(message);
+        }
+
+        btn
     };
 
     let go_to_pane = |target| {
@@ -203,7 +203,7 @@ fn pane_selector(active: Pane, save_progress: Option<SavingStep>) -> Element<'st
     };
 
     let mut layout = column(vec![])
-        .align_items(Alignment::Start)
+        .align_x(Alignment::Start)
         .push(go_to_pane(Pane::Party))
         .push(go_to_pane(Pane::Crusade))
         .push(build_tile("Save", Message(Msg::Save), false));
@@ -218,7 +218,7 @@ fn pane_selector(active: Pane, save_progress: Option<SavingStep>) -> Element<'st
 
     container(layout)
         .height(Length::Fill)
-        .style(theme::Container::PaneSelectorSurface)
+        .style(theme::pane_selector)
         .into()
 }
 
@@ -226,7 +226,7 @@ fn character_selector<'a>(
     characters: &[Character],
     active_character_id: &Id,
 ) -> Element<'a, Message> {
-    let mut col = column(vec![]).width(Length::from(150)).height(Length::Fill);
+    let mut col = column(vec![]).width(Length::from(170)).height(Length::Fill);
 
     for character in characters {
         let active = character.id == *active_character_id;
@@ -234,24 +234,23 @@ fn character_selector<'a>(
         let text = text(character.name())
             .font(BOOKLETTER_1911)
             .size(30)
-            .vertical_alignment(alignment::Vertical::Center)
-            .horizontal_alignment(alignment::Horizontal::Left);
+            .align_y(alignment::Vertical::Center)
+            .align_x(alignment::Horizontal::Left);
 
-        let button = button(text)
-            .on_press(Message(Msg::SwitchCharacter(character.id.clone())))
+        let mut button = button(text)
             .width(Length::Fill)
-            .style(if active {
-                theme::Button::SecondaryMenuItemActive
-            } else {
-                theme::Button::SecondaryMenuItemInactive
-            })
+            .style(theme::secondary_menu_button)
             .padding(10);
+
+        if !active {
+            button = button.on_press(Message(Msg::SwitchCharacter(character.id.clone())))
+        }
 
         col = col.push(button);
     }
 
     container(col)
-        .style(theme::Container::SecondaryMenuSurface)
+        .style(theme::secondary_menu)
         .height(Length::Fill)
         .into()
 }
