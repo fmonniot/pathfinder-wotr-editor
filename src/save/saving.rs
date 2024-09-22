@@ -2,10 +2,7 @@ use super::SaveError;
 use crate::data::Header;
 use crate::json::JsonPatch;
 use async_channel::{Receiver, Sender};
-use iced::advanced::{
-    subscription::{EventStream, Recipe},
-    Hasher,
-};
+use iced::advanced::subscription::{EventStream, Hasher, Recipe};
 use std::hash::Hash;
 use std::io::Write;
 use std::ops::RangeInclusive;
@@ -133,9 +130,13 @@ impl SavingSaveGame {
             let mut original = archive
                 .by_name(&file)
                 .expect("Archive contained file by not really oO");
-            let options = zip::write::SimpleFileOptions::default()
-                .compression_method(original.compression())
-                .last_modified_time(original.last_modified());
+            let mut options =
+                zip::write::SimpleFileOptions::default().compression_method(original.compression());
+
+            if let Some(lm) = original.last_modified() {
+                options = options.last_modified_time(lm);
+            }
+
             let options = match original.unix_mode() {
                 Some(m) => options.unix_permissions(m),
                 None => options,

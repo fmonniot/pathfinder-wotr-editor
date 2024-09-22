@@ -30,6 +30,9 @@ impl std::fmt::Display for JsonPointer {
 #[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize)]
 pub struct Id(String);
 
+// We allow dead code because the fields are used via
+// the Debug derivation.
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum JsonError {
     ArrayExpected(JsonPointer, String),  // path and actual type
