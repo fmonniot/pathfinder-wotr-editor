@@ -20,7 +20,7 @@ zip = { version = "2.2", features = ["deflate"], default-features = false }
 async-channel = "2.3"
 log = "0.4"
 env_logger = "0.11"
-ico = "0.3"
+ico = "0.4"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
