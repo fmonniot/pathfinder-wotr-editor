@@ -16,7 +16,7 @@ tokio = { version = "1", features = ["fs", "macros"] }
 dirs = "6.0"
 async-trait = "0.1"
 futures = "0.3"
-zip = { version = "2.2", features = ["deflate"], default-features = false }
+zip = { version = "2.4", features = ["deflate"], default-features = false }
 async-channel = "2.3"
 log = "0.4"
 env_logger = "0.11"
